@@ -1,0 +1,2 @@
+#!/bin/bash
+docker run -v $(pwd):/host -w /host -it seahorn/seahorn

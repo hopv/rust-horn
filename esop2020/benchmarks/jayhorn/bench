@@ -1,0 +1,14 @@
+#!/bin/bash
+
+OUT=bench.out
+> $OUT
+mkdir tmp
+for file in programs/Inc*.java; do
+	name=${file%.java}
+	echo "jayhorn $file" | tee -a $OUT
+	# with JAVA SE 8
+	javac $file -d tmp | tee -a $OUT
+	java -jar jayhorn.jar -j tmp | tee -a $OUT
+	rm tmp/*
+done
+rm -rf tmp

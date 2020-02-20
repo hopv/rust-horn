@@ -1,0 +1,232 @@
+$ hoice 0-simple/01_unsat.smt2
+sat
+        0.28 real         0.03 user         0.01 sys
+
+$ hoice 0-simple/04_recursive_unsat.smt2
+timeout
+      180.18 real       180.43 user         0.35 sys
+
+$ hoice 0-simple/05_recursive_sat.smt2
+unsat
+        0.03 real         0.01 user         0.00 sys
+
+$ hoice 0-simple/06_loop_unsat.smt2
+sat
+        0.07 real         0.07 user         0.01 sys
+
+$ hoice 0-simple/hhk2008.smt2
+sat
+       40.46 real        40.49 user         0.08 sys
+
+$ hoice 0-simple/unique_scalar.smt2
+unsat
+        0.01 real         0.00 user         0.00 sys
+
+$ hoice 1-bmc/test-bmc-1-false.smt2
+unsat
+        0.01 real         0.00 user         0.00 sys
+
+$ hoice 1-bmc/test-bmc-1-true.smt2
+sat
+        0.02 real         0.00 user         0.00 sys
+
+$ hoice 1-bmc/test-bmc-2-false.smt2
+unsat
+        0.07 real         0.04 user         0.01 sys
+
+$ hoice 1-bmc/test-bmc-2-true.smt2
+sat
+        0.06 real         0.05 user         0.01 sys
+
+$ hoice 1-bmc/test-bmc-3-false.smt2
+unsat
+        0.01 real         0.00 user         0.00 sys
+
+$ hoice 1-bmc/test-bmc-3-true.smt2
+sat
+        0.02 real         0.00 user         0.00 sys
+
+$ hoice 1-bmc/test-bmc-diamond-1-false.smt2
+unsat
+        0.02 real         0.00 user         0.00 sys
+
+$ hoice 1-bmc/test-bmc-diamond-1-true.smt2
+sat
+        0.02 real         0.00 user         0.00 sys
+
+$ hoice 1-bmc/test-bmc-diamond-2-false.smt2
+unsat
+        0.02 real         0.00 user         0.00 sys
+
+$ hoice 1-bmc/test-bmc-diamond-2-true.smt2
+sat
+        0.02 real         0.00 user         0.00 sys
+
+$ hoice 2-inc-max/inc-max-00-0.smt2
+sat
+        0.17 real         0.01 user         0.00 sys
+
+$ hoice 2-inc-max/inc-max-00-1.smt2
+unsat
+        0.17 real         0.01 user         0.00 sys
+
+$ hoice 2-inc-max/inc-max-01-0.smt2
+sat
+        0.29 real         0.01 user         0.00 sys
+
+$ hoice 2-inc-max/inc-max-01-1.smt2
+unsat
+        0.28 real         0.01 user         0.00 sys
+
+$ hoice 2-inc-max/inc-max-10-0.smt2
+timeout
+      180.05 real       180.26 user         0.52 sys
+
+$ hoice 2-inc-max/inc-max-10-1.smt2
+unsat
+        0.70 real         0.41 user         0.01 sys
+
+$ hoice 2-inc-max/inc-max-11-0.smt2
+timeout
+      180.03 real       179.90 user         0.32 sys
+
+$ hoice 2-inc-max/inc-max-11-1.smt2
+unsat
+        3.13 real         1.27 user         0.02 sys
+
+$ hoice 3-swap-dec/swap-dec-00-0.smt2
+sat
+        0.48 real         0.01 user         0.00 sys
+
+$ hoice 3-swap-dec/swap-dec-00-1.smt2
+timeout
+      183.82 real       184.71 user         0.31 sys
+
+$ hoice 3-swap-dec/swap-dec-01-0.smt2
+timeout
+      180.01 real        84.34 user         0.10 sys
+
+$ hoice 3-swap-dec/swap-dec-01-1.smt2
+unsat
+        8.10 real         0.86 user         0.02 sys
+
+$ hoice 3-swap-dec/swap-dec-10-0.smt2
+sat
+        0.49 real         0.49 user         0.01 sys
+
+$ hoice 3-swap-dec/swap-dec-10-1.smt2
+unsat
+       33.05 real        26.03 user         0.03 sys
+
+$ hoice 3-swap-dec/swap-dec-11-0.smt2
+timeout
+      180.20 real       105.03 user         0.26 sys
+
+$ hoice 3-swap-dec/swap-dec-11-1.smt2
+unsat
+        1.50 real         0.38 user         0.01 sys
+
+$ hoice 4-just-rec/just-rec-00-0.smt2
+sat
+        0.15 real         0.00 user         0.00 sys
+
+$ hoice 4-just-rec/just-rec-00-1.smt2
+unsat
+        0.15 real         0.12 user         0.00 sys
+
+$ hoice 5-linger-dec/linger-dec-00-0.smt2
+sat
+        0.16 real         0.00 user         0.00 sys
+
+$ hoice 5-linger-dec/linger-dec-00-1.smt2
+unsat
+        0.21 real         0.13 user         0.00 sys
+
+$ hoice 5-linger-dec/linger-dec-01-0.smt2
+sat
+        0.28 real         0.02 user         0.00 sys
+
+$ hoice 5-linger-dec/linger-dec-01-1.smt2
+unsat
+       11.52 real         7.01 user         0.02 sys
+
+$ hoice 5-linger-dec/linger-dec-10-0.smt2
+sat
+        0.27 real         0.00 user         0.00 sys
+
+$ hoice 5-linger-dec/linger-dec-10-1.smt2
+unsat
+        0.27 real         0.23 user         0.01 sys
+
+$ hoice 5-linger-dec/linger-dec-11-0.smt2
+sat
+        0.44 real         0.02 user         0.00 sys
+
+$ hoice 5-linger-dec/linger-dec-11-1.smt2
+unsat
+        1.35 real         0.55 user         0.01 sys
+
+$ hoice 6-lists/0-append-sum-0.smt2
+sat
+        0.25 real         0.00 user         0.00 sys
+
+$ hoice 6-lists/0-append-sum-1.smt2
+unsat
+        0.27 real         0.22 user         0.01 sys
+
+$ hoice 6-lists/1-inc-sum-length-0.smt2
+sat
+        0.33 real         0.00 user         0.00 sys
+
+$ hoice 6-lists/1-inc-sum-length-1.smt2
+unsat
+        0.37 real         0.30 user         0.01 sys
+
+$ hoice 6-lists/2-inc-some-0.smt2
+sat
+        0.32 real         0.01 user         0.00 sys
+
+$ hoice 6-lists/2-inc-some-1.smt2
+unsat
+        0.58 real         0.29 user         0.01 sys
+
+$ hoice 6-lists/3-inc-some-two-0.smt2
+timeout
+      180.00 real       154.42 user         0.20 sys
+
+$ hoice 6-lists/3-inc-some-two-1.smt2
+unsat
+        0.66 real         0.25 user         0.01 sys
+
+$ hoice 7-trees/0-append-some-sum-0.smt2
+sat
+        0.49 real         0.00 user         0.00 sys
+
+$ hoice 7-trees/0-append-some-sum-1.smt2
+unsat
+        0.33 real         0.28 user         0.01 sys
+
+$ hoice 7-trees/1-inc-sum-size-0.smt2
+timeout
+      180.11 real       154.66 user         0.13 sys
+
+$ hoice 7-trees/1-inc-sum-size-1.smt2
+unsat
+        0.18 real         0.14 user         0.00 sys
+
+$ hoice 7-trees/2-inc-some-0.smt2
+timeout
+      180.01 real       159.27 user         0.10 sys
+
+$ hoice 7-trees/2-inc-some-1.smt2
+unsat
+        0.86 real         0.27 user         0.01 sys
+
+$ hoice 7-trees/3-inc-some-two-0.smt2
+timeout
+      180.02 real       150.18 user         0.14 sys
+
+$ hoice 7-trees/3-inc-some-two-1.smt2
+unsat
+        0.84 real         0.40 user         0.01 sys
+
