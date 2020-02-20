@@ -5,6 +5,6 @@
 
 ## Dependencies
 
-- Rust Compiler: rustc 1.43.0-nightly (e620d0f33 2020-02-18)
-- Spacer: Z3 4.8.7 (available at https://github.com/Z3Prover/z3/releases, also at HomeBrew)
-- HoIce: hoice 1.8.1 (available at https://github.com/hopv/hoice); Z3 4.7.1 is used as a backend SMT solver to deal with recursive data types
+- Rust Compiler: `rustc 1.43.0-nightly (e620d0f33 2020-02-18)`
+- Spacer: [`z3 4.8.7`](https://github.com/Z3Prover/z3/releases/tag/z3-4.8.7)
+- HoIce: [`hoice 1.8.1`](https://github.com/hopv/hoice); [`z3 4.7.1`](https://github.com/Z3Prover/z3/releases/tag/z3-4.7.1) is used as a backend SMT solver to deal well with recursive data types
