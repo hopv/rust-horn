@@ -84,6 +84,7 @@ pub enum Const {
   Bool(bool),
   Int(i64),
   Real(f64),
+  Unit,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -340,6 +341,7 @@ fn ty_cnst_to_cnst<'tcx>(ty_cnst: &'tcx TyConst<'tcx>) -> Const {
     TyK::Int(_) | TyK::Uint(_) => Const::Int(buf.parse().unwrap()),
     TyK::Float(_) => Const::Real(buf.parse().unwrap()),
     TyK::Bool => Const::Bool(buf.parse().unwrap()),
+    TyK::Tuple(substs) if substs.len() == 0 => Const::Unit,
     _ => panic!("unexpected type {:?}", ty_cnst.ty),
   }
 }

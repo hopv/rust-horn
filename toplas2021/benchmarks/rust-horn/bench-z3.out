@@ -1,3 +1,174 @@
-$ z3 */*.smt2
-(error "failed to open file '*/*.smt2'")
+$ z3 1-simple/01_unsat.smt2
+sat
+
+$ z3 1-simple/04_recursive_unsat.smt2
+sat
+
+$ z3 1-simple/05_recursive_sat.smt2
+unsat
+
+$ z3 1-simple/06_loop_unsat.smt2
+timeout
+
+$ z3 1-simple/hhk2008.smt2
+timeout
+
+$ z3 1-simple/unique_scalar.smt2
+unsat
+
+$ z3 2-bmc/test-bmc-1-false.smt2
+unsat
+
+$ z3 2-bmc/test-bmc-1-true.smt2
+sat
+
+$ z3 2-bmc/test-bmc-2-false.smt2
+unsat
+
+$ z3 2-bmc/test-bmc-2-true.smt2
+timeout
+
+$ z3 2-bmc/test-bmc-3-false.smt2
+unsat
+
+$ z3 2-bmc/test-bmc-3-true.smt2
+sat
+
+$ z3 2-bmc/test-bmc-diamond-1-false.smt2
+unsat
+
+$ z3 2-bmc/test-bmc-diamond-1-true.smt2
+sat
+
+$ z3 2-bmc/test-bmc-diamond-2-false.smt2
+unsat
+
+$ z3 2-bmc/test-bmc-diamond-2-true.smt2
+sat
+
+$ z3 3-inc-max/inc-max-1-base-safe.smt2
+sat
+
+$ z3 3-inc-max/inc-max-1-base-unsafe.smt2
+unsat
+
+$ z3 3-inc-max/inc-max-2-base3-safe.smt2
+sat
+
+$ z3 3-inc-max/inc-max-2-base3-unsafe.smt2
+unsat
+
+$ z3 3-inc-max/inc-max-3-repeat-safe.smt2
+sat
+
+$ z3 3-inc-max/inc-max-3-repeat-unsafe.smt2
+unsat
+
+$ z3 3-inc-max/inc-max-4-repeat3-safe.smt2
+sat
+
+$ z3 3-inc-max/inc-max-4-repeat3-unsafe.smt2
+unsat
+
+$ z3 4-swap-dec/swap-dec-1-base-safe.smt2
+sat
+
+$ z3 4-swap-dec/swap-dec-1-base-unsafe.smt2
+unsat
+
+$ z3 4-swap-dec/swap-dec-2-base3-safe.smt2
+sat
+
+$ z3 4-swap-dec/swap-dec-2-base3-unsafe.smt2
+unsat
+
+$ z3 4-swap-dec/swap-dec-3-exact-safe.smt2
+sat
+
+$ z3 4-swap-dec/swap-dec-3-exact-unsafe.smt2
+unsat
+
+$ z3 4-swap-dec/swap-dec-4-exact3-safe.smt2
+timeout
+
+$ z3 4-swap-dec/swap-dec-4-exact3-unsafe.smt2
+unsat
+
+$ z3 6-just-rec/just-rec-1-base-safe.smt2
+sat
+
+$ z3 6-just-rec/just-rec-1-base-unsafe.smt2
+unsat
+
+$ z3 7-linger-dec/linger-dec-1-basic-safe.smt2
+sat
+
+$ z3 7-linger-dec/linger-dec-1-basic-unsafe.smt2
+unsat
+
+$ z3 7-linger-dec/linger-dec-2-basic3-safe.smt2
+sat
+
+$ z3 7-linger-dec/linger-dec-2-basic3-unsafe.smt2
+unsat
+
+$ z3 7-linger-dec/linger-dec-3-exact-safe.smt2
+sat
+
+$ z3 7-linger-dec/linger-dec-3-exact-unsafe.smt2
+unsat
+
+$ z3 7-linger-dec/linger-dec-4-exact3-safe.smt2
+sat
+
+$ z3 7-linger-dec/linger-dec-4-exact3-unsafe.smt2
+unsat
+
+$ z3 8-lists/lists-1-append-safe.smt2
+unsat
+
+$ z3 8-lists/lists-1-append-unsafe.smt2
+unsat
+
+$ z3 8-lists/lists-2-inc-all-safe.smt2
+unsat
+
+$ z3 8-lists/lists-2-inc-all-unsafe.smt2
+unsat
+
+$ z3 8-lists/lists-3-inc-some-safe.smt2
+unsat
+
+$ z3 8-lists/lists-3-inc-some-unsafe.smt2
+unsat
+
+$ z3 8-lists/lists-4-inc-some2-safe.smt2
+unsat
+
+$ z3 8-lists/lists-4-inc-some2-unsafe.smt2
+unsat
+
+$ z3 9-trees/trees-1-append-safe.smt2
+unsat
+
+$ z3 9-trees/trees-1-append-unsafe.smt2
+unsat
+
+$ z3 9-trees/trees-2-inc-all-safe.smt2
+unsat
+
+$ z3 9-trees/trees-2-inc-all-unsafe.smt2
+unsat
+
+$ z3 9-trees/trees-3-inc-some-safe.smt2
+unknown
+
+$ z3 9-trees/trees-3-inc-some-unsafe.smt2
+unsat
+
+$ z3 9-trees/trees-4-inc-some2-safe.smt2
+timeout
+
+$ z3 9-trees/trees-4-inc-some2-unsafe.smt2
+unsat
 

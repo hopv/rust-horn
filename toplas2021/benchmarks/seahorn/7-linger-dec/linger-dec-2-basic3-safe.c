@@ -1,5 +1,5 @@
 #include "seahorn/seahorn.h"
-edtern int nd();
+extern int nd();
 
 void linger_dec_three(int *ma, int *mb, int *mc) {
   *ma -= 1;

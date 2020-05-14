@@ -1,12 +1,12 @@
 fn rand<T>() -> T { loop {} }
 
-enum Tree<T> {
-  Node(Box<Tree<T>>, T, Box<Tree<T>>),
+enum Tree {
+  Node(Box<Tree>, i32, Box<Tree>),
   Leaf,
 }
 use Tree::*;
 
-fn append<'a>(mta: &'a mut Tree<i32>, tb: Tree<i32>) {
+fn append<'a>(mta: &'a mut Tree, tb: Tree) {
   match mta {
     Node(mtal, _, mtar) => {
       if rand() {
@@ -20,15 +20,15 @@ fn append<'a>(mta: &'a mut Tree<i32>, tb: Tree<i32>) {
     }
   }
 }
-fn sum(ta: &Tree<i32>) -> i32 {
+fn sum(ta: &Tree) -> i32 {
   match ta {
     Node(tal, a, tar) => sum(tal) + a + sum(tar),
     Leaf => 0,
   }
 }
 fn main() {
-  let mut ta = rand::<Tree<i32>>();
-  let tb = rand::<Tree<i32>>();
+  let mut ta = rand::<Tree>();
+  let tb = rand::<Tree>();
   let m = sum(&ta);
   let n = sum(&tb);
   append(&mut ta, tb);

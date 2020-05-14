@@ -1,210 +1,174 @@
-$ z3 0-simple/01_unsat.smt2
+$ z3 1-simple/01_unsat.smt2
 unsat
 
-$ z3 0-simple/04_recursive_unsat.smt2
+$ z3 1-simple/04_recursive_unsat.smt2
 unsat
 
-$ z3 0-simple/05_recursive_sat.smt2
+$ z3 1-simple/05_recursive_sat.smt2
 sat
 
-$ z3 0-simple/06_loop_unsat.smt2
+$ z3 1-simple/06_loop_unsat.smt2
 timeout
 
-$ z3 0-simple/hhk2008.smt2
+$ z3 1-simple/hhk2008.smt2
 unsat
 
-$ z3 0-simple/unique_scalar.smt2
+$ z3 1-simple/unique_scalar.smt2
 sat
 
-$ z3 1-bmc/test-bmc-1.false.smt2
+$ z3 2-bmc/test-bmc-1.false.smt2
 sat
 
-$ z3 1-bmc/test-bmc-1.true.smt2
+$ z3 2-bmc/test-bmc-1.true.smt2
 unsat
 
-$ z3 1-bmc/test-bmc-2.false.smt2
+$ z3 2-bmc/test-bmc-2.false.smt2
 sat
 
-$ z3 1-bmc/test-bmc-2.true.smt2
+$ z3 2-bmc/test-bmc-2.true.smt2
 unsat
 
-$ z3 1-bmc/test-bmc-3.false.smt2
+$ z3 2-bmc/test-bmc-3.false.smt2
 sat
 
-$ z3 1-bmc/test-bmc-3.true.smt2
+$ z3 2-bmc/test-bmc-3.true.smt2
 unsat
 
-$ z3 1-bmc/test-bmc-diamond-1.false.smt2
+$ z3 2-bmc/test-bmc-diamond-1.false.smt2
 sat
 
-$ z3 1-bmc/test-bmc-diamond-1.true.smt2
+$ z3 2-bmc/test-bmc-diamond-1.true.smt2
 unsat
 
-$ z3 1-bmc/test-bmc-diamond-2.false.smt2
+$ z3 2-bmc/test-bmc-diamond-2.false.smt2
 sat
 
-$ z3 1-bmc/test-bmc-diamond-2.true.smt2
+$ z3 2-bmc/test-bmc-diamond-2.true.smt2
 unsat
 
-$ z3 2-inc-max/inc-max-00-0.smt2
+$ z3 3-inc-max/inc-max-1-base-safe.smt2
 sat
 
-$ z3 2-inc-max/inc-max-00-0m.smt2
+$ z3 3-inc-max/inc-max-1-base-unsafe.smt2
+sat
+
+$ z3 3-inc-max/inc-max-2-base3-safe.smt2
+sat
+
+$ z3 3-inc-max/inc-max-2-base3-unsafe.smt2
+sat
+
+$ z3 3-inc-max/inc-max-3-repeat-safe.smt2
+sat
+
+$ z3 3-inc-max/inc-max-3-repeat-unsafe.smt2
+sat
+
+$ z3 3-inc-max/inc-max-4-repeat3-safe.smt2
+sat
+
+$ z3 3-inc-max/inc-max-4-repeat3-unsafe.smt2
+sat
+
+$ z3 4-swap-dec/swap-dec-1-base-safe.smt2
+sat
+
+$ z3 4-swap-dec/swap-dec-1-base-unsafe.smt2
+sat
+
+$ z3 4-swap-dec/swap-dec-2-base3-safe.smt2
+sat
+
+$ z3 4-swap-dec/swap-dec-2-base3-unsafe.smt2
+sat
+
+$ z3 4-swap-dec/swap-dec-3-exact-safe.smt2
+sat
+
+$ z3 4-swap-dec/swap-dec-3-exact-unsafe.smt2
+sat
+
+$ z3 4-swap-dec/swap-dec-4-exact3-safe.smt2
+sat
+
+$ z3 4-swap-dec/swap-dec-4-exact3-unsafe.smt2
+sat
+
+$ z3 6-just-rec/just-rec-1-base-safe.smt2
 unsat
 
-$ z3 2-inc-max/inc-max-00-1.smt2
+$ z3 6-just-rec/just-rec-1-base-unsafe.smt2
 sat
 
-$ z3 2-inc-max/inc-max-00-1m.smt2
+$ z3 7-linger-dec/linger-dec-1-basic-safe.smt2
 sat
 
-$ z3 2-inc-max/inc-max-01-0.smt2
+$ z3 7-linger-dec/linger-dec-1-basic-unsafe.smt2
 sat
 
-$ z3 2-inc-max/inc-max-01-1.smt2
+$ z3 7-linger-dec/linger-dec-2-basic3-safe.smt2
 sat
 
-$ z3 2-inc-max/inc-max-10-0.smt2
+$ z3 7-linger-dec/linger-dec-2-basic3-unsafe.smt2
 sat
 
-$ z3 2-inc-max/inc-max-10-0m.smt2
-unsat
-
-$ z3 2-inc-max/inc-max-10-1.smt2
+$ z3 7-linger-dec/linger-dec-3-exact-safe.smt2
 sat
 
-$ z3 2-inc-max/inc-max-10-1m.smt2
+$ z3 7-linger-dec/linger-dec-3-exact-unsafe.smt2
 sat
 
-$ z3 2-inc-max/inc-max-11-0.smt2
+$ z3 7-linger-dec/linger-dec-4-exact3-safe.smt2
 sat
 
-$ z3 2-inc-max/inc-max-11-1.smt2
+$ z3 7-linger-dec/linger-dec-4-exact3-unsafe.smt2
 sat
 
-$ z3 3-swap-dec/swap-dec-00-0.smt2
+$ z3 8-lists/lists-1-append-safe.smt2
 sat
 
-$ z3 3-swap-dec/swap-dec-00-0m.smt2
-unsat
-
-$ z3 3-swap-dec/swap-dec-00-1.smt2
+$ z3 8-lists/lists-1-append-unsafe.smt2
 sat
 
-$ z3 3-swap-dec/swap-dec-00-1m.smt2
+$ z3 8-lists/lists-2-inc-all-safe.smt2
 sat
 
-$ z3 3-swap-dec/swap-dec-01-0.smt2
+$ z3 8-lists/lists-2-inc-all-unsafe.smt2
 sat
 
-$ z3 3-swap-dec/swap-dec-01-0m.smt2
-unsat
-
-$ z3 3-swap-dec/swap-dec-01-1.smt2
+$ z3 8-lists/lists-3-inc-some-safe.smt2
 sat
 
-$ z3 3-swap-dec/swap-dec-01-1m.smt2
+$ z3 8-lists/lists-3-inc-some-unsafe.smt2
 sat
 
-$ z3 3-swap-dec/swap-dec-10-0.smt2
+$ z3 8-lists/lists-4-inc-some2-safe.smt2
 sat
 
-$ z3 3-swap-dec/swap-dec-10-0m.smt2
+$ z3 8-lists/lists-4-inc-some2-unsafe.smt2
+sat
+
+$ z3 9-trees/trees-1-append-safe.smt2
+sat
+
+$ z3 9-trees/trees-1-append-unsafe.smt2
+sat
+
+$ z3 9-trees/trees-2-inc-all-safe.smt2
 timeout
 
-$ z3 3-swap-dec/swap-dec-10-1.smt2
+$ z3 9-trees/trees-2-inc-all-unsafe.smt2
 sat
 
-$ z3 3-swap-dec/swap-dec-10-1m.smt2
-sat
-
-$ z3 3-swap-dec/swap-dec-11-0.smt2
-sat
-
-$ z3 3-swap-dec/swap-dec-11-0m.smt2
-sat
-
-$ z3 3-swap-dec/swap-dec-11-1.smt2
-sat
-
-$ z3 3-swap-dec/swap-dec-11-1m.smt2
-sat
-
-$ z3 4-just-rec/just-rec-00-0.smt2
-unsat
-
-$ z3 4-just-rec/just-rec-00-1.smt2
-sat
-
-$ z3 5-linger-dec/linger-dec-00-0.smt2
-sat
-
-$ z3 5-linger-dec/linger-dec-00-1.smt2
-sat
-
-$ z3 5-linger-dec/linger-dec-01-0.smt2
-sat
-
-$ z3 5-linger-dec/linger-dec-01-1.smt2
-sat
-
-$ z3 5-linger-dec/linger-dec-10-0.smt2
-sat
-
-$ z3 5-linger-dec/linger-dec-10-1.smt2
-sat
-
-$ z3 5-linger-dec/linger-dec-11-0.smt2
-sat
-
-$ z3 5-linger-dec/linger-dec-11-1.smt2
-sat
-
-$ z3 6-lists/0-append-sum-0.smt2
-sat
-
-$ z3 6-lists/0-append-sum-1.smt2
-sat
-
-$ z3 6-lists/1-inc-sum-length-0.smt2
-sat
-
-$ z3 6-lists/1-inc-sum-length-1.smt2
-sat
-
-$ z3 6-lists/2-inc-some-0.smt2
-sat
-
-$ z3 6-lists/2-inc-some-1.smt2
-sat
-
-$ z3 6-lists/3-inc-some-two-0.smt2
-sat
-
-$ z3 6-lists/3-inc-some-two-1.smt2
-sat
-
-$ z3 7-trees/0-append-some-sum-0.smt2
-sat
-
-$ z3 7-trees/0-append-some-sum-1.smt2
-sat
-
-$ z3 7-trees/1-inc-sum-length-0.smt2
+$ z3 9-trees/trees-3-inc-some-safe.smt2
 timeout
 
-$ z3 7-trees/1-inc-sum-length-1.smt2
+$ z3 9-trees/trees-3-inc-some-unsafe.smt2
 sat
 
-$ z3 7-trees/2-inc-some-0.smt2
-timeout
-
-$ z3 7-trees/2-inc-some-1.smt2
+$ z3 9-trees/trees-4-inc-some2-safe.smt2
 sat
 
-$ z3 7-trees/3-inc-some-two-0.smt2
-sat
-
-$ z3 7-trees/3-inc-some-two-1.smt2
+$ z3 9-trees/trees-4-inc-some2-unsafe.smt2
 sat
 

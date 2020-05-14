@@ -310,6 +310,7 @@ impl Display for Rep<Const> {
       Const::Bool(b) => write!(f, "{}", b),
       Const::Int(n) => write!(f, "{}", n),
       Const::Real(a) => write!(f, "{}", a),
+      Const::Unit => write!(f, "~tup0"),
     }
   }
 }
@@ -413,11 +414,15 @@ impl Display for RepEnd<'_, '_> {
       }
       End::Return { res } => {
         if fun_name == &"%main" {
-          assert!(res.is_none());
           write!(f, "(= _! false)")
         } else {
           if let Some(expr) = res {
-            write!(f, "(= _@ {})", rep(expr))
+            let r = format!("{}", rep(expr));
+            if r == "~tup0" {
+              write!(f, "true")
+            } else {
+              write!(f, "(= _@ {})", r)
+            }
           } else {
             write!(f, "true")
           }
