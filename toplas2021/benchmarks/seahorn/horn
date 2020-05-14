@@ -1,0 +1,9 @@
+#!/bin/bash
+
+for file in */*.c; do
+  echo "horn $file"
+  name=${file%.c}
+  time (sea fe "$name.c" -o "$name.bc"; sea horn "$name.bc" -o "$name.smt2")
+  rm "$name.bc"
+  echo ""
+done

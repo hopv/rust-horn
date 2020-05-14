@@ -1,0 +1,174 @@
+$ hoice 0-simple/01_unsat.smt2
+sat
+
+$ hoice 0-simple/04_recursive_unsat.smt2
+timeout
+
+$ hoice 0-simple/05_recursive_sat.smt2
+unsat
+
+$ hoice 0-simple/06_loop_unsat.smt2
+sat
+
+$ hoice 0-simple/hhk2008.smt2
+timeout
+
+$ hoice 0-simple/unique_scalar.smt2
+unsat
+
+$ hoice 1-bmc/test-bmc-1-false.smt2
+unsat
+
+$ hoice 1-bmc/test-bmc-1-true.smt2
+sat
+
+$ hoice 1-bmc/test-bmc-2-false.smt2
+unsat
+
+$ hoice 1-bmc/test-bmc-2-true.smt2
+sat
+
+$ hoice 1-bmc/test-bmc-3-false.smt2
+unsat
+
+$ hoice 1-bmc/test-bmc-3-true.smt2
+sat
+
+$ hoice 1-bmc/test-bmc-diamond-1-false.smt2
+unsat
+
+$ hoice 1-bmc/test-bmc-diamond-1-true.smt2
+sat
+
+$ hoice 1-bmc/test-bmc-diamond-2-false.smt2
+unsat
+
+$ hoice 1-bmc/test-bmc-diamond-2-true.smt2
+sat
+
+$ hoice 2-inc-max/inc-max-00-0.smt2
+sat
+
+$ hoice 2-inc-max/inc-max-00-1.smt2
+unsat
+
+$ hoice 2-inc-max/inc-max-01-0.smt2
+sat
+
+$ hoice 2-inc-max/inc-max-01-1.smt2
+unsat
+
+$ hoice 2-inc-max/inc-max-10-0.smt2
+timeout
+
+$ hoice 2-inc-max/inc-max-10-1.smt2
+unsat
+
+$ hoice 2-inc-max/inc-max-11-0.smt2
+timeout
+
+$ hoice 2-inc-max/inc-max-11-1.smt2
+unsat
+
+$ hoice 3-swap-dec/swap-dec-00-0.smt2
+sat
+
+$ hoice 3-swap-dec/swap-dec-00-1.smt2
+timeout
+
+$ hoice 3-swap-dec/swap-dec-01-0.smt2
+timeout
+
+$ hoice 3-swap-dec/swap-dec-01-1.smt2
+timeout
+
+$ hoice 3-swap-dec/swap-dec-10-0.smt2
+sat
+
+$ hoice 3-swap-dec/swap-dec-10-1.smt2
+timeout
+
+$ hoice 3-swap-dec/swap-dec-11-0.smt2
+timeout
+
+$ hoice 3-swap-dec/swap-dec-11-1.smt2
+unsat
+
+$ hoice 4-just-rec/just-rec-00-0.smt2
+sat
+
+$ hoice 4-just-rec/just-rec-00-1.smt2
+unsat
+
+$ hoice 5-linger-dec/linger-dec-00-0.smt2
+sat
+
+$ hoice 5-linger-dec/linger-dec-00-1.smt2
+unsat
+
+$ hoice 5-linger-dec/linger-dec-01-0.smt2
+sat
+
+$ hoice 5-linger-dec/linger-dec-01-1.smt2
+timeout
+
+$ hoice 5-linger-dec/linger-dec-10-0.smt2
+sat
+
+$ hoice 5-linger-dec/linger-dec-10-1.smt2
+unsat
+
+$ hoice 5-linger-dec/linger-dec-11-0.smt2
+sat
+
+$ hoice 5-linger-dec/linger-dec-11-1.smt2
+unsat
+
+$ hoice 6-lists/0-append-sum-0.smt2
+sat
+
+$ hoice 6-lists/0-append-sum-1.smt2
+unsat
+
+$ hoice 6-lists/1-inc-sum-length-0.smt2
+sat
+
+$ hoice 6-lists/1-inc-sum-length-1.smt2
+unsat
+
+$ hoice 6-lists/2-inc-some-0.smt2
+sat
+
+$ hoice 6-lists/2-inc-some-1.smt2
+unsat
+
+$ hoice 6-lists/3-inc-some-two-0.smt2
+timeout
+
+$ hoice 6-lists/3-inc-some-two-1.smt2
+unsat
+
+$ hoice 7-trees/0-append-some-sum-0.smt2
+sat
+
+$ hoice 7-trees/0-append-some-sum-1.smt2
+unsat
+
+$ hoice 7-trees/1-inc-sum-size-0.smt2
+timeout
+
+$ hoice 7-trees/1-inc-sum-size-1.smt2
+unsat
+
+$ hoice 7-trees/2-inc-some-0.smt2
+timeout
+
+$ hoice 7-trees/2-inc-some-1.smt2
+unsat
+
+$ hoice 7-trees/3-inc-some-two-0.smt2
+timeout
+
+$ hoice 7-trees/3-inc-some-two-1.smt2
+unsat
+
