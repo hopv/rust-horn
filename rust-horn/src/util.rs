@@ -1,20 +1,21 @@
-use rustc::mir::interpret::{ConstValue, Scalar};
-use rustc::mir::{
-  BasicBlock as BB, BasicBlockData as BBD, BodyAndCache, Field as FldIdx, Local, Terminator as Tmnt,
-};
-use rustc::ty::layout::VariantIdx as VrtIdx;
-use rustc::ty::subst::InternalSubsts as Substs;
-use rustc::ty::{Const, ConstKind, FieldDef as FldDef, ParamEnv, Ty, TyCtxt, TyKind as TyK};
 use rustc_hir::def_id::{DefId, LOCAL_CRATE};
 use rustc_index::vec::IndexVec;
+use rustc_middle::mir::interpret::{ConstValue, Scalar};
+use rustc_middle::mir::{
+  BasicBlock as BB, BasicBlockData as BBD, Body as MirBody, Field as FldIdx, Local,
+  Terminator as Tmnt,
+};
+use rustc_middle::ty::subst::InternalSubsts as Substs;
+use rustc_middle::ty::{Const, ConstKind, FieldDef as FldDef, ParamEnv, Ty, TyCtxt, TyKind as TyK};
+use rustc_target::abi::VariantIdx as VrtIdx;
 use std::cmp::Ord;
 use std::collections::{HashMap as Map, HashSet as Set};
 
-pub const BB0: BB = BB::from_u32_const(0);
-pub const _0: Local = Local::from_u32_const(0);
-pub const VRT0: VrtIdx = VrtIdx::from_u32_const(0);
-pub const FLD0: FldIdx = FldIdx::from_u32_const(0);
-pub const FLD1: FldIdx = FldIdx::from_u32_const(1);
+pub const BB0: BB = BB::from_u32(0);
+pub const _0: Local = Local::from_u32(0);
+pub const VRT0: VrtIdx = VrtIdx::from_u32(0);
+pub const FLD0: FldIdx = FldIdx::from_u32(0);
+pub const FLD1: FldIdx = FldIdx::from_u32(1);
 
 pub type BBDs<'tcx> = IndexVec<BB, BBD<'tcx>>;
 
@@ -26,16 +27,15 @@ pub fn enumerate_bbds<'a, 'tcx>(bbds: &'a BBDs<'tcx>) -> impl Iterator<Item = (B
   bbds.iter().enumerate().filter(|(_, bbd)| !bbd.is_cleanup).map(|(i, bbd)| (BB::from(i), bbd))
 }
 
-pub fn enumerate_mirs<'tcx>(
-  tcx: TyCtxt<'tcx>,
-) -> impl Iterator<Item = (DefId, &BodyAndCache<'tcx>)> {
+pub fn enumerate_mirs<'tcx>(tcx: TyCtxt<'tcx>) -> impl Iterator<Item = (DefId, &MirBody<'tcx>)> {
   tcx
     .mir_keys(LOCAL_CRATE)
     .iter()
-    .filter(move |&&fun| {
+    .map(|fun| fun.to_def_id())
+    .filter(move |&fun| {
       tcx.def_path(fun).data.iter().all(|elem| &elem.data.to_string() != "{{constructor}}")
     })
-    .map(move |&fun| {
+    .map(move |fun| {
       let mir = tcx.optimized_mir(fun);
       (fun, mir)
     })

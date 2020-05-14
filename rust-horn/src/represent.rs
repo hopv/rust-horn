@@ -1,9 +1,9 @@
-use rustc::mir::{BasicBlock as BB, Field as FldIdx};
-use rustc::ty::layout::VariantIdx as VrtIdx;
-use rustc::ty::subst::InternalSubsts as Substs;
-use rustc::ty::{AdtDef, Ty, TyCtxt, TyKind as TyK, VariantDef as VrtDef};
 use rustc_hir::def_id::DefId;
 use rustc_hir::Mutability;
+use rustc_middle::mir::{BasicBlock as BB, Field as FldIdx};
+use rustc_middle::ty::subst::InternalSubsts as Substs;
+use rustc_middle::ty::{AdtDef, Ty, TyCtxt, TyKind as TyK, VariantDef as VrtDef};
+use rustc_target::abi::VariantIdx as VrtIdx;
 
 use std::fmt::{Display, Formatter, Result as FResult};
 

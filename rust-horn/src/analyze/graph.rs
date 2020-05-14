@@ -1,8 +1,8 @@
-use rustc::mir::{
+use rustc_middle::mir::{
   BasicBlock as BB, BasicBlockData as BBD, Local, Operand, Place, Rvalue, StatementKind as StmtK,
   TerminatorKind as TmntK,
 };
-use rustc::ty::TyKind as TyK;
+use rustc_middle::ty::TyKind as TyK;
 
 use std::collections::{HashMap as Map, HashSet as Set};
 use std::ops::Index;

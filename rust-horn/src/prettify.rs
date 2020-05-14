@@ -1,14 +1,14 @@
-use rustc::mir::{
+use rustc_hir::def_id::DefId;
+use rustc_hir::Mutability;
+use rustc_middle::mir::{
   AggregateKind as AggrK, BasicBlock as BB, BinOp, Body, BorrowKind as BorK, Field, Local,
   LocalDecl, NullOp, Operand, Place, ProjectionElem as ProjElem, Rvalue, Statement as Stmt,
   StatementKind as StmtK, Terminator as Tmnt, TerminatorKind as TmntK, UnOp,
 };
-use rustc::ty::layout::VariantIdx;
-use rustc::ty::subst::InternalSubsts as Substs;
-use rustc::ty::tls::with as with_tcx;
-use rustc::ty::{AdtDef, ClosureKind, Const, FnSig, Ty, TyCtxt, TyKind as TyK};
-use rustc_hir::def_id::DefId;
-use rustc_hir::Mutability;
+use rustc_middle::ty::subst::InternalSubsts as Substs;
+use rustc_middle::ty::tls::with as with_tcx;
+use rustc_middle::ty::{AdtDef, ClosureKind, Const, FnSig, Ty, TyCtxt, TyKind as TyK};
+use rustc_target::abi::VariantIdx as VrtIdx;
 
 use std::fmt::{Display, Formatter, Result as FResult};
 use std::iter::once;
@@ -97,10 +97,6 @@ impl Display for Pr<ClosureKind> {
 pub fn pr_adt_name(adt_def: &AdtDef) -> String {
   if adt_def.is_box() {
     format!("Box")
-  } else if adt_def.is_rc() {
-    format!("Rc")
-  } else if adt_def.is_arc() {
-    format!("Arc")
   } else {
     let name = pr_name(adt_def.did);
     if "std::fmt::".is_prefix_of(&name) {
@@ -175,7 +171,7 @@ impl Display for Pr<Local> {
     write!(f, "_{}", local.index())
   }
 }
-impl Display for Pr<VariantIdx> {
+impl Display for Pr<VrtIdx> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let vrt_idx = self.unpr;
     write!(f, "${}", vrt_idx.index())

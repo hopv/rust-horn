@@ -1,12 +1,12 @@
-use rustc::mir::{
+use rustc_hir::def_id::DefId;
+use rustc_hir::Mutability;
+use rustc_middle::mir::{
   BasicBlock as BB, BinOp as MirBinOp, Body, BorrowKind as BorK, Field as FldIdx, Local, NullOp,
   Operand, Place, ProjectionElem as ProjElem, Rvalue, UnOp as MirUnOp,
 };
-use rustc::ty::layout::VariantIdx as VrtIdx;
-use rustc::ty::subst::{InternalSubsts as Substs, Subst};
-use rustc::ty::{Const as TyConst, FieldDef, Ty, TyCtxt, TyKind as TyK};
-use rustc_hir::def_id::DefId;
-use rustc_hir::Mutability;
+use rustc_middle::ty::subst::{InternalSubsts as Substs, Subst};
+use rustc_middle::ty::{Const as TyConst, FieldDef, Ty, TyCtxt, TyKind as TyK};
+use rustc_target::abi::VariantIdx as VrtIdx;
 
 use std::collections::{HashMap as Map, HashSet as Set};
 use std::mem::swap;

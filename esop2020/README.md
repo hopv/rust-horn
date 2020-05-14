@@ -1,4 +1,6 @@
-# Materials for ESOP2020 Paper
+# Materials for the ESOP 2020 Paper
+
+Materials for [the ESOP 2020 paper](https://doi.org/10.1007/978-3-030-44914-8_18).
 
 - [rust-horn](./rust-horn): RustHorn implementation used for the experiments
 - [benchmarks](./benchmarks): Benchmarks and experimental results

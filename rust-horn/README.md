@@ -2,7 +2,7 @@
 
 This is the latest `rust-horn` crate.
 
-It works for `rustc 1.43.0-nightly (e620d0f33 2020-02-18)`.
+It works for `rustc 1.45.0-nightly (75e1463c5 2020-05-13)`.
 Since `rust-horn` leverages [Rust's MIR](https://rust-lang.github.io/rustc-guide/mir/index.html), it depends on Rust's nightly APIs, which are subject to rapid change.
 
 Currently this crate is experimental and not very mature.

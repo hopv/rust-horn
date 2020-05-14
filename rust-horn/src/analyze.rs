@@ -1,11 +1,11 @@
-use rustc::mir::{
+use rustc_hir::def_id::{CrateNum, DefId};
+use rustc_hir::Mutability;
+use rustc_middle::mir::{
   BasicBlock as BB, Field as FldIdx, Local, Operand, Place, Rvalue, Statement,
   StatementKind as StmtK, TerminatorKind as TmntK,
 };
-use rustc::ty::subst::InternalSubsts as Substs;
-use rustc::ty::{AdtDef, Ty, TyCtxt, TyKind as TyK, VariantDef as VrtDef};
-use rustc_hir::def_id::{CrateNum, DefId};
-use rustc_hir::Mutability;
+use rustc_middle::ty::subst::InternalSubsts as Substs;
+use rustc_middle::ty::{AdtDef, Ty, TyCtxt, TyKind as TyK, VariantDef as VrtDef};
 use rustc_session::config::EntryFnType;
 
 use std::collections::{HashMap as Map, HashSet as Set};
