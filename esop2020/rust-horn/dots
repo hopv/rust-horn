@@ -1,4 +1,0 @@
-#!/bin/bash
-for file in $1/*.dot; do
-  dot -K dot -T png "$file" -o "${file%%.dot}.png"
-done
