@@ -17,7 +17,7 @@ typedef struct Pair Pair;
 Pair take_some_rest(Tree tx) {
   if (tx != NULL) {
     if (nd()) {
-      Pair res = {&(tx->val), nd() ? &(tx->left) : &(tx->right)};
+      Pair res = {&(tx->val), nd() ? tx->left : tx->right};
       return res;
     } else {
       return nd() ? take_some_rest(tx->left) : take_some_rest(tx->right);

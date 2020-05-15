@@ -9,7 +9,7 @@ int *take_max(int *ma, int *mb) {
   }
 }
 void inc_max_repeat(int n, int *ma, int *mb) {
-  if (n > 0) {
+  if (n != 0) {
     int *mc = take_max(ma, mb);
     *mc += 1;
     inc_max_repeat(n - 1, ma, mb);

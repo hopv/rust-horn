@@ -11,7 +11,7 @@
 (declare-rel main@entry (Int ))
 (declare-rel main@tailrecurse.i (Int Int (Array Int Int) Int Int ))
 (declare-rel main@tailrecurse.i5 (Int (Array Int Int) Int Int Int Int ))
-(declare-rel main@take_some_rest.exit11.split ())
+(declare-rel main@take_some_rest.exit12.split ())
 (declare-rel main@tailrecurse.us.i4 ())
 (declare-rel main@tailrecurse.us.i ())
 (declare-var nd_tree@%_7_0 Int )
@@ -85,39 +85,40 @@
 (declare-var main@%_13_0 Int )
 (declare-var main@%.tr1.ph.be.in.i_0 Int )
 (declare-var main@%_14_0 Bool )
+(declare-var main@%_25_0 Int )
 (declare-var main@%_26_0 Int )
-(declare-var main@%_27_0 Int )
-(declare-var main@%_28_0 Bool )
+(declare-var main@%_27_0 Bool )
+(declare-var main@%_28_0 Int )
 (declare-var main@%_29_0 Int )
-(declare-var main@%_30_0 Int )
-(declare-var main@%.tr1.ph.be.in.i8_0 Int )
-(declare-var main@%_31_0 Bool )
+(declare-var main@%.tr1.ph.be.in.i9_0 Int )
+(declare-var main@%_30_0 Bool )
+(declare-var main@%_31_0 Int )
 (declare-var main@%_32_0 Int )
-(declare-var main@%_33_0 Int )
+(declare-var main@%_34_0 Int )
 (declare-var main@%_35_0 Int )
-(declare-var main@%_36_0 Int )
-(declare-var main@%_37_0 (Array Int Int) )
+(declare-var main@%_36_0 (Array Int Int) )
+(declare-var main@%_37_0 Int )
 (declare-var main@%_38_0 Int )
-(declare-var main@%_39_0 Int )
+(declare-var main@%_39_0 (Array Int Int) )
 (declare-var main@%_40_0 (Array Int Int) )
-(declare-var main@%_41_0 (Array Int Int) )
+(declare-var main@%_41_0 Int )
 (declare-var main@%_42_0 Int )
-(declare-var main@%_43_0 Int )
-(declare-var main@%_44_0 Bool )
+(declare-var main@%_43_0 Bool )
+(declare-var main@%_22_0 Int )
 (declare-var main@%_23_0 Int )
-(declare-var main@%_24_0 Int )
-(declare-var main@%_25_0 Bool )
-(declare-var main@%.tr1.ph.i116.lcssa_1 Int )
+(declare-var main@%_24_0 Bool )
+(declare-var main@%.tr1.ph.i118.lcssa_1 Int )
 (declare-var main@%_16_0 Int )
 (declare-var main@%_17_0 Int )
 (declare-var main@%_18_0 Bool )
 (declare-var main@%_19_0 Int )
 (declare-var main@%_20_0 Int )
-(declare-var main@%_21_0 Int )
+(declare-var main@%.in.i_0 Int )
+(declare-var main@%_21_0 Bool )
 (declare-var main@%_6_0 Int )
 (declare-var main@%_7_0 Int )
 (declare-var main@%_8_0 Bool )
-(declare-var main@%.tr1.ph.i17.lcssa_1 Int )
+(declare-var main@%.tr1.ph.i19.lcssa_1 Int )
 (declare-var main@%_1_0 (Array Int Int) )
 (declare-var main@%_5_0 Bool )
 (declare-var main@entry_0 Bool )
@@ -126,31 +127,33 @@
 (declare-var main@%_4_0 Int )
 (declare-var main@tailrecurse.i.lr.ph_0 Bool )
 (declare-var main@tailrecurse.i_0 Bool )
-(declare-var main@%.tr1.ph.i17_0 Int )
-(declare-var main@%.tr1.ph.i17_1 Int )
+(declare-var main@%.tr1.ph.i19_0 Int )
+(declare-var main@%.tr1.ph.i19_1 Int )
 (declare-var main@tailrecurse.outer.split.us.i_0 Bool )
 (declare-var main@tailrecurse.us.i_0 Bool )
 (declare-var main@tailrecurse.outer.backedge.i_0 Bool )
 (declare-var main@%.tr1.ph.be.i_0 Int )
 (declare-var main@tailrecurse.i_1 Bool )
-(declare-var main@%.tr1.ph.i17_2 Int )
-(declare-var main@tailrecurse.i5.lr.ph_0 Bool )
-(declare-var main@%.tr1.ph.i17.lcssa_0 Int )
+(declare-var main@%.tr1.ph.i19_2 Int )
+(declare-var main@take_some_rest.exit_0 Bool )
+(declare-var main@%.tr1.ph.i19.lcssa_0 Int )
 (declare-var main@%_15_0 Int )
-(declare-var main@%_22_0 Int )
+(declare-var main@%.tr1.ph.i117_0 Int )
+(declare-var main@tailrecurse.i5.lr.ph_0 Bool )
 (declare-var main@tailrecurse.i5_0 Bool )
-(declare-var main@%.tr1.ph.i116_0 Int )
-(declare-var main@%.tr1.ph.i116_1 Int )
-(declare-var main@tailrecurse.outer.split.us.i.loopexit_0 Bool )
-(declare-var main@tailrecurse.outer.backedge.i10_0 Bool )
-(declare-var main@%.tr1.ph.be.i9_0 Int )
-(declare-var main@tailrecurse.i5_1 Bool )
-(declare-var main@%.tr1.ph.i116_2 Int )
-(declare-var main@take_some_rest.exit11_0 Bool )
-(declare-var main@%.tr1.ph.i116.lcssa_0 Int )
-(declare-var main@take_some_rest.exit11.split_0 Bool )
+(declare-var main@%.tr1.ph.i118_0 Int )
+(declare-var main@%.tr1.ph.i118_1 Int )
 (declare-var main@tailrecurse.outer.split.us.i3_0 Bool )
 (declare-var main@tailrecurse.us.i4_0 Bool )
+(declare-var main@tailrecurse.outer.split.us.i.loopexit_0 Bool )
+(declare-var main@tailrecurse.outer.backedge.i11_0 Bool )
+(declare-var main@%.tr1.ph.i1_0 Int )
+(declare-var main@tailrecurse.i5_1 Bool )
+(declare-var main@%.tr1.ph.i118_2 Int )
+(declare-var main@take_some_rest.exit12_0 Bool )
+(declare-var main@%.tr1.ph.i118.lcssa_0 Int )
+(declare-var main@take_some_rest.exit12.split_0 Bool )
+(declare-var main@tailrecurse.outer.split.us.i3.loopexit_0 Bool )
 (declare-var main@tailrecurse.us.i4_1 Bool )
 (declare-var main@tailrecurse.us.i_1 Bool )
 (rule (verifier.error false false false))
@@ -426,12 +429,12 @@
              (and main@tailrecurse.i_0 main@tailrecurse.i.lr.ph_0))
          main@tailrecurse.i_0
          (=> (and main@tailrecurse.i_0 main@tailrecurse.i.lr.ph_0)
-             (= main@%.tr1.ph.i17_0 main@%_2_0))
+             (= main@%.tr1.ph.i19_0 main@%_2_0))
          (=> (and main@tailrecurse.i_0 main@tailrecurse.i.lr.ph_0)
-             (= main@%.tr1.ph.i17_1 main@%.tr1.ph.i17_0)))
+             (= main@%.tr1.ph.i19_1 main@%.tr1.ph.i19_0)))
     (main@tailrecurse.i
       @nd_0
-      main@%.tr1.ph.i17_1
+      main@%.tr1.ph.i19_1
       main@%_3_0
       main@%_2_0
       main@%_4_0)))
@@ -447,11 +450,11 @@
              (and main@tailrecurse.us.i_0 main@tailrecurse.outer.split.us.i_0))
          main@tailrecurse.us.i_0)
     main@tailrecurse.us.i))
-(rule (let ((a!1 (= main@%_12_0 (+ (+ main@%.tr1.ph.i17_0 (* 0 12)) 8)))
-      (a!2 (= main@%_13_0 (+ (+ main@%.tr1.ph.i17_0 (* 0 12)) 4))))
+(rule (let ((a!1 (= main@%_12_0 (+ (+ main@%.tr1.ph.i19_0 (* 0 12)) 8)))
+      (a!2 (= main@%_13_0 (+ (+ main@%.tr1.ph.i19_0 (* 0 12)) 4))))
 (let ((a!3 (and (main@tailrecurse.i
                   @nd_0
-                  main@%.tr1.ph.i17_0
+                  main@%.tr1.ph.i19_0
                   main@%_3_0
                   main@%_2_0
                   main@%_4_0)
@@ -469,10 +472,10 @@
                     (= main@%_11_0 (= main@%_10_0 0)))
                 (=> main@tailrecurse.outer.backedge.i_0 a!1)
                 (=> main@tailrecurse.outer.backedge.i_0
-                    (or (<= main@%.tr1.ph.i17_0 0) (> main@%_12_0 0)))
+                    (or (<= main@%.tr1.ph.i19_0 0) (> main@%_12_0 0)))
                 (=> main@tailrecurse.outer.backedge.i_0 a!2)
                 (=> main@tailrecurse.outer.backedge.i_0
-                    (or (<= main@%.tr1.ph.i17_0 0) (> main@%_13_0 0)))
+                    (or (<= main@%.tr1.ph.i19_0 0) (> main@%_13_0 0)))
                 (=> main@tailrecurse.outer.backedge.i_0
                     (= main@%.tr1.ph.be.in.i_0
                        (ite main@%_11_0 main@%_12_0 main@%_13_0)))
@@ -490,72 +493,128 @@
                     (not main@%_14_0))
                 (=> (and main@tailrecurse.i_1
                          main@tailrecurse.outer.backedge.i_0)
-                    (= main@%.tr1.ph.i17_1 main@%.tr1.ph.be.i_0))
+                    (= main@%.tr1.ph.i19_1 main@%.tr1.ph.be.i_0))
                 (=> (and main@tailrecurse.i_1
                          main@tailrecurse.outer.backedge.i_0)
-                    (= main@%.tr1.ph.i17_2 main@%.tr1.ph.i17_1)))))
+                    (= main@%.tr1.ph.i19_2 main@%.tr1.ph.i19_1)))))
   (=> a!3
       (main@tailrecurse.i
         @nd_0
-        main@%.tr1.ph.i17_2
+        main@%.tr1.ph.i19_2
         main@%_3_0
         main@%_2_0
         main@%_4_0)))))
-(rule (let ((a!1 (= main@%_15_0 (+ (+ main@%.tr1.ph.i17.lcssa_1 (* 0 12)) 0)))
-      (a!2 (= main@%_19_0 (+ (+ main@%.tr1.ph.i17.lcssa_1 (* 0 12)) 8)))
-      (a!3 (= main@%_20_0 (+ (+ main@%.tr1.ph.i17.lcssa_1 (* 0 12)) 4))))
+(rule (let ((a!1 (= main@%_15_0 (+ (+ main@%.tr1.ph.i19.lcssa_1 (* 0 12)) 0)))
+      (a!2 (= main@%_19_0 (+ (+ main@%.tr1.ph.i19.lcssa_1 (* 0 12)) 4)))
+      (a!3 (= main@%_20_0 (+ (+ main@%.tr1.ph.i19.lcssa_1 (* 0 12)) 8))))
 (let ((a!4 (and (main@tailrecurse.i
                   @nd_0
-                  main@%.tr1.ph.i17_0
+                  main@%.tr1.ph.i19_0
                   main@%_3_0
                   main@%_2_0
                   main@%_4_0)
                 true
                 (= main@%_6_0 @nd_0)
                 (= main@%_8_0 (= main@%_7_0 0))
-                (=> main@tailrecurse.i5.lr.ph_0
-                    (and main@tailrecurse.i5.lr.ph_0 main@tailrecurse.i_0))
-                (=> (and main@tailrecurse.i5.lr.ph_0 main@tailrecurse.i_0)
+                (=> main@take_some_rest.exit_0
+                    (and main@take_some_rest.exit_0 main@tailrecurse.i_0))
+                (=> (and main@take_some_rest.exit_0 main@tailrecurse.i_0)
                     (not main@%_8_0))
-                (=> (and main@tailrecurse.i5.lr.ph_0 main@tailrecurse.i_0)
-                    (= main@%.tr1.ph.i17.lcssa_0 main@%.tr1.ph.i17_0))
-                (=> (and main@tailrecurse.i5.lr.ph_0 main@tailrecurse.i_0)
-                    (= main@%.tr1.ph.i17.lcssa_1 main@%.tr1.ph.i17.lcssa_0))
-                (=> main@tailrecurse.i5.lr.ph_0 a!1)
-                (=> main@tailrecurse.i5.lr.ph_0
-                    (or (<= main@%.tr1.ph.i17.lcssa_1 0) (> main@%_15_0 0)))
-                (=> main@tailrecurse.i5.lr.ph_0 (= main@%_16_0 @nd_0))
-                (=> main@tailrecurse.i5.lr.ph_0
+                (=> (and main@take_some_rest.exit_0 main@tailrecurse.i_0)
+                    (= main@%.tr1.ph.i19.lcssa_0 main@%.tr1.ph.i19_0))
+                (=> (and main@take_some_rest.exit_0 main@tailrecurse.i_0)
+                    (= main@%.tr1.ph.i19.lcssa_1 main@%.tr1.ph.i19.lcssa_0))
+                (=> main@take_some_rest.exit_0 a!1)
+                (=> main@take_some_rest.exit_0
+                    (or (<= main@%.tr1.ph.i19.lcssa_1 0) (> main@%_15_0 0)))
+                (=> main@take_some_rest.exit_0 (= main@%_16_0 @nd_0))
+                (=> main@take_some_rest.exit_0
                     (= main@%_18_0 (= main@%_17_0 0)))
-                (=> main@tailrecurse.i5.lr.ph_0 a!2)
+                (=> main@take_some_rest.exit_0 a!2)
+                (=> main@take_some_rest.exit_0
+                    (or (<= main@%.tr1.ph.i19.lcssa_1 0) (> main@%_19_0 0)))
+                (=> main@take_some_rest.exit_0 a!3)
+                (=> main@take_some_rest.exit_0
+                    (or (<= main@%.tr1.ph.i19.lcssa_1 0) (> main@%_20_0 0)))
+                (=> main@take_some_rest.exit_0
+                    (= main@%.in.i_0 (ite main@%_18_0 main@%_20_0 main@%_19_0)))
+                (=> main@take_some_rest.exit_0
+                    (= main@%.tr1.ph.i117_0 (select main@%_3_0 main@%.in.i_0)))
+                (=> main@take_some_rest.exit_0
+                    (= main@%_21_0 (= main@%.tr1.ph.i117_0 0)))
                 (=> main@tailrecurse.i5.lr.ph_0
-                    (or (<= main@%.tr1.ph.i17.lcssa_1 0) (> main@%_19_0 0)))
-                (=> main@tailrecurse.i5.lr.ph_0 a!3)
-                (=> main@tailrecurse.i5.lr.ph_0
-                    (or (<= main@%.tr1.ph.i17.lcssa_1 0) (> main@%_20_0 0)))
-                (=> main@tailrecurse.i5.lr.ph_0
-                    (= main@%_21_0 (ite main@%_18_0 main@%_19_0 main@%_20_0)))
-                (=> main@tailrecurse.i5.lr.ph_0 (= main@%_22_0 main@%_21_0))
+                    (and main@tailrecurse.i5.lr.ph_0 main@take_some_rest.exit_0))
+                (=> (and main@tailrecurse.i5.lr.ph_0 main@take_some_rest.exit_0)
+                    (not main@%_21_0))
                 (=> main@tailrecurse.i5_0
                     (and main@tailrecurse.i5_0 main@tailrecurse.i5.lr.ph_0))
                 main@tailrecurse.i5_0
                 (=> (and main@tailrecurse.i5_0 main@tailrecurse.i5.lr.ph_0)
-                    (= main@%.tr1.ph.i116_0 main@%_22_0))
+                    (= main@%.tr1.ph.i118_0 main@%.tr1.ph.i117_0))
                 (=> (and main@tailrecurse.i5_0 main@tailrecurse.i5.lr.ph_0)
-                    (= main@%.tr1.ph.i116_1 main@%.tr1.ph.i116_0)))))
+                    (= main@%.tr1.ph.i118_1 main@%.tr1.ph.i118_0)))))
   (=> a!4
       (main@tailrecurse.i5
         @nd_0
         main@%_3_0
-        main@%.tr1.ph.i116_1
+        main@%.tr1.ph.i118_1
         main@%_15_0
         main@%_2_0
         main@%_4_0)))))
-(rule (let ((a!1 (= main@%_12_0 (+ (+ main@%.tr1.ph.i17_0 (* 0 12)) 8)))
-      (a!2 (= main@%_13_0 (+ (+ main@%.tr1.ph.i17_0 (* 0 12)) 4))))
+(rule (let ((a!1 (= main@%_15_0 (+ (+ main@%.tr1.ph.i19.lcssa_1 (* 0 12)) 0)))
+      (a!2 (= main@%_19_0 (+ (+ main@%.tr1.ph.i19.lcssa_1 (* 0 12)) 4)))
+      (a!3 (= main@%_20_0 (+ (+ main@%.tr1.ph.i19.lcssa_1 (* 0 12)) 8))))
+(let ((a!4 (and (main@tailrecurse.i
+                  @nd_0
+                  main@%.tr1.ph.i19_0
+                  main@%_3_0
+                  main@%_2_0
+                  main@%_4_0)
+                true
+                (= main@%_6_0 @nd_0)
+                (= main@%_8_0 (= main@%_7_0 0))
+                (=> main@take_some_rest.exit_0
+                    (and main@take_some_rest.exit_0 main@tailrecurse.i_0))
+                (=> (and main@take_some_rest.exit_0 main@tailrecurse.i_0)
+                    (not main@%_8_0))
+                (=> (and main@take_some_rest.exit_0 main@tailrecurse.i_0)
+                    (= main@%.tr1.ph.i19.lcssa_0 main@%.tr1.ph.i19_0))
+                (=> (and main@take_some_rest.exit_0 main@tailrecurse.i_0)
+                    (= main@%.tr1.ph.i19.lcssa_1 main@%.tr1.ph.i19.lcssa_0))
+                (=> main@take_some_rest.exit_0 a!1)
+                (=> main@take_some_rest.exit_0
+                    (or (<= main@%.tr1.ph.i19.lcssa_1 0) (> main@%_15_0 0)))
+                (=> main@take_some_rest.exit_0 (= main@%_16_0 @nd_0))
+                (=> main@take_some_rest.exit_0
+                    (= main@%_18_0 (= main@%_17_0 0)))
+                (=> main@take_some_rest.exit_0 a!2)
+                (=> main@take_some_rest.exit_0
+                    (or (<= main@%.tr1.ph.i19.lcssa_1 0) (> main@%_19_0 0)))
+                (=> main@take_some_rest.exit_0 a!3)
+                (=> main@take_some_rest.exit_0
+                    (or (<= main@%.tr1.ph.i19.lcssa_1 0) (> main@%_20_0 0)))
+                (=> main@take_some_rest.exit_0
+                    (= main@%.in.i_0 (ite main@%_18_0 main@%_20_0 main@%_19_0)))
+                (=> main@take_some_rest.exit_0
+                    (= main@%.tr1.ph.i117_0 (select main@%_3_0 main@%.in.i_0)))
+                (=> main@take_some_rest.exit_0
+                    (= main@%_21_0 (= main@%.tr1.ph.i117_0 0)))
+                (=> main@tailrecurse.outer.split.us.i3_0
+                    (and main@tailrecurse.outer.split.us.i3_0
+                         main@take_some_rest.exit_0))
+                (=> (and main@tailrecurse.outer.split.us.i3_0
+                         main@take_some_rest.exit_0)
+                    main@%_21_0)
+                (=> main@tailrecurse.us.i4_0
+                    (and main@tailrecurse.us.i4_0
+                         main@tailrecurse.outer.split.us.i3_0))
+                main@tailrecurse.us.i4_0)))
+  (=> a!4 main@tailrecurse.us.i4))))
+(rule (let ((a!1 (= main@%_12_0 (+ (+ main@%.tr1.ph.i19_0 (* 0 12)) 8)))
+      (a!2 (= main@%_13_0 (+ (+ main@%.tr1.ph.i19_0 (* 0 12)) 4))))
 (let ((a!3 (and (main@tailrecurse.i
                   @nd_0
-                  main@%.tr1.ph.i17_0
+                  main@%.tr1.ph.i19_0
                   main@%_3_0
                   main@%_2_0
                   main@%_4_0)
@@ -573,10 +632,10 @@
                     (= main@%_11_0 (= main@%_10_0 0)))
                 (=> main@tailrecurse.outer.backedge.i_0 a!1)
                 (=> main@tailrecurse.outer.backedge.i_0
-                    (or (<= main@%.tr1.ph.i17_0 0) (> main@%_12_0 0)))
+                    (or (<= main@%.tr1.ph.i19_0 0) (> main@%_12_0 0)))
                 (=> main@tailrecurse.outer.backedge.i_0 a!2)
                 (=> main@tailrecurse.outer.backedge.i_0
-                    (or (<= main@%.tr1.ph.i17_0 0) (> main@%_13_0 0)))
+                    (or (<= main@%.tr1.ph.i19_0 0) (> main@%_13_0 0)))
                 (=> main@tailrecurse.outer.backedge.i_0
                     (= main@%.tr1.ph.be.in.i_0
                        (ite main@%_11_0 main@%_12_0 main@%_13_0)))
@@ -599,156 +658,159 @@
                          main@tailrecurse.outer.split.us.i_0))
                 main@tailrecurse.us.i_0)))
   (=> a!3 main@tailrecurse.us.i))))
-(rule (let ((a!1 (= main@%_29_0 (+ (+ main@%.tr1.ph.i116_0 (* 0 12)) 8)))
-      (a!2 (= main@%_30_0 (+ (+ main@%.tr1.ph.i116_0 (* 0 12)) 4))))
+(rule (let ((a!1 (= main@%_28_0 (+ (+ main@%.tr1.ph.i118_0 (* 0 12)) 8)))
+      (a!2 (= main@%_29_0 (+ (+ main@%.tr1.ph.i118_0 (* 0 12)) 4))))
 (let ((a!3 (and (main@tailrecurse.i5
                   @nd_0
                   main@%_3_0
-                  main@%.tr1.ph.i116_0
+                  main@%.tr1.ph.i118_0
                   main@%_15_0
                   main@%_2_0
                   main@%_4_0)
                 true
-                (= main@%_23_0 @nd_0)
-                (= main@%_25_0 (= main@%_24_0 0))
-                (=> main@tailrecurse.outer.backedge.i10_0
-                    (and main@tailrecurse.outer.backedge.i10_0
+                (= main@%_22_0 @nd_0)
+                (= main@%_24_0 (= main@%_23_0 0))
+                (=> main@tailrecurse.outer.backedge.i11_0
+                    (and main@tailrecurse.outer.backedge.i11_0
                          main@tailrecurse.i5_0))
-                (=> (and main@tailrecurse.outer.backedge.i10_0
+                (=> (and main@tailrecurse.outer.backedge.i11_0
                          main@tailrecurse.i5_0)
-                    main@%_25_0)
-                (=> main@tailrecurse.outer.backedge.i10_0 (= main@%_26_0 @nd_0))
-                (=> main@tailrecurse.outer.backedge.i10_0
-                    (= main@%_28_0 (= main@%_27_0 0)))
-                (=> main@tailrecurse.outer.backedge.i10_0 a!1)
-                (=> main@tailrecurse.outer.backedge.i10_0
-                    (or (<= main@%.tr1.ph.i116_0 0) (> main@%_29_0 0)))
-                (=> main@tailrecurse.outer.backedge.i10_0 a!2)
-                (=> main@tailrecurse.outer.backedge.i10_0
-                    (or (<= main@%.tr1.ph.i116_0 0) (> main@%_30_0 0)))
-                (=> main@tailrecurse.outer.backedge.i10_0
-                    (= main@%.tr1.ph.be.in.i8_0
-                       (ite main@%_28_0 main@%_29_0 main@%_30_0)))
-                (=> main@tailrecurse.outer.backedge.i10_0
-                    (= main@%.tr1.ph.be.i9_0
-                       (select main@%_3_0 main@%.tr1.ph.be.in.i8_0)))
-                (=> main@tailrecurse.outer.backedge.i10_0
-                    (= main@%_31_0 (= main@%.tr1.ph.be.i9_0 0)))
+                    main@%_24_0)
+                (=> main@tailrecurse.outer.backedge.i11_0 (= main@%_25_0 @nd_0))
+                (=> main@tailrecurse.outer.backedge.i11_0
+                    (= main@%_27_0 (= main@%_26_0 0)))
+                (=> main@tailrecurse.outer.backedge.i11_0 a!1)
+                (=> main@tailrecurse.outer.backedge.i11_0
+                    (or (<= main@%.tr1.ph.i118_0 0) (> main@%_28_0 0)))
+                (=> main@tailrecurse.outer.backedge.i11_0 a!2)
+                (=> main@tailrecurse.outer.backedge.i11_0
+                    (or (<= main@%.tr1.ph.i118_0 0) (> main@%_29_0 0)))
+                (=> main@tailrecurse.outer.backedge.i11_0
+                    (= main@%.tr1.ph.be.in.i9_0
+                       (ite main@%_27_0 main@%_28_0 main@%_29_0)))
+                (=> main@tailrecurse.outer.backedge.i11_0
+                    (= main@%.tr1.ph.i1_0
+                       (select main@%_3_0 main@%.tr1.ph.be.in.i9_0)))
+                (=> main@tailrecurse.outer.backedge.i11_0
+                    (= main@%_30_0 (= main@%.tr1.ph.i1_0 0)))
                 (=> main@tailrecurse.i5_1
                     (and main@tailrecurse.i5_1
-                         main@tailrecurse.outer.backedge.i10_0))
+                         main@tailrecurse.outer.backedge.i11_0))
                 main@tailrecurse.i5_1
                 (=> (and main@tailrecurse.i5_1
-                         main@tailrecurse.outer.backedge.i10_0)
-                    (not main@%_31_0))
+                         main@tailrecurse.outer.backedge.i11_0)
+                    (not main@%_30_0))
                 (=> (and main@tailrecurse.i5_1
-                         main@tailrecurse.outer.backedge.i10_0)
-                    (= main@%.tr1.ph.i116_1 main@%.tr1.ph.be.i9_0))
+                         main@tailrecurse.outer.backedge.i11_0)
+                    (= main@%.tr1.ph.i118_1 main@%.tr1.ph.i1_0))
                 (=> (and main@tailrecurse.i5_1
-                         main@tailrecurse.outer.backedge.i10_0)
-                    (= main@%.tr1.ph.i116_2 main@%.tr1.ph.i116_1)))))
+                         main@tailrecurse.outer.backedge.i11_0)
+                    (= main@%.tr1.ph.i118_2 main@%.tr1.ph.i118_1)))))
   (=> a!3
       (main@tailrecurse.i5
         @nd_0
         main@%_3_0
-        main@%.tr1.ph.i116_2
+        main@%.tr1.ph.i118_2
         main@%_15_0
         main@%_2_0
         main@%_4_0)))))
-(rule (let ((a!1 (=> main@take_some_rest.exit11_0
-               (= main@%_32_0 (+ main@%.tr1.ph.i116.lcssa_1 (* 0 12) 0)))))
+(rule (let ((a!1 (=> main@take_some_rest.exit12_0
+               (= main@%_31_0 (+ main@%.tr1.ph.i118.lcssa_1 (* 0 12) 0)))))
 (let ((a!2 (and (main@tailrecurse.i5
                   @nd_0
                   main@%_3_0
-                  main@%.tr1.ph.i116_0
+                  main@%.tr1.ph.i118_0
                   main@%_15_0
                   main@%_2_0
                   main@%_4_0)
                 true
-                (= main@%_23_0 @nd_0)
-                (= main@%_25_0 (= main@%_24_0 0))
-                (=> main@take_some_rest.exit11_0
-                    (and main@take_some_rest.exit11_0 main@tailrecurse.i5_0))
-                (=> (and main@take_some_rest.exit11_0 main@tailrecurse.i5_0)
-                    (not main@%_25_0))
-                (=> (and main@take_some_rest.exit11_0 main@tailrecurse.i5_0)
-                    (= main@%.tr1.ph.i116.lcssa_0 main@%.tr1.ph.i116_0))
-                (=> (and main@take_some_rest.exit11_0 main@tailrecurse.i5_0)
-                    (= main@%.tr1.ph.i116.lcssa_1 main@%.tr1.ph.i116.lcssa_0))
+                (= main@%_22_0 @nd_0)
+                (= main@%_24_0 (= main@%_23_0 0))
+                (=> main@take_some_rest.exit12_0
+                    (and main@take_some_rest.exit12_0 main@tailrecurse.i5_0))
+                (=> (and main@take_some_rest.exit12_0 main@tailrecurse.i5_0)
+                    (not main@%_24_0))
+                (=> (and main@take_some_rest.exit12_0 main@tailrecurse.i5_0)
+                    (= main@%.tr1.ph.i118.lcssa_0 main@%.tr1.ph.i118_0))
+                (=> (and main@take_some_rest.exit12_0 main@tailrecurse.i5_0)
+                    (= main@%.tr1.ph.i118.lcssa_1 main@%.tr1.ph.i118.lcssa_0))
                 a!1
-                (=> main@take_some_rest.exit11_0
-                    (or (<= main@%.tr1.ph.i116.lcssa_1 0) (> main@%_32_0 0)))
-                (=> main@take_some_rest.exit11_0 (= main@%_33_0 @nd_0))
-                (=> main@take_some_rest.exit11_0
-                    (= main@%_35_0 (select main@%_3_0 main@%_15_0)))
-                (=> main@take_some_rest.exit11_0
-                    (= main@%_36_0 (+ main@%_35_0 1)))
-                (=> main@take_some_rest.exit11_0
-                    (= main@%_37_0 (store main@%_3_0 main@%_15_0 main@%_36_0)))
-                (=> main@take_some_rest.exit11_0
-                    (= main@%_38_0 (select main@%_37_0 main@%_32_0)))
-                (=> main@take_some_rest.exit11_0
-                    (= main@%_39_0 (+ main@%_38_0 1)))
-                (=> main@take_some_rest.exit11_0
-                    (= main@%_40_0 (store main@%_37_0 main@%_32_0 main@%_39_0)))
-                (sum main@take_some_rest.exit11_0
+                (=> main@take_some_rest.exit12_0
+                    (or (<= main@%.tr1.ph.i118.lcssa_1 0) (> main@%_31_0 0)))
+                (=> main@take_some_rest.exit12_0 (= main@%_32_0 @nd_0))
+                (=> main@take_some_rest.exit12_0
+                    (= main@%_34_0 (select main@%_3_0 main@%_15_0)))
+                (=> main@take_some_rest.exit12_0
+                    (= main@%_35_0 (+ main@%_34_0 1)))
+                (=> main@take_some_rest.exit12_0
+                    (= main@%_36_0 (store main@%_3_0 main@%_15_0 main@%_35_0)))
+                (=> main@take_some_rest.exit12_0
+                    (= main@%_37_0 (select main@%_36_0 main@%_31_0)))
+                (=> main@take_some_rest.exit12_0
+                    (= main@%_38_0 (+ main@%_37_0 1)))
+                (=> main@take_some_rest.exit12_0
+                    (= main@%_39_0 (store main@%_36_0 main@%_31_0 main@%_38_0)))
+                (sum main@take_some_rest.exit12_0
                      false
                      false
+                     main@%_39_0
                      main@%_40_0
-                     main@%_41_0
                      main@%_2_0
-                     main@%_42_0)
-                (=> main@take_some_rest.exit11_0
-                    (= main@%_43_0 (+ main@%_4_0 2)))
-                (=> main@take_some_rest.exit11_0
-                    (= main@%_44_0 (> main@%_42_0 main@%_43_0)))
-                (=> main@take_some_rest.exit11_0 (not main@%_44_0))
-                (=> main@take_some_rest.exit11.split_0
-                    (and main@take_some_rest.exit11.split_0
-                         main@take_some_rest.exit11_0))
-                main@take_some_rest.exit11.split_0)))
-  (=> a!2 main@take_some_rest.exit11.split))))
-(rule (let ((a!1 (= main@%_29_0 (+ (+ main@%.tr1.ph.i116_0 (* 0 12)) 8)))
-      (a!2 (= main@%_30_0 (+ (+ main@%.tr1.ph.i116_0 (* 0 12)) 4))))
+                     main@%_41_0)
+                (=> main@take_some_rest.exit12_0
+                    (= main@%_42_0 (+ main@%_4_0 2)))
+                (=> main@take_some_rest.exit12_0
+                    (= main@%_43_0 (> main@%_41_0 main@%_42_0)))
+                (=> main@take_some_rest.exit12_0 (not main@%_43_0))
+                (=> main@take_some_rest.exit12.split_0
+                    (and main@take_some_rest.exit12.split_0
+                         main@take_some_rest.exit12_0))
+                main@take_some_rest.exit12.split_0)))
+  (=> a!2 main@take_some_rest.exit12.split))))
+(rule (let ((a!1 (= main@%_28_0 (+ (+ main@%.tr1.ph.i118_0 (* 0 12)) 8)))
+      (a!2 (= main@%_29_0 (+ (+ main@%.tr1.ph.i118_0 (* 0 12)) 4))))
 (let ((a!3 (and (main@tailrecurse.i5
                   @nd_0
                   main@%_3_0
-                  main@%.tr1.ph.i116_0
+                  main@%.tr1.ph.i118_0
                   main@%_15_0
                   main@%_2_0
                   main@%_4_0)
                 true
-                (= main@%_23_0 @nd_0)
-                (= main@%_25_0 (= main@%_24_0 0))
-                (=> main@tailrecurse.outer.backedge.i10_0
-                    (and main@tailrecurse.outer.backedge.i10_0
+                (= main@%_22_0 @nd_0)
+                (= main@%_24_0 (= main@%_23_0 0))
+                (=> main@tailrecurse.outer.backedge.i11_0
+                    (and main@tailrecurse.outer.backedge.i11_0
                          main@tailrecurse.i5_0))
-                (=> (and main@tailrecurse.outer.backedge.i10_0
+                (=> (and main@tailrecurse.outer.backedge.i11_0
                          main@tailrecurse.i5_0)
-                    main@%_25_0)
-                (=> main@tailrecurse.outer.backedge.i10_0 (= main@%_26_0 @nd_0))
-                (=> main@tailrecurse.outer.backedge.i10_0
-                    (= main@%_28_0 (= main@%_27_0 0)))
-                (=> main@tailrecurse.outer.backedge.i10_0 a!1)
-                (=> main@tailrecurse.outer.backedge.i10_0
-                    (or (<= main@%.tr1.ph.i116_0 0) (> main@%_29_0 0)))
-                (=> main@tailrecurse.outer.backedge.i10_0 a!2)
-                (=> main@tailrecurse.outer.backedge.i10_0
-                    (or (<= main@%.tr1.ph.i116_0 0) (> main@%_30_0 0)))
-                (=> main@tailrecurse.outer.backedge.i10_0
-                    (= main@%.tr1.ph.be.in.i8_0
-                       (ite main@%_28_0 main@%_29_0 main@%_30_0)))
-                (=> main@tailrecurse.outer.backedge.i10_0
-                    (= main@%.tr1.ph.be.i9_0
-                       (select main@%_3_0 main@%.tr1.ph.be.in.i8_0)))
-                (=> main@tailrecurse.outer.backedge.i10_0
-                    (= main@%_31_0 (= main@%.tr1.ph.be.i9_0 0)))
+                    main@%_24_0)
+                (=> main@tailrecurse.outer.backedge.i11_0 (= main@%_25_0 @nd_0))
+                (=> main@tailrecurse.outer.backedge.i11_0
+                    (= main@%_27_0 (= main@%_26_0 0)))
+                (=> main@tailrecurse.outer.backedge.i11_0 a!1)
+                (=> main@tailrecurse.outer.backedge.i11_0
+                    (or (<= main@%.tr1.ph.i118_0 0) (> main@%_28_0 0)))
+                (=> main@tailrecurse.outer.backedge.i11_0 a!2)
+                (=> main@tailrecurse.outer.backedge.i11_0
+                    (or (<= main@%.tr1.ph.i118_0 0) (> main@%_29_0 0)))
+                (=> main@tailrecurse.outer.backedge.i11_0
+                    (= main@%.tr1.ph.be.in.i9_0
+                       (ite main@%_27_0 main@%_28_0 main@%_29_0)))
+                (=> main@tailrecurse.outer.backedge.i11_0
+                    (= main@%.tr1.ph.i1_0
+                       (select main@%_3_0 main@%.tr1.ph.be.in.i9_0)))
+                (=> main@tailrecurse.outer.backedge.i11_0
+                    (= main@%_30_0 (= main@%.tr1.ph.i1_0 0)))
+                (=> main@tailrecurse.outer.split.us.i3.loopexit_0
+                    (and main@tailrecurse.outer.split.us.i3.loopexit_0
+                         main@tailrecurse.outer.backedge.i11_0))
+                (=> (and main@tailrecurse.outer.split.us.i3.loopexit_0
+                         main@tailrecurse.outer.backedge.i11_0)
+                    main@%_30_0)
                 (=> main@tailrecurse.outer.split.us.i3_0
                     (and main@tailrecurse.outer.split.us.i3_0
-                         main@tailrecurse.outer.backedge.i10_0))
-                (=> (and main@tailrecurse.outer.split.us.i3_0
-                         main@tailrecurse.outer.backedge.i10_0)
-                    main@%_31_0)
+                         main@tailrecurse.outer.split.us.i3.loopexit_0))
                 (=> main@tailrecurse.us.i4_0
                     (and main@tailrecurse.us.i4_0
                          main@tailrecurse.outer.split.us.i3_0))
@@ -766,5 +828,5 @@
              (and main@tailrecurse.us.i_1 main@tailrecurse.us.i_0))
          main@tailrecurse.us.i_1)
     main@tailrecurse.us.i))
-(query main@take_some_rest.exit11.split)
+(query main@take_some_rest.exit12.split)
 

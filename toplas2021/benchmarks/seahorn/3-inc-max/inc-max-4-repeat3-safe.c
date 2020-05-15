@@ -22,7 +22,7 @@ void inc_max_three(int *ma, int *mb, int *mc) {
   mb += 1;
 }
 void inc_max_three_repeat(int n, int *ma, int *mb, int *mc) {
-  if (n > 0) {
+  if (n != 0) {
     inc_max_three(ma, mb, mc);
     inc_max_three_repeat(n - 1, ma, mb, mc);
   }

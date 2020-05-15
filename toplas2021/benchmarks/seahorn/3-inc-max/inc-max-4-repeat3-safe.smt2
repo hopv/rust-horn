@@ -40,9 +40,9 @@
          (= main@%_2_0 @nd_0)
          (= main@%_4_0 @nd_0)
          (= main@%_6_0 @nd_0)
-         (= main@%_8_0 (> main@%_1_0 0))
+         (= main@%_8_0 (= main@%_1_0 0))
          (=> main@.lr.ph.i_0 (and main@.lr.ph.i_0 main@entry_0))
-         (=> (and main@.lr.ph.i_0 main@entry_0) main@%_8_0)
+         (=> (and main@.lr.ph.i_0 main@entry_0) (not main@%_8_0))
          (=> main@tailrecurse.i_0 (and main@tailrecurse.i_0 main@.lr.ph.i_0))
          main@tailrecurse.i_0
          (=> (and main@tailrecurse.i_0 main@.lr.ph.i_0)
@@ -56,11 +56,11 @@
                 (= main@%_2_0 @nd_0)
                 (= main@%_4_0 @nd_0)
                 (= main@%_6_0 @nd_0)
-                (= main@%_8_0 (> main@%_1_0 0))
+                (= main@%_8_0 (= main@%_1_0 0))
                 (=> main@inc_max_three_repeat.exit_0
                     (and main@inc_max_three_repeat.exit_0 main@entry_0))
                 (=> (and main@inc_max_three_repeat.exit_0 main@entry_0)
-                    (not main@%_8_0))
+                    main@%_8_0)
                 (=> main@inc_max_three_repeat.exit_0
                     (= main@%_11_0 (- main@%_3_0 main@%_5_0)))
                 (=> main@inc_max_three_repeat.exit_0
@@ -79,11 +79,11 @@
 (rule (=> (and (main@tailrecurse.i main@%_3_0 main@%_5_0 main@%_1_0 main@%.tr1.i_0)
          true
          (= main@%_9_0 (+ main@%.tr1.i_0 (- 1)))
-         (= main@%_10_0 (> main@%.tr1.i_0 1))
+         (= main@%_10_0 (= main@%_9_0 0))
          (=> main@tailrecurse.i_1
              (and main@tailrecurse.i_1 main@tailrecurse.i_0))
          main@tailrecurse.i_1
-         (=> (and main@tailrecurse.i_1 main@tailrecurse.i_0) main@%_10_0)
+         (=> (and main@tailrecurse.i_1 main@tailrecurse.i_0) (not main@%_10_0))
          (=> (and main@tailrecurse.i_1 main@tailrecurse.i_0)
              (= main@%.tr1.i_1 main@%_9_0))
          (=> (and main@tailrecurse.i_1 main@tailrecurse.i_0)
@@ -96,13 +96,13 @@
                   main@%.tr1.i_0)
                 true
                 (= main@%_9_0 (+ main@%.tr1.i_0 (- 1)))
-                (= main@%_10_0 (> main@%.tr1.i_0 1))
+                (= main@%_10_0 (= main@%_9_0 0))
                 (=> main@inc_max_three_repeat.exit.loopexit_0
                     (and main@inc_max_three_repeat.exit.loopexit_0
                          main@tailrecurse.i_0))
                 (=> (and main@inc_max_three_repeat.exit.loopexit_0
                          main@tailrecurse.i_0)
-                    (not main@%_10_0))
+                    main@%_10_0)
                 (=> main@inc_max_three_repeat.exit_0
                     (and main@inc_max_three_repeat.exit_0
                          main@inc_max_three_repeat.exit.loopexit_0))

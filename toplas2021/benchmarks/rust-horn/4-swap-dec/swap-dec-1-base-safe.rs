@@ -19,8 +19,6 @@ fn main() {
   let mut a = rand();
   let mut b = rand();
   let a0 = a;
-  let mut ma = &mut a;
-  let mut mb = &mut b;
-  swap_dec(&mut ma, &mut mb);
+  swap_dec(&mut &mut a, &mut &mut b);
   assert!(a0 >= a);
 }

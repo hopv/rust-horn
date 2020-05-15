@@ -15,7 +15,7 @@ fn inc_max_three<'a>(mut ma: &'a mut i32, mut mb: &'a mut i32, mut mc: &'a mut i
   *mb += 1;
 }
 fn inc_max_three_repeat(n: i32, ma: &mut i32, mb: &mut i32, mc: &mut i32) {
-  if n > 0 {
+  if n != 0 {
     inc_max_three(ma, mb, mc);
     inc_max_three_repeat(n - 1, ma, mb, mc);
   }

@@ -23,9 +23,6 @@ fn main() {
   let mut b = rand();
   let mut c = rand();
   let a0 = a;
-  let mut ma = &mut a;
-  let mut mb = &mut b;
-  let mut mc = &mut c;
-  swap_dec_three(&mut ma, &mut mb, &mut mc);
+  swap_dec_three(&mut &mut a, &mut &mut b, &mut &mut c);
   assert!(a0 >= a && a0 - a <= 3);
 }

@@ -94,6 +94,30 @@ timeout
 $ hoice 4-swap-dec/swap-dec-4-exact3-unsafe.smt2
 unsat
 
+$ hoice 5-swap2-dec/swap2-dec-1-base-safe.smt2
+sat
+
+$ hoice 5-swap2-dec/swap2-dec-1-base-unsafe.smt2
+timeout
+
+$ hoice 5-swap2-dec/swap2-dec-2-base3-safe.smt2
+timeout
+
+$ hoice 5-swap2-dec/swap2-dec-2-base3-unsafe.smt2
+timeout
+
+$ hoice 5-swap2-dec/swap2-dec-3-exact-safe.smt2
+sat
+
+$ hoice 5-swap2-dec/swap2-dec-3-exact-unsafe.smt2
+timeout
+
+$ hoice 5-swap2-dec/swap2-dec-4-exact3-safe.smt2
+timeout
+
+$ hoice 5-swap2-dec/swap2-dec-4-exact3-unsafe.smt2
+timeout
+
 $ hoice 6-just-rec/just-rec-1-base-safe.smt2
 sat
 

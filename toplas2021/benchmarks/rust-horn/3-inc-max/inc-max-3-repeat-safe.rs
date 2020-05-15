@@ -8,7 +8,7 @@ fn take_max<'a>(ma: &'a mut i32, mb: &'a mut i32) -> &'a mut i32 {
   }
 }
 fn inc_max_repeat(n: i32, ma: &mut i32, mb: &mut i32) {
-  if n > 0 {
+  if n != 0 {
     let mc = take_max(ma, mb);
     *mc += 1;
     inc_max_repeat(n - 1, ma, mb);
