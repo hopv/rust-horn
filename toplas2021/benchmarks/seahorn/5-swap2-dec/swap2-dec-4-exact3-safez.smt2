@@ -1,4 +1,4 @@
-(set-info :original "5-swap2-dec/swap2-dec-4-exact3-unsafe.bc")
+(set-info :original "5-swap2-dec/swap2-dec-4-exact3-safe.bc")
 (set-info :authors "SeaHorn v.0.1.0-rc3")
 (declare-rel verifier.error (Bool Bool Bool ))
 (declare-rel main@entry (Int ))
@@ -146,6 +146,7 @@
          (> main@%_5_0 0)
          (> main@%_6_0 0)
          (> main@%_7_0 0)
+         (distinct main@%_2_0 main@%_3_0 main@%_4_0 main@%_5_0 main@%_6_0 main@%_7_0) ; modify
          (= main@%_8_0 @nd_0)
          (= main@%_10_0 main@%_2_0)
          (= main@%_11_0 @nd_0)
@@ -554,8 +555,8 @@
                     (not main@%_74_0))
                 (=> main@_bb5_0 (= main@%_76_0 (- main@%_12_0 main@%_73_0)))
                 (=> main@_bb5_0 (= main@%_77_0 (* main@%_9_0 3)))
-                (=> main@_bb5_0 (= main@%_78_0 (< main@%_76_0 main@%_77_0)))
-                (=> main@_bb5_0 (not main@%_78_0))
+                (=> main@_bb5_0 (= main@%_78_0 (> main@%_76_0 main@%_77_0)))
+                (=> main@_bb5_0 main@%_78_0)
                 (=> |tuple(main@swap2_dec_bound_three.exit_0, main@verifier.error_0)|
                     main@swap2_dec_bound_three.exit_0)
                 (=> main@verifier.error_0

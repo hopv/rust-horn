@@ -33,10 +33,10 @@
   (%inc_max_three.4 _1 _2 _3 true))))
 ; %inc_max_three bb8
 (assert (forall ((_1 ~Mut<Int>) (_2 ~Mut<Int>) (_3 ~Mut<Int>)) (=>
-  (and (= (~ret<Int> _2) (+ (~cur<Int> _2) 1)) (= (~ret<Int> _1) (+ (~cur<Int> _1) 2)) (= (~ret<Int> _3) (~cur<Int> _3)) true)
+  (and (= (~ret<Int> _2) (+ (~cur<Int> _2) 1)) (= (~ret<Int> _3) (~cur<Int> _3)) (= (~ret<Int> _1) (+ (~cur<Int> _1) 2)) true)
   (%inc_max_three.8 _1 _2 _3 false))))
 (assert (forall ((_1 ~Mut<Int>) (_2 ~Mut<Int>) (_3 ~Mut<Int>) (_*.10_3 ~Mut<Int>) (_*.10_4 ~Mut<Int>) (_*.10_7 ~Mut<Int>) (_*.10_8 ~Mut<Int>)) (=>
-  (and (= _*.10_8 _1) (= _*.10_4 _2) (= _*.10_7 _*.10_8) (= _*.10_3 _*.10_4) (= (~ret<Int> _*.10_7) (+ (~cur<Int> _*.10_7) 1)) (= (~ret<Int> _*.10_3) (+ (~cur<Int> _*.10_3) 2)) (= (~ret<Int> _3) (~cur<Int> _3)) true)
+  (and (= _*.10_8 _1) (= _*.10_4 _2) (= _*.10_7 _*.10_8) (= _*.10_3 _*.10_4) (= (~ret<Int> _*.10_7) (+ (~cur<Int> _*.10_7) 1)) (= (~ret<Int> _3) (~cur<Int> _3)) (= (~ret<Int> _*.10_3) (+ (~cur<Int> _*.10_3) 2)) true)
   (%inc_max_three.8 _1 _2 _3 true))))
 
 ; %inc_max_three_repeat
@@ -45,7 +45,7 @@
   (%inc_max_three_repeat _1 _2 _3 _4))))
 ; %inc_max_three_repeat bb0
 (assert (forall ((_1 Int) (_2 ~Mut<Int>) (_3 ~Mut<Int>) (_4 ~Mut<Int>)) (=>
-  (and (= (~ret<Int> _4) (~cur<Int> _4)) (= (~ret<Int> _3) (~cur<Int> _3)) (= (~ret<Int> _2) (~cur<Int> _2)) true)
+  (and (= (~ret<Int> _2) (~cur<Int> _2)) (= (~ret<Int> _4) (~cur<Int> _4)) (= (~ret<Int> _3) (~cur<Int> _3)) true)
   (%inc_max_three_repeat.0 _1 _2 _3 _4 false))))
 (assert (forall ((_1 Int) (_2 ~Mut<Int>) (_3 ~Mut<Int>) (_4 ~Mut<Int>) (_*.2_2 Int) (_*.2_4 Int) (_*.2_6 Int) (_*.3_11 Int) (_*.3_13 Int) (_*.3_15 Int)) (=>
   (and (%inc_max_three (~mut<Int> (~cur<Int> _2) _*.2_2) (~mut<Int> (~cur<Int> _3) _*.2_4) (~mut<Int> (~cur<Int> _4) _*.2_6)) (%inc_max_three_repeat (- _1 1) (~mut<Int> _*.2_2 _*.3_11) (~mut<Int> _*.2_4 _*.3_13) (~mut<Int> _*.2_6 _*.3_15)) (= (~ret<Int> _4) _*.3_15) (= (~ret<Int> _3) _*.3_13) (= (~ret<Int> _2) _*.3_11) true)

@@ -4,6 +4,6 @@ OUT=bench-hoice.out
 > $OUT
 for file in */*.smt2; do
   echo "$ hoice $file" | tee -a $OUT
-  time hoice "$file" -t 3 2>&1 | tee -a $OUT
+  time hoice "$file" -t 180 2>&1 | tee -a $OUT
   echo "" | tee -a $OUT
 done

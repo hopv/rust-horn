@@ -11,7 +11,7 @@ $ hoice 1-simple/06_loop_unsat.smt2
 sat
 
 $ hoice 1-simple/hhk2008.smt2
-timeout
+sat
 
 $ hoice 1-simple/unique_scalar.smt2
 unsat
@@ -80,7 +80,7 @@ $ hoice 4-swap-dec/swap-dec-2-base3-safe.smt2
 timeout
 
 $ hoice 4-swap-dec/swap-dec-2-base3-unsafe.smt2
-timeout
+unsat
 
 $ hoice 4-swap-dec/swap-dec-3-exact-safe.smt2
 sat
@@ -116,7 +116,7 @@ $ hoice 5-swap2-dec/swap2-dec-4-exact3-safe.smt2
 timeout
 
 $ hoice 5-swap2-dec/swap2-dec-4-exact3-unsafe.smt2
-timeout
+unsat
 
 $ hoice 6-just-rec/just-rec-1-base-safe.smt2
 sat
@@ -134,7 +134,7 @@ $ hoice 7-linger-dec/linger-dec-2-basic3-safe.smt2
 sat
 
 $ hoice 7-linger-dec/linger-dec-2-basic3-unsafe.smt2
-timeout
+unsat
 
 $ hoice 7-linger-dec/linger-dec-3-exact-safe.smt2
 sat
@@ -146,7 +146,7 @@ $ hoice 7-linger-dec/linger-dec-4-exact3-safe.smt2
 sat
 
 $ hoice 7-linger-dec/linger-dec-4-exact3-unsafe.smt2
-unsat
+timeout
 
 $ hoice 8-lists/lists-1-append-safe.smt2
 sat
@@ -191,7 +191,9 @@ $ hoice 9-trees/trees-3-inc-some-unsafe.smt2
 unsat
 
 $ hoice 9-trees/trees-4-inc-some2-safe.smt2
-timeout
+(error "
+  parse error: expected `(` on `sat`
+")
 
 $ hoice 9-trees/trees-4-inc-some2-unsafe.smt2
 unsat

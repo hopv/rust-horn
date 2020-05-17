@@ -49,7 +49,13 @@ unsat
 $ z3 3-inc-max/inc-max-1-base-safe.smt2
 sat
 
+$ z3 3-inc-max/inc-max-1-base-safez.smt2
+unsat
+
 $ z3 3-inc-max/inc-max-1-base-unsafe.smt2
+sat
+
+$ z3 3-inc-max/inc-max-1-base-unsafez.smt2
 sat
 
 $ z3 3-inc-max/inc-max-2-base3-safe.smt2
@@ -61,7 +67,13 @@ sat
 $ z3 3-inc-max/inc-max-3-repeat-safe.smt2
 sat
 
+$ z3 3-inc-max/inc-max-3-repeat-safez.smt2
+timeout
+
 $ z3 3-inc-max/inc-max-3-repeat-unsafe.smt2
+sat
+
+$ z3 3-inc-max/inc-max-3-repeat-unsafez.smt2
 sat
 
 $ z3 3-inc-max/inc-max-4-repeat3-safe.smt2
@@ -73,49 +85,97 @@ sat
 $ z3 4-swap-dec/swap-dec-1-base-safe.smt2
 sat
 
+$ z3 4-swap-dec/swap-dec-1-base-safez.smt2
+unsat
+
 $ z3 4-swap-dec/swap-dec-1-base-unsafe.smt2
+sat
+
+$ z3 4-swap-dec/swap-dec-1-base-unsafez.smt2
 sat
 
 $ z3 4-swap-dec/swap-dec-2-base3-safe.smt2
 sat
 
+$ z3 4-swap-dec/swap-dec-2-base3-safez.smt2
+unsat
+
 $ z3 4-swap-dec/swap-dec-2-base3-unsafe.smt2
+sat
+
+$ z3 4-swap-dec/swap-dec-2-base3-unsafez.smt2
 sat
 
 $ z3 4-swap-dec/swap-dec-3-exact-safe.smt2
 sat
 
+$ z3 4-swap-dec/swap-dec-3-exact-safez.smt2
+timeout
+
 $ z3 4-swap-dec/swap-dec-3-exact-unsafe.smt2
+sat
+
+$ z3 4-swap-dec/swap-dec-3-exact-unsafez.smt2
 sat
 
 $ z3 4-swap-dec/swap-dec-4-exact3-safe.smt2
 sat
 
+$ z3 4-swap-dec/swap-dec-4-exact3-safez.smt2
+timeout
+
 $ z3 4-swap-dec/swap-dec-4-exact3-unsafe.smt2
+sat
+
+$ z3 4-swap-dec/swap-dec-4-exact3-unsafez.smt2
 sat
 
 $ z3 5-swap2-dec/swap2-dec-1-base-safe.smt2
 sat
 
+$ z3 5-swap2-dec/swap2-dec-1-base-safez.smt2
+unsat
+
 $ z3 5-swap2-dec/swap2-dec-1-base-unsafe.smt2
+sat
+
+$ z3 5-swap2-dec/swap2-dec-1-base-unsafez.smt2
 sat
 
 $ z3 5-swap2-dec/swap2-dec-2-base3-safe.smt2
 sat
 
+$ z3 5-swap2-dec/swap2-dec-2-base3-safez.smt2
+unsat
+
 $ z3 5-swap2-dec/swap2-dec-2-base3-unsafe.smt2
+sat
+
+$ z3 5-swap2-dec/swap2-dec-2-base3-unsafez.smt2
 sat
 
 $ z3 5-swap2-dec/swap2-dec-3-exact-safe.smt2
 sat
 
+$ z3 5-swap2-dec/swap2-dec-3-exact-safez.smt2
+unsat
+
 $ z3 5-swap2-dec/swap2-dec-3-exact-unsafe.smt2
+sat
+
+$ z3 5-swap2-dec/swap2-dec-3-exact-unsafez.smt2
 sat
 
 $ z3 5-swap2-dec/swap2-dec-4-exact3-safe.smt2
 sat
 
+$ z3 5-swap2-dec/swap2-dec-4-exact3-safez.smt2
+unsat
+
 $ z3 5-swap2-dec/swap2-dec-4-exact3-unsafe.smt2
+sat
+
+$ z3 5-swap2-dec/swap2-dec-4-exact3-unsafez.smt2
 sat
 
 $ z3 6-just-rec/just-rec-1-base-safe.smt2
@@ -155,7 +215,7 @@ $ z3 8-lists/lists-1-append-unsafe.smt2
 sat
 
 $ z3 8-lists/lists-2-inc-all-safe.smt2
-timeout
+sat
 
 $ z3 8-lists/lists-2-inc-all-unsafe.smt2
 sat

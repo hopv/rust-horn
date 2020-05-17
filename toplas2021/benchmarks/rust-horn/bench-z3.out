@@ -104,7 +104,7 @@ $ z3 5-swap2-dec/swap2-dec-2-base3-safe.smt2
 sat
 
 $ z3 5-swap2-dec/swap2-dec-2-base3-unsafe.smt2
-timeout
+unsat
 
 $ z3 5-swap2-dec/swap2-dec-3-exact-safe.smt2
 timeout
@@ -113,7 +113,7 @@ $ z3 5-swap2-dec/swap2-dec-3-exact-unsafe.smt2
 unsat
 
 $ z3 5-swap2-dec/swap2-dec-4-exact3-safe.smt2
-timeout
+sat
 
 $ z3 5-swap2-dec/swap2-dec-4-exact3-unsafe.smt2
 unsat
@@ -191,7 +191,7 @@ $ z3 9-trees/trees-3-inc-some-unsafe.smt2
 unsat
 
 $ z3 9-trees/trees-4-inc-some2-safe.smt2
-timeout
+unknown
 
 $ z3 9-trees/trees-4-inc-some2-unsafe.smt2
 unsat

@@ -83,6 +83,7 @@
          (> main@%_3_0 0)
          (> main@%_4_0 0)
          (> main@%_5_0 0)
+         (distinct main@%_2_0 main@%_3_0 main@%_4_0 main@%_5_0) ; modify
          (= main@%_6_0 main@%_2_0)
          (= main@%_7_0 @nd_0)
          (= main@%_9_0 (store main@%_1_0 main@%_2_0 main@%_8_0))
