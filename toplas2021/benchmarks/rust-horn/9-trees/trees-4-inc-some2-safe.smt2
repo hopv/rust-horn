@@ -28,7 +28,7 @@
   (and (= (~ret<Int> _10) (~cur<Int> _10)) (= (~ret<%Tree> _6) (~cur<%Tree> _6)) (= (~ret<Int> _5) (~cur<Int> _5)) (= _! false))
   (%main.5 _1 _2 _5 _6 _10 _13 false _!))))
 (assert (forall ((_1 %Tree) (_2 Int) (_5 ~Mut<Int>) (_6 ~Mut<%Tree>) (_10 ~Mut<Int>) (_13 Int) (_! Bool)) (=>
-  (and (= (~ret<Int> _5) (~cur<Int> _5)) (= (~ret<Int> _10) (~cur<Int> _10)) (= (~ret<%Tree> _6) (~cur<%Tree> _6)) (= _! true))
+  (and (= (~ret<Int> _5) (~cur<Int> _5)) (= (~ret<%Tree> _6) (~cur<%Tree> _6)) (= (~ret<Int> _10) (~cur<Int> _10)) (= _! true))
   (%main.5 _1 _2 _5 _6 _10 _13 true _!))))
 
 ; %sum

@@ -21,7 +21,7 @@
   (and (%linger_dec_bound_three.4 _1 _%.0 _%.1 _%.2 _?.1 (~mut<Int> (- (~cur<Int> _2) 1) (~ret<Int> _2)) (~mut<Int> (- (~cur<Int> _3) 2) (~ret<Int> _3)) (~mut<Int> (- (~cur<Int> _4) 3) (~ret<Int> _4)) _?.3))
   (%linger_dec_bound_three.0 _1 _2 _3 _4 false))))
 (assert (forall ((_1 Int) (_2 ~Mut<Int>) (_3 ~Mut<Int>) (_4 ~Mut<Int>)) (=>
-  (and (= (~ret<Int> _2) (~cur<Int> _2)) (= (~ret<Int> _4) (~cur<Int> _4)) (= (~ret<Int> _3) (~cur<Int> _3)) true)
+  (and (= (~ret<Int> _2) (~cur<Int> _2)) (= (~ret<Int> _3) (~cur<Int> _3)) (= (~ret<Int> _4) (~cur<Int> _4)) true)
   (%linger_dec_bound_three.0 _1 _2 _3 _4 true))))
 ; %linger_dec_bound_three bb4
 (assert (forall ((_1 Int) (_2 ~Mut<Int>) (_3 ~Mut<Int>) (_4 ~Mut<Int>) (_7 Int) (_8 ~Mut<Int>) (_9 ~Mut<Int>) (_10 ~Mut<Int>) (_?.5 Bool)) (=>
@@ -35,14 +35,14 @@
   (and (%linger_dec_bound_three.10 _1 _2 _3 _4 _7 _8 _9 _10 _11 false _?.8))
   (%linger_dec_bound_three.7 _1 _2 _3 _4 _7 _8 _9 _10 _11 false))))
 (assert (forall ((_1 Int) (_2 ~Mut<Int>) (_3 ~Mut<Int>) (_4 ~Mut<Int>) (_7 Int) (_8 ~Mut<Int>) (_9 ~Mut<Int>) (_10 ~Mut<Int>) (_11 Bool) (_*.9_2 Int) (_*.9_3 Int) (_*.15_8 Int) (_*.15_10 Int) (_*.15_12 Int)) (=>
-  (and (= (~ret<Int> _9) (~cur<Int> _9)) (= _*.9_2 _*.9_3) (%linger_dec_bound_three (- _1 1) (~mut<Int> (~cur<Int> _8) _*.15_8) (~mut<Int> _7 _*.15_10) (~mut<Int> (~cur<Int> _10) _*.15_12)) (= (~ret<Int> _10) _*.15_12) (= _*.9_3 _*.15_10) (= (~ret<Int> _8) _*.15_8) (= (~ret<Int> _2) (~cur<Int> _2)) (= (~ret<Int> _3) (~cur<Int> _3)) (= (~ret<Int> _4) (~cur<Int> _4)) true)
+  (and (= (~ret<Int> _9) (~cur<Int> _9)) (= _*.9_2 _*.9_3) (%linger_dec_bound_three (- _1 1) (~mut<Int> (~cur<Int> _8) _*.15_8) (~mut<Int> _7 _*.15_10) (~mut<Int> (~cur<Int> _10) _*.15_12)) (= (~ret<Int> _10) _*.15_12) (= _*.9_3 _*.15_10) (= (~ret<Int> _8) _*.15_8) (= (~ret<Int> _4) (~cur<Int> _4)) (= (~ret<Int> _3) (~cur<Int> _3)) (= (~ret<Int> _2) (~cur<Int> _2)) true)
   (%linger_dec_bound_three.7 _1 _2 _3 _4 _7 _8 _9 _10 _11 true))))
 ; %linger_dec_bound_three bb10
 (assert (forall ((_1 Int) (_2 ~Mut<Int>) (_3 ~Mut<Int>) (_4 ~Mut<Int>) (_7 Int) (_8 ~Mut<Int>) (_9 ~Mut<Int>) (_10 ~Mut<Int>) (_11 Bool) (_14 Bool) (_*.15_8 Int) (_*.15_10 Int) (_*.15_12 Int)) (=>
-  (and (%linger_dec_bound_three (- _1 1) (~mut<Int> (~cur<Int> _8) _*.15_8) (~mut<Int> (~cur<Int> _9) _*.15_10) (~mut<Int> (~cur<Int> _10) _*.15_12)) (= (~ret<Int> _10) _*.15_12) (= (~ret<Int> _9) _*.15_10) (= (~ret<Int> _8) _*.15_8) (= (~ret<Int> _3) (~cur<Int> _3)) (= (~ret<Int> _2) (~cur<Int> _2)) (= (~ret<Int> _4) (~cur<Int> _4)) true)
+  (and (%linger_dec_bound_three (- _1 1) (~mut<Int> (~cur<Int> _8) _*.15_8) (~mut<Int> (~cur<Int> _9) _*.15_10) (~mut<Int> (~cur<Int> _10) _*.15_12)) (= (~ret<Int> _10) _*.15_12) (= (~ret<Int> _9) _*.15_10) (= (~ret<Int> _8) _*.15_8) (= (~ret<Int> _4) (~cur<Int> _4)) (= (~ret<Int> _3) (~cur<Int> _3)) (= (~ret<Int> _2) (~cur<Int> _2)) true)
   (%linger_dec_bound_three.10 _1 _2 _3 _4 _7 _8 _9 _10 _11 _14 false))))
 (assert (forall ((_1 Int) (_2 ~Mut<Int>) (_3 ~Mut<Int>) (_4 ~Mut<Int>) (_7 Int) (_8 ~Mut<Int>) (_9 ~Mut<Int>) (_10 ~Mut<Int>) (_11 Bool) (_14 Bool) (_*.12_2 Int) (_*.12_3 Int) (_*.15_8 Int) (_*.15_10 Int) (_*.15_12 Int)) (=>
-  (and (= (~ret<Int> _10) (~cur<Int> _10)) (= _*.12_2 _*.12_3) (%linger_dec_bound_three (- _1 1) (~mut<Int> (~cur<Int> _8) _*.15_8) (~mut<Int> (~cur<Int> _9) _*.15_10) (~mut<Int> _7 _*.15_12)) (= _*.12_3 _*.15_12) (= (~ret<Int> _9) _*.15_10) (= (~ret<Int> _8) _*.15_8) (= (~ret<Int> _3) (~cur<Int> _3)) (= (~ret<Int> _2) (~cur<Int> _2)) (= (~ret<Int> _4) (~cur<Int> _4)) true)
+  (and (= (~ret<Int> _10) (~cur<Int> _10)) (= _*.12_2 _*.12_3) (%linger_dec_bound_three (- _1 1) (~mut<Int> (~cur<Int> _8) _*.15_8) (~mut<Int> (~cur<Int> _9) _*.15_10) (~mut<Int> _7 _*.15_12)) (= _*.12_3 _*.15_12) (= (~ret<Int> _9) _*.15_10) (= (~ret<Int> _8) _*.15_8) (= (~ret<Int> _4) (~cur<Int> _4)) (= (~ret<Int> _3) (~cur<Int> _3)) (= (~ret<Int> _2) (~cur<Int> _2)) true)
   (%linger_dec_bound_three.10 _1 _2 _3 _4 _7 _8 _9 _10 _11 _14 true))))
 
 ; %main

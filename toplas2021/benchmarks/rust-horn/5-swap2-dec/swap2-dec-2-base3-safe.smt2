@@ -55,10 +55,10 @@
   (%swap2_dec_three _1 _2 _3))))
 ; %swap2_dec_three bb7
 (assert (forall ((_1 ~Mut<~Mut<~Mut<Int>>>) (_2 ~Mut<~Mut<~Mut<Int>>>) (_3 ~Mut<~Mut<~Mut<Int>>>) (_*.8_6 ~Mut<~Mut<Int>>) (_*.8_8 ~Mut<~Mut<Int>>) (_*.8_10 ~Mut<~Mut<Int>>)) (=>
-  (and (%swap2_dec_three (~mut<~Mut<~Mut<Int>>> (~mut<~Mut<Int>> (~mut<Int> (- (~cur<Int> (~cur<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _1))) 1) (~ret<Int> (~cur<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _1)))) (~ret<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _1))) _*.8_6) (~mut<~Mut<~Mut<Int>>> (~mut<~Mut<Int>> (~mut<Int> (- (~cur<Int> (~cur<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _2))) 2) (~ret<Int> (~cur<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _2)))) (~ret<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _2))) _*.8_8) (~mut<~Mut<~Mut<Int>>> (~mut<~Mut<Int>> (~mut<Int> (- (~cur<Int> (~cur<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _3))) 3) (~ret<Int> (~cur<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _3)))) (~ret<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _3))) _*.8_10)) (= (~ret<~Mut<~Mut<Int>>> _1) _*.8_6) (= (~ret<~Mut<~Mut<Int>>> _2) _*.8_8) (= (~ret<~Mut<~Mut<Int>>> _3) _*.8_10) true)
+  (and (%swap2_dec_three (~mut<~Mut<~Mut<Int>>> (~mut<~Mut<Int>> (~mut<Int> (- (~cur<Int> (~cur<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _1))) 1) (~ret<Int> (~cur<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _1)))) (~ret<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _1))) _*.8_6) (~mut<~Mut<~Mut<Int>>> (~mut<~Mut<Int>> (~mut<Int> (- (~cur<Int> (~cur<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _2))) 2) (~ret<Int> (~cur<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _2)))) (~ret<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _2))) _*.8_8) (~mut<~Mut<~Mut<Int>>> (~mut<~Mut<Int>> (~mut<Int> (- (~cur<Int> (~cur<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _3))) 3) (~ret<Int> (~cur<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _3)))) (~ret<~Mut<Int>> (~cur<~Mut<~Mut<Int>>> _3))) _*.8_10)) (= (~ret<~Mut<~Mut<Int>>> _2) _*.8_8) (= (~ret<~Mut<~Mut<Int>>> _3) _*.8_10) (= (~ret<~Mut<~Mut<Int>>> _1) _*.8_6) true)
   (%swap2_dec_three.7 _1 _2 _3 false))))
 (assert (forall ((_1 ~Mut<~Mut<~Mut<Int>>>) (_2 ~Mut<~Mut<~Mut<Int>>>) (_3 ~Mut<~Mut<~Mut<Int>>>)) (=>
-  (and (= (~ret<~Mut<~Mut<Int>>> _1) (~cur<~Mut<~Mut<Int>>> _1)) (= (~ret<~Mut<~Mut<Int>>> _2) (~cur<~Mut<~Mut<Int>>> _2)) (= (~ret<~Mut<~Mut<Int>>> _3) (~cur<~Mut<~Mut<Int>>> _3)) true)
+  (and (= (~ret<~Mut<~Mut<Int>>> _2) (~cur<~Mut<~Mut<Int>>> _2)) (= (~ret<~Mut<~Mut<Int>>> _3) (~cur<~Mut<~Mut<Int>>> _3)) (= (~ret<~Mut<~Mut<Int>>> _1) (~cur<~Mut<~Mut<Int>>> _1)) true)
   (%swap2_dec_three.7 _1 _2 _3 true))))
 
 (assert (forall ((_% Int)) (=> (%main true) false)))
