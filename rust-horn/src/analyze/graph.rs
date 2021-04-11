@@ -15,7 +15,7 @@ pub fn get_ghosts(bbd0: &BBD, n_args: usize) -> Set<Local> {
     if let StmtK::Assign(box (Place { local, .. }, Rvalue::Use(Operand::Constant(constant)))) =
       &stmt.kind
     {
-      if let TyK::Bool = &constant.literal.ty.kind {
+      if let TyK::Bool = &constant.literal.ty().kind() {
         if local.index() > n_args {
           ghosts.insert(*local);
           continue;
@@ -41,11 +41,10 @@ impl<'tcx> Index<BB> for Basic<'_, 'tcx> {
 impl<'a, 'tcx> Basic<'a, 'tcx> {
   pub fn is_ghost_switching(self, bb: BB) -> bool {
     match &get_tmnt(&self[bb]).kind {
-      TmntK::SwitchInt { targets, discr, values, .. } => {
+      TmntK::SwitchInt { targets, discr, .. } => {
         if let Operand::Copy(Place { local, .. }) = discr {
           if self.ghosts.contains(local) {
-            assert!(targets.len() == 2 && values.len() == 1);
-            assert!(values[0] == 0);
+            assert!(targets.all_targets().len() == 2);
             return true;
           }
         }
@@ -68,10 +67,11 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
       }
       TmntK::Unreachable | TmntK::Return | TmntK::Call { destination: None, .. } => vec![],
       TmntK::SwitchInt { targets, .. } => {
+        let targets = targets.all_targets();
         if self.is_ghost_switching(bb) {
           vec![targets[0]]
         } else {
-          targets.clone()
+          targets.to_vec()
         }
       }
       TmntK::Call { destination: Some((_, target)), .. } => vec![*target],
@@ -108,8 +108,7 @@ pub fn get_ins_outs_map(
   fn dfs(
     me: BB, ins: &Set<Local>, discr_local: Option<Local>, basic: Basic,
     ins_map: &mut Map<BB, Set<Local>>,
-  )
-  {
+  ) {
     let mut ins = ins.clone();
     /* shrink */
     if basic.is_panicking(me) {

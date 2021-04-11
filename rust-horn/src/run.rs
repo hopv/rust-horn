@@ -1,4 +1,4 @@
-use rustc_driver::{run_compiler, Callbacks, Compilation};
+use rustc_driver::{Callbacks, Compilation, RunCompiler};
 use rustc_interface::interface::{Compiler, Config};
 use rustc_interface::Queries;
 use rustc_session::config::OptLevel;
@@ -34,22 +34,15 @@ pub fn run_rust_horn() {
   let mut args = Vec::new();
   let mut args_iter = get_args();
   while let Some(arg) = args_iter.next() {
-    if arg == "-o" {
-      opts.output_file = PathBuf::from(args_iter.next().unwrap());
-    } else if arg == "-d" {
-      opts.prettify_dir = PathBuf::from(args_iter.next().unwrap());
-    } else if arg == "--mir" {
-      opts.mir = true;
-    } else if arg == "--no-mir" {
-      opts.mir = false;
-    } else if arg == "--mir-dot" {
-      opts.mir_dot = true;
-    } else if arg == "--no-mir-dot" {
-      opts.mir_dot = false;
-    } else {
-      args.push(arg);
-    }
+    match arg.as_str() {
+      "-o" => opts.output_file = PathBuf::from(args_iter.next().unwrap()),
+      "-d" => opts.prettify_dir = PathBuf::from(args_iter.next().unwrap()),
+      "--mir" => opts.mir = true,
+      "--no-mir" => opts.mir = false,
+      "--mir-dot" => opts.mir_dot = true,
+      "--no-mir-dot" => opts.mir_dot = false,
+      _ => args.push(arg),
+    };
   }
-  let res = run_compiler(&args, &mut MyCallbacks { opts }, None, None);
-  res.unwrap();
+  RunCompiler::new(&args, &mut MyCallbacks { opts }).run().unwrap();
 }

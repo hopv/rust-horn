@@ -1,17 +1,16 @@
-use rustc_hir::def_id::DefId;
-use rustc_hir::Mutability;
+use rustc_hir::{def_id::DefId, Mutability};
 use rustc_middle::mir::{
   AggregateKind as AggrK, BasicBlock as BB, BinOp, Body, BorrowKind as BorK, Field, Local,
   LocalDecl, NullOp, Operand, Place, ProjectionElem as ProjElem, Rvalue, Statement as Stmt,
   StatementKind as StmtK, Terminator as Tmnt, TerminatorKind as TmntK, UnOp,
 };
-use rustc_middle::ty::subst::InternalSubsts as Substs;
-use rustc_middle::ty::tls::with as with_tcx;
-use rustc_middle::ty::{AdtDef, ClosureKind, Const, FnSig, Ty, TyCtxt, TyKind as TyK};
+use rustc_middle::ty::{
+  subst::InternalSubsts as Substs, tls::with as with_tcx, AdtDef, ClosureKind, Const, FnSig, Ty,
+  TyCtxt, TyKind as TyK,
+};
 use rustc_target::abi::VariantIdx as VrtIdx;
 
 use std::fmt::{Display, Formatter, Result as FResult};
-use std::iter::once;
 use std::str::pattern::Pattern;
 
 use crate::util::{bits_to_cnst, enumerate_bbds, get_tmnt, Cap};
@@ -22,32 +21,20 @@ pub fn pr_name(def_id: DefId) -> String {
 
 pub fn pr_fun_name(fun: DefId) -> String {
   let name = pr_name(fun);
-  if name == "rand" {
-    format!("<rand>")
-  } else if name == "alloc::alloc::box_free" {
-    format!("<free>")
-  } else if name == "std::io::_print" {
-    format!("<print>")
-  } else if name == "std::cmp::PartialEq::eq" {
-    format!("<eq>")
-  } else if name == "std::cmp::PartialEq::ne" {
-    format!("<ne>")
-  } else if name == "std::ops::Add::add" {
-    format!("<add>")
-  } else if name == "std::mem::swap" {
-    format!("<swap>")
-  } else if "core::num::<impl".is_prefix_of(&name) && ">::abs".is_suffix_of(&name) {
-    format!("<abs>")
-  } else if name == "std::rt::begin_panic" {
-    format!("<panic>")
-  } else if name == "std::intrinsics::discriminant_value" {
-    format!("<tag>")
-  } else if name == "std::ops::Fn::call" {
-    format!("<call>")
-  } else if "std::fmt".is_prefix_of(&name) {
-    format!("<fmt>")
-  } else {
-    name
+  match name.as_str() {
+    "rand" => format!("<rand>"),
+    "alloc::alloc::box_free" => format!("<free>"),
+    "std::io::_print" => format!("<print>"),
+    "std::cmp::PartialEq::eq" => format!("<eq>"),
+    "std::cmp::PartialEq::ne" => format!("<ne>"),
+    "std::ops::Add::add" => format!("<add>"),
+    _ if "core::num::<impl".is_prefix_of(&name) && ">::abs".is_suffix_of(&name) => format!("<abs>"),
+    "std::mem::swap" => format!("<swap>"),
+    "std::rt::begin_panic" => format!("<panic>"),
+    "std::intrinsics::discriminant_value" => format!("<tag>"),
+    "std::ops::Fn::call" => format!("<call>"),
+    _ if "std::fmt".is_prefix_of(&name) => format!("<fmt>"),
+    _ => name,
   }
 }
 
@@ -70,7 +57,7 @@ where
   fn fmt(&self, f: &mut Formatter) -> FResult { write!(f, "{}", pr(*self.unpr)) }
 }
 
-impl Display for Pr<&FnSig<'_>> {
+impl Display for Pr<FnSig<'_>> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let fn_sig = self.unpr;
     write!(f, "(")?;
@@ -110,7 +97,7 @@ pub fn pr_adt_name(adt_def: &AdtDef) -> String {
 impl Display for Pr<Ty<'_>> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let ty = self.unpr;
-    match &ty.kind {
+    match &ty.kind() {
       TyK::Bool => write!(f, "bool"),
       TyK::Char => write!(f, "char"),
       TyK::Int(_) | TyK::Uint(_) => write!(f, "int"),
@@ -124,13 +111,11 @@ impl Display for Pr<Ty<'_>> {
       TyK::Ref(_, ty, Mutability::Not) => write!(f, "&{}", pr(ty)),
       TyK::Ref(_, ty, Mutability::Mut) => write!(f, "&mut {}", pr(ty)),
       TyK::FnDef(fun, substs) => with_tcx(|tcx| {
-        let poly_fn_sig = tcx.fn_sig(*fun);
-        let fn_sig = poly_fn_sig.skip_binder();
+        let fn_sig = tcx.fn_sig(*fun).skip_binder();
         write!(f, "fn {}{}{}", pr_fun_name(*fun), pr(substs), pr(fn_sig))
       }),
       TyK::FnPtr(poly_fn_sig) => {
-        let fn_sig = poly_fn_sig.skip_binder();
-        write!(f, "fn {}", pr(fn_sig))
+        write!(f, "fn {}", pr(poly_fn_sig.skip_binder()))
       }
       TyK::Closure(fun, substs) => {
         let len = substs.len();
@@ -193,11 +178,11 @@ impl Display for Pr<&Place<'_>> {
         ProjElem::Field(fld_idx, _) => write!(f, ".{}", pr(fld_idx))?,
         ProjElem::Index(local) => write!(f, "[{}]", pr(local))?,
         ProjElem::ConstantIndex { offset, from_end, .. } => {
-          let sign = if *from_end { "-" } else { "" };
+          let sign = if from_end { "-" } else { "" };
           write!(f, "[{}{}]", sign, offset)?;
         }
         ProjElem::Subslice { from, to, from_end } => {
-          write!(f, "[{}:-{}{}]", from, to, if *from_end { " rev" } else { "" })?
+          write!(f, "[{}:-{}{}]", from, to, if from_end { " rev" } else { "" })?
         }
         ProjElem::Downcast(_, vrt_idx) => write!(f, "<{}>", pr(vrt_idx))?,
       }
@@ -221,17 +206,16 @@ impl Display for Pr<&Substs<'_>> {
   }
 }
 
-impl<'tcx> Display for Pr<&'tcx Const<'tcx>> {
+impl<'tcx> Display for Pr<&Const<'tcx>> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let cnst = self.unpr;
-    if let TyK::FnDef(fun, substs) = &cnst.ty.kind {
+    if let TyK::FnDef(fun, substs) = cnst.ty.kind() {
       write!(f, "{}{}", pr_fun_name(*fun), pr(substs))
     } else {
       let buf = format!("{}", cnst);
-      match &cnst.ty.kind {
+      match cnst.ty.kind() {
         TyK::Int(_) | TyK::Uint(_) | TyK::Float(_) => {
-          let pat = |c: char| c.is_ascii_alphabetic();
-          write!(f, "{}", buf.split(pat).next().unwrap())
+          write!(f, "{}", buf.split('_').next().unwrap())
         }
         _ => write!(f, "{}", buf),
       }
@@ -249,7 +233,9 @@ impl Display for Pr<&Operand<'_>> {
     match opd {
       Operand::Copy(place) => write!(f, "{}", pr(place)),
       Operand::Move(place) => write!(f, "<-{}", pr(place)),
-      Operand::Constant(box constant) => write!(f, "{}", pr(constant.literal)),
+      Operand::Constant(box constant) => {
+        write!(f, "{}", pr(constant.literal.const_for_ty().unwrap()))
+      }
     }
   }
 }
@@ -313,7 +299,9 @@ impl Display for Pr<&Rvalue<'_>> {
       Rvalue::Ref(_, bor_kind, place) => write!(f, "{}{}", pr(bor_kind), pr(place)),
       Rvalue::Len(place) => write!(f, "{}.len", pr(place)),
       Rvalue::Cast(_, opd, ty) => write!(f, "{} as {}", pr(opd), pr(ty)),
-      Rvalue::BinaryOp(bin_op, opd1, opd2) => write!(f, "{} {} {}", pr(opd1), pr(bin_op), pr(opd2)),
+      Rvalue::BinaryOp(bin_op, box (opd1, opd2)) => {
+        write!(f, "{} {} {}", pr(opd1), pr(bin_op), pr(opd2))
+      }
       Rvalue::NullaryOp(null_op, ty) => write!(f, "{}<{}>", pr(null_op), pr(ty)),
       Rvalue::UnaryOp(un_op, opd) => write!(f, "{}{}", pr(un_op), pr(opd)),
       Rvalue::Discriminant(place) => write!(f, "{}.tag", pr(place)),
@@ -366,9 +354,9 @@ impl Display for PrTmntShort<'_> {
       TmntK::SwitchInt { discr, .. } => write!(f, "? {}", pr(discr)),
       TmntK::Unreachable => write!(f, "panic"),
       TmntK::Return => write!(f, "return _0"),
-      TmntK::Drop { location, .. } => {
-        let ty = location.ty(mir, tcx).ty;
-        write!(f, "drop<{}>({})", pr(ty), pr(location))
+      TmntK::Drop { place, .. } => {
+        let ty = place.ty(mir, tcx).ty;
+        write!(f, "drop<{}>({})", pr(ty), pr(place))
       }
       TmntK::Call { func, args, destination, .. } => {
         if let Some((place, _)) = destination {
@@ -405,18 +393,13 @@ impl Display for PrTmnt<'_> {
       TmntK::Goto { target } => {
         write!(f, "goto {}", pr(target))?;
       }
-      TmntK::SwitchInt { switch_ty, values, targets, .. } => {
+      TmntK::SwitchInt { switch_ty, targets, .. } => {
         write!(f, " [")?;
-        let mut sep = "";
-        let labels_iter = values
-          .iter()
-          .map(|&bits| pr_bits(switch_ty, bits, tcx).to_string())
-          .chain(once(format!("else")));
-        for (label, &target) in labels_iter.zip(targets.iter()) {
-          write!(f, "{}{} -> goto {}", sep, label, pr(target))?;
-          sep = ", ";
+        for (val, tgt) in targets.iter() {
+          let label = pr_bits(switch_ty, val, tcx).to_string();
+          write!(f, "{} -> goto {}, ", label, pr(tgt))?;
         }
-        write!(f, "]")?;
+        write!(f, "else -> goto {}]", pr(targets.otherwise()))?;
       }
       TmntK::Unreachable | TmntK::Return => {}
       TmntK::Drop { target, .. } | TmntK::Assert { target, .. } => {
@@ -451,7 +434,7 @@ impl Display for PrSig<'_> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let PrSig { mir, fun } = *self;
     write!(f, "fn {}", pr_name(fun))?;
-    with_tcx(|tcx| match &tcx.type_of(fun).kind {
+    with_tcx(|tcx| match &tcx.type_of(fun).kind() {
       TyK::FnDef(_, substs) => write!(f, "{}", pr(substs)),
       TyK::Closure(_, _) => Ok(()),
       _ => panic!("unknown function type"),
@@ -591,14 +574,12 @@ impl Display for PrMirDot<'_> {
         TmntK::Goto { target } | TmntK::Drop { target, .. } | TmntK::Assert { target, .. } => {
           jumps.push((bb, *target, format!("")));
         }
-        TmntK::SwitchInt { switch_ty, values, targets, .. } => {
-          let labels_iter = values
-            .iter()
-            .map(|&bits| pr_bits(switch_ty, bits, tcx).to_string())
-            .chain(once(format!("else")));
-          for (label, &target) in labels_iter.zip(targets.iter()) {
-            jumps.push((bb, target, label));
+        TmntK::SwitchInt { switch_ty, targets, .. } => {
+          for (val, tgt) in targets.iter() {
+            let label = pr_bits(switch_ty, val, tcx).to_string();
+            jumps.push((bb, tgt, label));
           }
+          jumps.push((bb, targets.otherwise(), format!("else")));
         }
         TmntK::Unreachable | TmntK::Return => {}
         TmntK::Call { destination, .. } => {

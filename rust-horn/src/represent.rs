@@ -1,8 +1,8 @@
-use rustc_hir::def_id::DefId;
-use rustc_hir::Mutability;
+use rustc_hir::{def_id::DefId, Mutability};
 use rustc_middle::mir::{BasicBlock as BB, Field as FldIdx};
-use rustc_middle::ty::subst::InternalSubsts as Substs;
-use rustc_middle::ty::{AdtDef, Ty, TyCtxt, TyKind as TyK, VariantDef as VrtDef};
+use rustc_middle::ty::{
+  subst::InternalSubsts as Substs, AdtDef, Ty, TyCtxt, TyKind as TyK, VariantDef as VrtDef,
+};
 use rustc_target::abi::VariantIdx as VrtIdx;
 
 use std::fmt::{Display, Formatter, Result as FResult};
@@ -68,7 +68,7 @@ fn rep_adt_selector_name(adt_def: &AdtDef, vrt_idx: VrtIdx, fld_idx: FldIdx) -> 
   format!("{}-{}.{}", rep_adt_name(adt_def), vrt_idx.index(), fld_idx.index())
 }
 fn rep_builder(base_ty: Ty, vrt_idx: VrtIdx) -> String {
-  match &base_ty.kind {
+  match &base_ty.kind() {
     TyK::Ref(_, ty, Mutability::Mut) => {
       assert!(vrt_idx == VRT0);
       format!("~mut<{}>", rep(ty))
@@ -89,7 +89,7 @@ fn rep_builder(base_ty: Ty, vrt_idx: VrtIdx) -> String {
   }
 }
 fn rep_selector_name(base_ty: Ty, vrt_idx: VrtIdx, fld_idx: FldIdx) -> String {
-  match &base_ty.kind {
+  match &base_ty.kind() {
     TyK::Ref(_, ty, Mutability::Mut) => {
       assert!(vrt_idx == VRT0);
       match fld_idx {
@@ -133,7 +133,7 @@ impl Display for RepAdtTy<'_> {
 impl Display for Rep<Ty<'_>> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let ty = self.unrep;
-    match &ty.kind {
+    match &ty.kind() {
       TyK::Bool => write!(f, "Bool"),
       TyK::Int(_) | TyK::Uint(_) => write!(f, "Int"),
       TyK::Float(_) => write!(f, "Real"),

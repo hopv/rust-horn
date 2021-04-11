@@ -1,12 +1,14 @@
 use rustc_hir::def_id::{DefId, LOCAL_CRATE};
 use rustc_index::vec::IndexVec;
-use rustc_middle::mir::interpret::{ConstValue, Scalar};
 use rustc_middle::mir::{
+  interpret::{ConstValue, Scalar},
   BasicBlock as BB, BasicBlockData as BBD, Body as MirBody, Field as FldIdx, Local,
   Terminator as Tmnt,
 };
-use rustc_middle::ty::subst::InternalSubsts as Substs;
-use rustc_middle::ty::{Const, ConstKind, FieldDef as FldDef, ParamEnv, Ty, TyCtxt, TyKind as TyK};
+use rustc_middle::ty::{
+  subst::InternalSubsts as Substs, Const, ConstKind, FieldDef as FldDef, ParamEnv, Ty, TyCtxt,
+  TyKind as TyK,
+};
 use rustc_target::abi::VariantIdx as VrtIdx;
 use std::cmp::Ord;
 use std::collections::{HashMap as Map, HashSet as Set};
@@ -46,11 +48,9 @@ pub fn enumerate_fld_defs(fld_defs: &Vec<FldDef>) -> impl Iterator<Item = (FldId
 }
 
 pub fn bits_to_cnst<'tcx>(ty: Ty<'tcx>, bits: u128, tcx: TyCtxt<'tcx>) -> &'tcx Const<'tcx> {
-  let size = tcx.layout_of(ParamEnv::empty().and(ty)).unwrap().size.bytes() as u8;
-  tcx.mk_const(Const {
-    ty,
-    val: ConstKind::Value(ConstValue::Scalar(Scalar::Raw { data: bits, size })),
-  })
+  let size = tcx.layout_of(ParamEnv::empty().and(ty)).unwrap().size;
+  let val = ConstKind::Value(ConstValue::Scalar(Scalar::from_uint(bits, size)));
+  tcx.mk_const(Const { ty, val })
 }
 
 pub fn get_tmnt<'a, 'tcx>(bbd: &'a BBD<'tcx>) -> &'a Tmnt<'tcx> { bbd.terminator.as_ref().unwrap() }
@@ -60,14 +60,14 @@ pub fn has_any_type(substs: &Substs) -> bool { substs.types().any(|_| true) }
 pub fn only_ty<'tcx>(substs: &'tcx Substs<'tcx>) -> Ty<'tcx> {
   let mut it = substs.types();
   if let Some(ty) = it.next_back() {
-    assert_eq!(None, it.next_back(), "multiple types found");
+    assert!(None == it.next_back(), "multiple types found");
     return ty;
   }
   panic!("no type found");
 }
 
 pub fn fun_of_fun_ty(fun_ty: Ty) -> DefId {
-  match &fun_ty.kind {
+  match &fun_ty.kind() {
     TyK::FnDef(fun, _) => *fun,
     TyK::Closure(fun, _) => *fun,
     _ => panic!("unexpected type {} for a function type", fun_ty),
@@ -75,7 +75,7 @@ pub fn fun_of_fun_ty(fun_ty: Ty) -> DefId {
 }
 
 pub fn substs_of_fun_ty<'tcx>(fun_ty: Ty<'tcx>) -> &'tcx Substs<'tcx> {
-  match &fun_ty.kind {
+  match &fun_ty.kind() {
     TyK::FnDef(_, substs) | TyK::Closure(_, substs) => substs,
     _ => panic!("unexpected type {} for a function type", fun_ty),
   }

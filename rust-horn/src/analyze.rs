@@ -1,11 +1,14 @@
-use rustc_hir::def_id::{CrateNum, DefId};
-use rustc_hir::Mutability;
+use rustc_hir::{
+  def_id::{CrateNum, DefId},
+  Mutability,
+};
 use rustc_middle::mir::{
   BasicBlock as BB, Field as FldIdx, Local, Operand, Place, Rvalue, Statement,
   StatementKind as StmtK, TerminatorKind as TmntK,
 };
-use rustc_middle::ty::subst::InternalSubsts as Substs;
-use rustc_middle::ty::{AdtDef, Ty, TyCtxt, TyKind as TyK, VariantDef as VrtDef};
+use rustc_middle::ty::{
+  subst::InternalSubsts as Substs, AdtDef, Ty, TyCtxt, TyKind as TyK, VariantDef as VrtDef,
+};
 use rustc_session::config::EntryFnType;
 
 use std::collections::{HashMap as Map, HashSet as Set};
@@ -23,8 +26,8 @@ use graph::{get_ghosts, get_ins_outs_map, get_pivots, Basic};
 pub mod data;
 use data::{
   assign_to_place, bin_op_expr, decompose_mut, drop_expr, fun_to_bin_op, fun_to_un_op, get_proj,
-  is_fun_swap, is_fun_vacuous, nonce, read_opd, read_rvalue, seize_place, set_tag,
-  traverse_prerule, var_to_expr, BasicAsks, Cond, Const, End, Env, Expr, Outer, Var,
+  nonce, read_opd, read_rvalue, seize_place, set_tag, traverse_prerule, var_to_expr, BasicAsks,
+  Cond, Const, End, Env, Expr, Outer, Var,
 };
 
 #[derive(Debug)]
@@ -106,8 +109,7 @@ impl<'a, 'tcx> Data<'a, 'tcx> {
 fn pivot_up<'tcx>(
   init_env: Env<'tcx>, is_main: bool, pivot: BB, mut conds: Vec<Cond<'tcx>>, mut env: Env<'tcx>,
   data: Data<'_, 'tcx>,
-) -> Prerule<'tcx>
-{
+) -> Prerule<'tcx> {
   let Data { outer, .. } = data;
   let mut args = Vec::<Expr<'tcx>>::new();
   for local in sort_set(data.get_locals(Some(pivot)).clone()).iter() {
@@ -132,8 +134,7 @@ fn pivot_up<'tcx>(
 fn get_prerule<'tcx>(
   is_main: bool, init_me: BB, init_env: Env<'tcx>, data: Data<'_, 'tcx>,
   fun_asks: &mut Map<String, Ty<'tcx>>,
-) -> Prerule<'tcx>
-{
+) -> Prerule<'tcx> {
   let mut me = init_me;
   let mut conds = Vec::<Cond<'tcx>>::new();
   let mut env = init_env.clone();
@@ -161,7 +162,7 @@ fn get_prerule<'tcx>(
         {
           let expr2 = seize_place(place2, &mut env, outer);
           let var = Var::MutRet(me, stmt_idx);
-          let ty_body = match &outer.place_to_ty(place2).kind {
+          let ty_body = match &outer.place_to_ty(place2).kind() {
             TyK::Ref(_, ty_body, Mutability::Mut) => ty_body,
             _ => unreachable!(),
           };
@@ -223,6 +224,7 @@ fn get_prerule<'tcx>(
       TmntK::Call { func, args, destination: Some((place, target)), .. } => {
         let fun_ty = outer.opd_to_ty(func);
         let fun = fun_of_fun_ty(fun_ty);
+        let fun_name = pr_fun_name(fun);
         let res_ty = outer.place_to_ty(place);
         if let Some(bin_op) = fun_to_bin_op(fun) {
           assert!(args.len() == 2);
@@ -236,15 +238,15 @@ fn get_prerule<'tcx>(
           assert!(args.len() == 1);
           let res = Expr::UnOp(un_op, box read_opd(&args[0], &mut env, outer));
           assign_to_place(place, res, &mut env, &mut conds, outer);
-        } else if pr_fun_name(fun) == "<rand>" {
+        } else if fun_name == "<rand>" {
           assign_to_place(place, var_to_expr(Var::Rand(me), res_ty), &mut env, &mut conds, outer);
-        } else if is_fun_swap(fun) {
+        } else if fun_name == "<swap>" {
           assert!(args.len() == 2);
           let (x, x_) = decompose_mut(read_opd(&args[0], &mut env, outer));
           let (y, y_) = decompose_mut(read_opd(&args[1], &mut env, outer));
           conds.push(Cond::Eq { tgt: y_, src: x });
           conds.push(Cond::Eq { tgt: x_, src: y });
-        } else if is_fun_vacuous(fun) {
+        } else if fun_name == "<free>" {
           // do nothing
         } else {
           fun_asks.insert(rep_fun_name(fun_ty), fun_ty);
@@ -261,7 +263,7 @@ fn get_prerule<'tcx>(
       }
       TmntK::SwitchInt { targets, .. } => {
         if basic.is_ghost_switching(me) {
-          me = targets[0];
+          me = targets.all_targets()[0];
           continue;
         }
         return pivot_up(init_env, is_main, me, conds, env, data);
@@ -285,38 +287,34 @@ fn analyze_pivot<'tcx>(
   if let Some(me) = pivot {
     let tmnt = get_tmnt(&basic[me]);
     match &tmnt.kind {
-      TmntK::SwitchInt { values, targets, .. } => {
+      TmntK::SwitchInt { targets, .. } => {
         assert!(!basic.is_ghost_switching(me));
         let (discr_place, discr_kind) = data.discr_place_kind(me);
         let discr_ty = outer.place_to_ty(&discr_place);
+        let main_targets = targets.iter().collect::<Vec<_>>();
+        let rest_target = targets.otherwise();
         match discr_kind {
-          DiscrKind::Value => match &discr_ty.kind {
+          DiscrKind::Value => match &discr_ty.kind() {
             TyK::Bool => {
-              if values == &vec![0] && targets.len() == 2 {
-                for (tgt, b) in targets.iter().zip([false, true].iter()) {
-                  let mut env = env.clone();
-                  *seize_place(&discr_place, &mut env, outer) = Expr::Const(Const::Bool(*b));
-                  prerules.push(get_prerule(is_main, *tgt, env, data, fun_asks));
-                }
-              } else {
-                unimplemented!("unexpected branching for boolean")
+              assert!(main_targets.len() == 1 && main_targets[0].0 == 0);
+              for (tgt, b) in [(main_targets[0].1, false), (rest_target, true)].iter() {
+                let mut env = env.clone();
+                *seize_place(&discr_place, &mut env, outer) = Expr::Const(Const::Bool(*b));
+                prerules.push(get_prerule(is_main, *tgt, env, data, fun_asks));
               }
             }
             _ => unimplemented!("value branching for non-boolean is not supported yet"),
           },
-          DiscrKind::Tag => match &discr_ty.kind {
+          DiscrKind::Tag => match &discr_ty.kind() {
             TyK::Adt(AdtDef { variants, .. }, adt_substs) => {
-              assert!(variants.len() == values.len());
-              for i in 0..values.len() {
-                assert!(values[i] == i as u128);
-              }
-              for ((vrt_idx, VrtDef { fields, .. }), tgt) in
-                variants.iter_enumerated().zip(targets.iter())
+              assert!(variants.len() == main_targets.len());
+              for ((vrt_idx, VrtDef { fields, .. }), (val, tgt)) in
+                variants.iter_enumerated().zip(main_targets.iter())
               {
+                assert!(*val == vrt_idx.as_u32() as u128);
                 let mut env = env.clone();
+                let fields = fields.iter().enumerate();
                 let args = fields
-                  .iter()
-                  .enumerate()
                   .map(|(fld_idx, fld_def)| {
                     var_to_expr(
                       Var::Split(me, vrt_idx, FldIdx::from(fld_idx)),
