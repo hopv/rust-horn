@@ -31,10 +31,10 @@
   (%may_swap<~Mut<Int>> _1 _2))))
 ; %may_swap<~Mut<Int>> bb1
 (assert (forall ((_1 ~Mut<~Mut<Int>>) (_2 ~Mut<~Mut<Int>>)) (=>
-  (and (= (~ret<~Mut<Int>> _2) (~cur<~Mut<Int>> _2)) (= (~ret<~Mut<Int>> _1) (~cur<~Mut<Int>> _1)) true)
+  (and (= (~ret<~Mut<Int>> _1) (~cur<~Mut<Int>> _1)) (= (~ret<~Mut<Int>> _2) (~cur<~Mut<Int>> _2)) true)
   (%may_swap<~Mut<Int>>.1 _1 _2 false))))
 (assert (forall ((_1 ~Mut<~Mut<Int>>) (_2 ~Mut<~Mut<Int>>) (_*.2_2 ~Mut<Int>) (_*.2_4 ~Mut<Int>)) (=>
-  (and (= _*.2_4 (~cur<~Mut<Int>> _1)) (= _*.2_2 (~cur<~Mut<Int>> _2)) (= (~ret<~Mut<Int>> _2) _*.2_4) (= (~ret<~Mut<Int>> _1) _*.2_2) true)
+  (and (= _*.2_4 (~cur<~Mut<Int>> _1)) (= _*.2_2 (~cur<~Mut<Int>> _2)) (= (~ret<~Mut<Int>> _1) _*.2_2) (= (~ret<~Mut<Int>> _2) _*.2_4) true)
   (%may_swap<~Mut<Int>>.1 _1 _2 true))))
 
 ; %may_swap<~Mut<~Mut<Int>>>
@@ -43,10 +43,10 @@
   (%may_swap<~Mut<~Mut<Int>>> _1 _2))))
 ; %may_swap<~Mut<~Mut<Int>>> bb1
 (assert (forall ((_1 ~Mut<~Mut<~Mut<Int>>>) (_2 ~Mut<~Mut<~Mut<Int>>>)) (=>
-  (and (= (~ret<~Mut<~Mut<Int>>> _2) (~cur<~Mut<~Mut<Int>>> _2)) (= (~ret<~Mut<~Mut<Int>>> _1) (~cur<~Mut<~Mut<Int>>> _1)) true)
+  (and (= (~ret<~Mut<~Mut<Int>>> _1) (~cur<~Mut<~Mut<Int>>> _1)) (= (~ret<~Mut<~Mut<Int>>> _2) (~cur<~Mut<~Mut<Int>>> _2)) true)
   (%may_swap<~Mut<~Mut<Int>>>.1 _1 _2 false))))
 (assert (forall ((_1 ~Mut<~Mut<~Mut<Int>>>) (_2 ~Mut<~Mut<~Mut<Int>>>) (_*.2_2 ~Mut<~Mut<Int>>) (_*.2_4 ~Mut<~Mut<Int>>)) (=>
-  (and (= _*.2_4 (~cur<~Mut<~Mut<Int>>> _1)) (= _*.2_2 (~cur<~Mut<~Mut<Int>>> _2)) (= (~ret<~Mut<~Mut<Int>>> _2) _*.2_4) (= (~ret<~Mut<~Mut<Int>>> _1) _*.2_2) true)
+  (and (= _*.2_4 (~cur<~Mut<~Mut<Int>>> _1)) (= _*.2_2 (~cur<~Mut<~Mut<Int>>> _2)) (= (~ret<~Mut<~Mut<Int>>> _1) _*.2_2) (= (~ret<~Mut<~Mut<Int>>> _2) _*.2_4) true)
   (%may_swap<~Mut<~Mut<Int>>>.1 _1 _2 true))))
 
 ; %swap2_dec

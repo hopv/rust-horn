@@ -7,7 +7,7 @@ Since `rust-horn` uses [Rust's MIR](https://rust-lang.github.io/rustc-guide/mir/
 Please check the version of `rustc` before you try the verifier.
 
 You can build the verifier by `make build`.
-You can try the verifier for the files in `sample/*` by `make try`.
+You can try the verifier for the files `sample/*.rs` by `make try`.
 (Please modify the variable `RUST_LIB_PATH` in `Makefile` depending on your platform.)
 
 ## Supported Features

@@ -1,4 +1,6 @@
-.PHONY: build try try-mir try-clean
+SHELL = /bin/bash
+
+.PHONY: build try try-mir clean
 
 build:
 	cargo fmt
@@ -14,6 +16,7 @@ try:
 			-L $(RUST_LIB_PATH); \
 	done
 
-try-clean:
+clean:
+	cargo clean
 	rm -f sample/*.smt2
 	rm -f sample/*.mir
