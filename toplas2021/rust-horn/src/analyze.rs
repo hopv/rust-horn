@@ -212,7 +212,7 @@ fn get_prerule<'tcx>(
       }
       TmntK::Return => {
         let mut res: Option<Expr> = None;
-        for (local, expr) in env.drain() {
+        for (local, expr) in sort_map(env).drain(..) {
           if local != _0 {
             drop_expr(outer.local_to_ty(local), &expr, &mut conds, outer);
           } else {

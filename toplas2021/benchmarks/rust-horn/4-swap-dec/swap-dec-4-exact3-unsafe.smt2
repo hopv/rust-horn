@@ -56,7 +56,7 @@
   (%swap_dec_bound_three _1 _2 _3 _4))))
 ; %swap_dec_bound_three bb3
 (assert (forall ((_1 Int) (_2 ~Mut<~Mut<Int>>) (_3 ~Mut<~Mut<Int>>) (_4 ~Mut<~Mut<Int>>)) (=>
-  (and (= (~ret<~Mut<Int>> _3) (~cur<~Mut<Int>> _3)) (= (~ret<~Mut<Int>> _4) (~cur<~Mut<Int>> _4)) (= (~ret<~Mut<Int>> _2) (~cur<~Mut<Int>> _2)) true)
+  (and (= (~ret<~Mut<Int>> _2) (~cur<~Mut<Int>> _2)) (= (~ret<~Mut<Int>> _3) (~cur<~Mut<Int>> _3)) (= (~ret<~Mut<Int>> _4) (~cur<~Mut<Int>> _4)) true)
   (%swap_dec_bound_three.3 _1 _2 _3 _4 0))))
 (assert (forall ((_1 Int) (_2 ~Mut<~Mut<Int>>) (_3 ~Mut<~Mut<Int>>) (_4 ~Mut<~Mut<Int>>) (_14 Int) (_*.5_11 ~Mut<Int>) (_*.5_13 ~Mut<Int>) (_*.5_15 ~Mut<Int>)) (=>
   (and (%swap_dec_bound_three (- _1 1) (~mut<~Mut<Int>> (~mut<Int> (- (~cur<Int> (~cur<~Mut<Int>> _2)) 1) (~ret<Int> (~cur<~Mut<Int>> _2))) _*.5_11) (~mut<~Mut<Int>> (~mut<Int> (- (~cur<Int> (~cur<~Mut<Int>> _3)) 2) (~ret<Int> (~cur<~Mut<Int>> _3))) _*.5_13) (~mut<~Mut<Int>> (~mut<Int> (- (~cur<Int> (~cur<~Mut<Int>> _4)) 3) (~ret<Int> (~cur<~Mut<Int>> _4))) _*.5_15)) (= (~ret<~Mut<Int>> _2) _*.5_11) (= (~ret<~Mut<Int>> _3) _*.5_13) (= (~ret<~Mut<Int>> _4) _*.5_15) (distinct _14 0) true)
