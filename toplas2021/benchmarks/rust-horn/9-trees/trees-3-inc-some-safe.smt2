@@ -3,6 +3,8 @@
 (declare-datatypes ((%Tree 0)) ((par () (
   (%Tree-0 (%Tree-0.0 %Tree) (%Tree-0.1 Int) (%Tree-0.2 %Tree))
   %Tree-1))))
+(declare-datatypes ((%std/alloc/Global 0)) ((par () (
+  %std/alloc/Global-0))))
 
 (declare-datatypes ((~Mut<%Tree> 0)) ((par () ((~mut<%Tree> (~cur<%Tree> %Tree) (~ret<%Tree> %Tree))))))
 (declare-datatypes ((~Mut<Int> 0)) ((par () ((~mut<Int> (~cur<Int> Int) (~ret<Int> Int))))))
@@ -52,18 +54,18 @@
   (and (%take_some (~mut<%Tree> %Tree-1 _*.1_2) _@.1) (= (~ret<Int> _@.1) _*.14_0) (= _*.14_0 _*.15_0) (= _*.15_0 _*.15_1) (= (~ret<%Tree> _1) _*.1_2) (= _@ (~mut<Int> (~cur<Int> _@.1) _*.15_1)))
   (%take_some.0 (~mut<%Tree> %Tree-1 (~ret<%Tree> _1)) _@))))
 ; %take_some bb4
-(assert (forall ((_1 ~Mut<%Tree>) (_5 ~Mut<%Tree>) (_6 ~Mut<Int>) (_7 ~Mut<%Tree>) (_@ ~Mut<Int>) (_?.5 Bool)) (=>
-  (and (%take_some.7 _1 _5 _6 _7 false _?.5 _@))
+(assert (forall ((_1 ~Mut<%Tree>) (_5 ~Mut<%Tree>) (_6 ~Mut<Int>) (_7 ~Mut<%Tree>) (_@ ~Mut<Int>) (_?.6 Bool)) (=>
+  (and (%take_some.7 _1 _5 _6 _7 false _?.6 _@))
   (%take_some.4 _1 _5 _6 _7 false _@))))
-(assert (forall ((_1 ~Mut<%Tree>) (_5 ~Mut<%Tree>) (_6 ~Mut<Int>) (_7 ~Mut<%Tree>) (_@ ~Mut<Int>) (_*.6_1 Int) (_*.6_2 Int) (_*.13_0 Int) (_*.13_1 Int) (_*.15_0 Int) (_*.15_1 Int)) (=>
-  (and (= _*.6_1 _*.6_2) (= _*.6_2 _*.13_0) (= _*.13_0 _*.13_1) (= (~ret<%Tree> _7) (~cur<%Tree> _7)) (= (~ret<Int> _6) _*.6_1) (= (~ret<%Tree> _5) (~cur<%Tree> _5)) (= _*.13_1 _*.15_0) (= _*.15_0 _*.15_1) (= (~ret<%Tree> _1) (~cur<%Tree> _1)) (= _@ (~mut<Int> (~cur<Int> _6) _*.15_1)))
+(assert (forall ((_1 ~Mut<%Tree>) (_5 ~Mut<%Tree>) (_6 ~Mut<Int>) (_7 ~Mut<%Tree>) (_@ ~Mut<Int>) (_*.5_1 Int) (_*.5_2 Int) (_*.13_0 Int) (_*.13_2 Int) (_*.15_0 Int) (_*.15_1 Int)) (=>
+  (and (= _*.5_1 _*.5_2) (= _*.5_2 _*.13_0) (= _*.13_0 _*.13_2) (= (~ret<%Tree> _7) (~cur<%Tree> _7)) (= (~ret<Int> _6) _*.5_1) (= (~ret<%Tree> _5) (~cur<%Tree> _5)) (= _*.13_2 _*.15_0) (= _*.15_0 _*.15_1) (= (~ret<%Tree> _1) (~cur<%Tree> _1)) (= _@ (~mut<Int> (~cur<Int> _6) _*.15_1)))
   (%take_some.4 _1 _5 _6 _7 true _@))))
 ; %take_some bb7
-(assert (forall ((_1 ~Mut<%Tree>) (_5 ~Mut<%Tree>) (_6 ~Mut<Int>) (_7 ~Mut<%Tree>) (_10 Bool) (_@ ~Mut<Int>) (_@.8 ~Mut<Int>) (_*.8_3 %Tree) (_*.11_0 Int) (_*.11_2 Int) (_*.12_0 Int) (_*.13_0 Int) (_*.13_1 Int) (_*.15_0 Int) (_*.15_1 Int)) (=>
-  (and (%take_some (~mut<%Tree> (~cur<%Tree> _7) _*.8_3) _@.8) (= (~ret<Int> _@.8) _*.11_0) (= _*.11_0 _*.11_2) (= _*.11_2 _*.12_0) (= _*.12_0 _*.13_0) (= _*.13_0 _*.13_1) (= (~ret<%Tree> _7) _*.8_3) (= (~ret<Int> _6) (~cur<Int> _6)) (= (~ret<%Tree> _5) (~cur<%Tree> _5)) (= _*.13_1 _*.15_0) (= _*.15_0 _*.15_1) (= (~ret<%Tree> _1) (~cur<%Tree> _1)) (= _@ (~mut<Int> (~cur<Int> _@.8) _*.15_1)))
+(assert (forall ((_1 ~Mut<%Tree>) (_5 ~Mut<%Tree>) (_6 ~Mut<Int>) (_7 ~Mut<%Tree>) (_10 Bool) (_@ ~Mut<Int>) (_@.9 ~Mut<Int>) (_*.9_3 %Tree) (_*.11_0 Int) (_*.11_2 Int) (_*.12_0 Int) (_*.13_0 Int) (_*.13_2 Int) (_*.15_0 Int) (_*.15_1 Int)) (=>
+  (and (%take_some (~mut<%Tree> (~cur<%Tree> _7) _*.9_3) _@.9) (= (~ret<Int> _@.9) _*.11_0) (= _*.11_0 _*.11_2) (= _*.11_2 _*.12_0) (= _*.12_0 _*.13_0) (= _*.13_0 _*.13_2) (= (~ret<%Tree> _7) _*.9_3) (= (~ret<Int> _6) (~cur<Int> _6)) (= (~ret<%Tree> _5) (~cur<%Tree> _5)) (= _*.13_2 _*.15_0) (= _*.15_0 _*.15_1) (= (~ret<%Tree> _1) (~cur<%Tree> _1)) (= _@ (~mut<Int> (~cur<Int> _@.9) _*.15_1)))
   (%take_some.7 _1 _5 _6 _7 _10 false _@))))
-(assert (forall ((_1 ~Mut<%Tree>) (_5 ~Mut<%Tree>) (_6 ~Mut<Int>) (_7 ~Mut<%Tree>) (_10 Bool) (_@ ~Mut<Int>) (_@.9 ~Mut<Int>) (_*.9_3 %Tree) (_*.10_0 Int) (_*.10_2 Int) (_*.12_0 Int) (_*.13_0 Int) (_*.13_1 Int) (_*.15_0 Int) (_*.15_1 Int)) (=>
-  (and (%take_some (~mut<%Tree> (~cur<%Tree> _5) _*.9_3) _@.9) (= (~ret<Int> _@.9) _*.10_0) (= _*.10_0 _*.10_2) (= _*.10_2 _*.12_0) (= _*.12_0 _*.13_0) (= _*.13_0 _*.13_1) (= (~ret<%Tree> _7) (~cur<%Tree> _7)) (= (~ret<Int> _6) (~cur<Int> _6)) (= (~ret<%Tree> _5) _*.9_3) (= _*.13_1 _*.15_0) (= _*.15_0 _*.15_1) (= (~ret<%Tree> _1) (~cur<%Tree> _1)) (= _@ (~mut<Int> (~cur<Int> _@.9) _*.15_1)))
+(assert (forall ((_1 ~Mut<%Tree>) (_5 ~Mut<%Tree>) (_6 ~Mut<Int>) (_7 ~Mut<%Tree>) (_10 Bool) (_@ ~Mut<Int>) (_@.8 ~Mut<Int>) (_*.8_3 %Tree) (_*.10_0 Int) (_*.10_2 Int) (_*.12_0 Int) (_*.13_0 Int) (_*.13_2 Int) (_*.15_0 Int) (_*.15_1 Int)) (=>
+  (and (%take_some (~mut<%Tree> (~cur<%Tree> _5) _*.8_3) _@.8) (= (~ret<Int> _@.8) _*.10_0) (= _*.10_0 _*.10_2) (= _*.10_2 _*.12_0) (= _*.12_0 _*.13_0) (= _*.13_0 _*.13_2) (= (~ret<%Tree> _7) (~cur<%Tree> _7)) (= (~ret<Int> _6) (~cur<Int> _6)) (= (~ret<%Tree> _5) _*.8_3) (= _*.13_2 _*.15_0) (= _*.15_0 _*.15_1) (= (~ret<%Tree> _1) (~cur<%Tree> _1)) (= _@ (~mut<Int> (~cur<Int> _@.8) _*.15_1)))
   (%take_some.7 _1 _5 _6 _7 _10 true _@))))
 
 (assert (forall ((_% Int)) (=> (%main true) false)))

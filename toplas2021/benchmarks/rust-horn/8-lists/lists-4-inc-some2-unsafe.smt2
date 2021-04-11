@@ -3,6 +3,8 @@
 (declare-datatypes ((%List 0)) ((par () (
   (%List-0 (%List-0.0 Int) (%List-0.1 %List))
   %List-1))))
+(declare-datatypes ((%std/alloc/Global 0)) ((par () (
+  %std/alloc/Global-0))))
 
 (declare-datatypes ((~Mut<%List> 0)) ((par () ((~mut<%List> (~cur<%List> %List) (~ret<%List> %List))))))
 (declare-datatypes ((~Mut<Int> 0)) ((par () ((~mut<Int> (~cur<Int> Int) (~ret<Int> Int))))))
@@ -53,11 +55,11 @@
   (and (%take_some_rest (~mut<%List> %List-1 _*.1_1) _@.1) (= (~ret<%List> _1) _*.1_1) (= _@ _@.1))
   (%take_some_rest.0 (~mut<%List> %List-1 (~ret<%List> _1)) _@))))
 ; %take_some_rest bb4
-(assert (forall ((_1 ~Mut<%List>) (_3 ~Mut<Int>) (_4 ~Mut<%List>) (_@ ~Tup<~Mut<Int>-~Mut<%List>>) (_@.5 ~Tup<~Mut<Int>-~Mut<%List>>) (_*.5_1 %List)) (=>
-  (and (%take_some_rest (~mut<%List> (~cur<%List> _4) _*.5_1) _@.5) (= (~ret<%List> _4) _*.5_1) (= (~ret<Int> _3) (~cur<Int> _3)) (= (~ret<%List> _1) (~cur<%List> _1)) (= _@ _@.5))
+(assert (forall ((_1 ~Mut<%List>) (_3 ~Mut<Int>) (_4 ~Mut<%List>) (_@ ~Tup<~Mut<Int>-~Mut<%List>>) (_@.6 ~Tup<~Mut<Int>-~Mut<%List>>) (_*.6_1 %List)) (=>
+  (and (%take_some_rest (~mut<%List> (~cur<%List> _4) _*.6_1) _@.6) (= (~ret<%List> _4) _*.6_1) (= (~ret<Int> _3) (~cur<Int> _3)) (= (~ret<%List> _1) (~cur<%List> _1)) (= _@ _@.6))
   (%take_some_rest.4 _1 _3 _4 false _@))))
-(assert (forall ((_1 ~Mut<%List>) (_3 ~Mut<Int>) (_4 ~Mut<%List>) (_@ ~Tup<~Mut<Int>-~Mut<%List>>) (_*.6_1 Int) (_*.6_3 %List)) (=>
-  (and (= (~ret<%List> _4) _*.6_3) (= (~ret<Int> _3) _*.6_1) (= (~ret<%List> _1) (~cur<%List> _1)) (= _@ (~tup<~Mut<Int>-~Mut<%List>> (~mut<Int> (~cur<Int> _3) _*.6_1) (~mut<%List> (~cur<%List> _4) _*.6_3))))
+(assert (forall ((_1 ~Mut<%List>) (_3 ~Mut<Int>) (_4 ~Mut<%List>) (_@ ~Tup<~Mut<Int>-~Mut<%List>>) (_*.5_1 Int) (_*.5_3 %List)) (=>
+  (and (= (~ret<%List> _4) _*.5_3) (= (~ret<Int> _3) _*.5_1) (= (~ret<%List> _1) (~cur<%List> _1)) (= _@ (~tup<~Mut<Int>-~Mut<%List>> (~mut<Int> (~cur<Int> _3) _*.5_1) (~mut<%List> (~cur<%List> _4) _*.5_3))))
   (%take_some_rest.4 _1 _3 _4 true _@))))
 
 (assert (forall ((_% Int)) (=> (%main true) false)))

@@ -9,11 +9,11 @@
 (declare-fun %main.19 (Int Int Int Int Int Int Bool Bool) Bool)
 (declare-fun %main.22 (Int Int Int Int Int Int Bool Bool) Bool)
 (declare-fun %main.27 (Int Int Int Int Int Int Int Bool Bool) Bool)
-(declare-fun %main.28 (Int Int Int Int Int Int Int Bool Bool) Bool)
+(declare-fun %main.28 (Int Int Int Int Int Int Int Int Bool) Bool)
 (declare-fun %main.34 (Int Int Int Int Int Int Int Bool Bool) Bool)
-(declare-fun %main.35 (Int Int Int Int Int Int Int Bool Bool) Bool)
+(declare-fun %main.35 (Int Int Int Int Int Int Int Int Bool) Bool)
 (declare-fun %main.41 (Int Int Int Int Int Int Int Bool Bool) Bool)
-(declare-fun %main.42 (Int Int Int Int Int Int Int Bool Bool) Bool)
+(declare-fun %main.42 (Int Int Int Int Int Int Int Int Bool) Bool)
 (declare-fun %main.46 (Int Int Int Int Int Int Int Bool Bool) Bool)
 
 ; %assume
@@ -69,7 +69,7 @@
   (%main.22 _1 _2 _3 _4 _5 _7 true _!))))
 ; %main bb27
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_5 Int) (_6 Int) (_7 Int) (_! Bool)) (=>
-  (and (%main.28 _1 _2 _3 _4 _5 _6 _7 (not (= _4 0)) _!))
+  (and (%main.28 _1 _2 _3 _4 _5 _6 _7 _4 _!))
   (%main.27 _1 _2 _3 _4 _5 _6 _7 false _!))))
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_5 Int) (_6 Int) (_7 Int) (_! Bool) (_?.26 Bool)) (=>
   (and (%main.27 _1 _2 _3 _4 _5 _6 _7 _?.26 _!))
@@ -77,13 +77,13 @@
 ; %main bb28
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_5 Int) (_6 Int) (_7 Int) (_! Bool) (_?.33 Bool)) (=>
   (and (%main.34 (- _1 1) _2 _3 _4 _5 _6 _7 _?.33 _!))
-  (%main.28 _1 _2 _3 _4 _5 _6 _7 false _!))))
-(assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_5 Int) (_6 Int) (_7 Int) (_! Bool) (_?.33 Bool)) (=>
-  (and (%main.34 (+ _1 1) _2 _3 _4 _5 _6 _7 _?.33 _!))
-  (%main.28 _1 _2 _3 _4 _5 _6 _7 true _!))))
+  (%main.28 _1 _2 _3 _4 _5 _6 _7 0 _!))))
+(assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_5 Int) (_6 Int) (_7 Int) (_20 Int) (_! Bool) (_?.33 Bool)) (=>
+  (and (distinct _20 0) (%main.34 (+ _1 1) _2 _3 _4 _5 _6 _7 _?.33 _!))
+  (%main.28 _1 _2 _3 _4 _5 _6 _7 _20 _!))))
 ; %main bb34
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_5 Int) (_6 Int) (_7 Int) (_! Bool)) (=>
-  (and (%main.35 _1 _2 _3 _4 _5 _6 _7 (not (= _5 0)) _!))
+  (and (%main.35 _1 _2 _3 _4 _5 _6 _7 _5 _!))
   (%main.34 _1 _2 _3 _4 _5 _6 _7 false _!))))
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_5 Int) (_6 Int) (_7 Int) (_! Bool) (_?.33 Bool)) (=>
   (and (%main.34 _1 _2 _3 _4 _5 _6 _7 _?.33 _!))
@@ -91,13 +91,13 @@
 ; %main bb35
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_5 Int) (_6 Int) (_7 Int) (_! Bool) (_?.40 Bool)) (=>
   (and (%main.41 _1 (- _2 1) _3 _4 _5 _6 _7 _?.40 _!))
-  (%main.35 _1 _2 _3 _4 _5 _6 _7 false _!))))
-(assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_5 Int) (_6 Int) (_7 Int) (_! Bool) (_?.40 Bool)) (=>
-  (and (%main.41 _1 (+ _2 1) _3 _4 _5 _6 _7 _?.40 _!))
-  (%main.35 _1 _2 _3 _4 _5 _6 _7 true _!))))
+  (%main.35 _1 _2 _3 _4 _5 _6 _7 0 _!))))
+(assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_5 Int) (_6 Int) (_7 Int) (_22 Int) (_! Bool) (_?.40 Bool)) (=>
+  (and (distinct _22 0) (%main.41 _1 (+ _2 1) _3 _4 _5 _6 _7 _?.40 _!))
+  (%main.35 _1 _2 _3 _4 _5 _6 _7 _22 _!))))
 ; %main bb41
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_5 Int) (_6 Int) (_7 Int) (_! Bool)) (=>
-  (and (%main.42 _1 _2 _3 _4 _5 _6 _7 (not (= _6 0)) _!))
+  (and (%main.42 _1 _2 _3 _4 _5 _6 _7 _6 _!))
   (%main.41 _1 _2 _3 _4 _5 _6 _7 false _!))))
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_5 Int) (_6 Int) (_7 Int) (_! Bool) (_?.40 Bool)) (=>
   (and (%main.41 _1 _2 _3 _4 _5 _6 _7 _?.40 _!))
@@ -105,10 +105,10 @@
 ; %main bb42
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_5 Int) (_6 Int) (_7 Int) (_! Bool)) (=>
   (and (%main.46 _1 _2 (- _3 1) _4 _5 _6 _7 (not (> _7 0)) _!))
-  (%main.42 _1 _2 _3 _4 _5 _6 _7 false _!))))
-(assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_5 Int) (_6 Int) (_7 Int) (_! Bool)) (=>
-  (and (%main.46 _1 _2 (+ _3 1) _4 _5 _6 _7 (not (> _7 0)) _!))
-  (%main.42 _1 _2 _3 _4 _5 _6 _7 true _!))))
+  (%main.42 _1 _2 _3 _4 _5 _6 _7 0 _!))))
+(assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_5 Int) (_6 Int) (_7 Int) (_24 Int) (_! Bool)) (=>
+  (and (distinct _24 0) (%main.46 _1 _2 (+ _3 1) _4 _5 _6 _7 (not (> _7 0)) _!))
+  (%main.42 _1 _2 _3 _4 _5 _6 _7 _24 _!))))
 ; %main bb46
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_5 Int) (_6 Int) (_7 Int) (_! Bool)) (=>
   (and (= _! false))

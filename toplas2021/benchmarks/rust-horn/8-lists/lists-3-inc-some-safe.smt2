@@ -3,6 +3,8 @@
 (declare-datatypes ((%List 0)) ((par () (
   (%List-0 (%List-0.0 Int) (%List-0.1 %List))
   %List-1))))
+(declare-datatypes ((%std/alloc/Global 0)) ((par () (
+  %std/alloc/Global-0))))
 
 (declare-datatypes ((~Mut<%List> 0)) ((par () ((~mut<%List> (~cur<%List> %List) (~ret<%List> %List))))))
 (declare-datatypes ((~Mut<Int> 0)) ((par () ((~mut<Int> (~cur<Int> Int) (~ret<Int> Int))))))
@@ -51,11 +53,11 @@
   (and (%take_some (~mut<%List> %List-1 _*.1_2) _@.1) (= (~ret<Int> _@.1) _*.9_0) (= _*.9_0 _*.10_0) (= _*.10_0 _*.10_1) (= (~ret<%List> _1) _*.1_2) (= _@ (~mut<Int> (~cur<Int> _@.1) _*.10_1)))
   (%take_some.0 (~mut<%List> %List-1 (~ret<%List> _1)) _@))))
 ; %take_some bb4
-(assert (forall ((_1 ~Mut<%List>) (_5 ~Mut<Int>) (_6 ~Mut<%List>) (_@ ~Mut<Int>) (_@.5 ~Mut<Int>) (_*.5_3 %List) (_*.7_0 Int) (_*.7_2 Int) (_*.8_0 Int) (_*.8_1 Int) (_*.10_0 Int) (_*.10_1 Int)) (=>
-  (and (%take_some (~mut<%List> (~cur<%List> _6) _*.5_3) _@.5) (= (~ret<Int> _@.5) _*.7_0) (= _*.7_0 _*.7_2) (= _*.7_2 _*.8_0) (= _*.8_0 _*.8_1) (= (~ret<%List> _6) _*.5_3) (= (~ret<Int> _5) (~cur<Int> _5)) (= _*.8_1 _*.10_0) (= _*.10_0 _*.10_1) (= (~ret<%List> _1) (~cur<%List> _1)) (= _@ (~mut<Int> (~cur<Int> _@.5) _*.10_1)))
+(assert (forall ((_1 ~Mut<%List>) (_5 ~Mut<Int>) (_6 ~Mut<%List>) (_@ ~Mut<Int>) (_@.6 ~Mut<Int>) (_*.6_3 %List) (_*.7_0 Int) (_*.7_2 Int) (_*.8_0 Int) (_*.8_2 Int) (_*.10_0 Int) (_*.10_1 Int)) (=>
+  (and (%take_some (~mut<%List> (~cur<%List> _6) _*.6_3) _@.6) (= (~ret<Int> _@.6) _*.7_0) (= _*.7_0 _*.7_2) (= _*.7_2 _*.8_0) (= _*.8_0 _*.8_2) (= (~ret<%List> _6) _*.6_3) (= (~ret<Int> _5) (~cur<Int> _5)) (= _*.8_2 _*.10_0) (= _*.10_0 _*.10_1) (= (~ret<%List> _1) (~cur<%List> _1)) (= _@ (~mut<Int> (~cur<Int> _@.6) _*.10_1)))
   (%take_some.4 _1 _5 _6 false _@))))
-(assert (forall ((_1 ~Mut<%List>) (_5 ~Mut<Int>) (_6 ~Mut<%List>) (_@ ~Mut<Int>) (_*.6_1 Int) (_*.6_2 Int) (_*.8_0 Int) (_*.8_1 Int) (_*.10_0 Int) (_*.10_1 Int)) (=>
-  (and (= _*.6_1 _*.6_2) (= _*.6_2 _*.8_0) (= _*.8_0 _*.8_1) (= (~ret<%List> _6) (~cur<%List> _6)) (= (~ret<Int> _5) _*.6_1) (= _*.8_1 _*.10_0) (= _*.10_0 _*.10_1) (= (~ret<%List> _1) (~cur<%List> _1)) (= _@ (~mut<Int> (~cur<Int> _5) _*.10_1)))
+(assert (forall ((_1 ~Mut<%List>) (_5 ~Mut<Int>) (_6 ~Mut<%List>) (_@ ~Mut<Int>) (_*.5_1 Int) (_*.5_2 Int) (_*.8_0 Int) (_*.8_2 Int) (_*.10_0 Int) (_*.10_1 Int)) (=>
+  (and (= _*.5_1 _*.5_2) (= _*.5_2 _*.8_0) (= _*.8_0 _*.8_2) (= (~ret<%List> _6) (~cur<%List> _6)) (= (~ret<Int> _5) _*.5_1) (= _*.8_2 _*.10_0) (= _*.10_0 _*.10_1) (= (~ret<%List> _1) (~cur<%List> _1)) (= _@ (~mut<Int> (~cur<Int> _5) _*.10_1)))
   (%take_some.4 _1 _5 _6 true _@))))
 
 (assert (forall ((_% Int)) (=> (%main true) false)))

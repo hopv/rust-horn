@@ -393,6 +393,13 @@ impl Display for Rep<&Cond<'_>> {
     match cond {
       Cond::Drop { ty, arg } => write!(f, "({} {})", rep_drop_name(ty), rep(arg)),
       Cond::Eq { tgt, src } => write!(f, "(= {} {})", rep(tgt), rep(src)),
+      Cond::Neq { tgt, srcs } => {
+        write!(f, "(distinct {}", rep(tgt))?;
+        for src in srcs {
+          write!(f, " {}", rep(src))?;
+        }
+        write!(f, ")")
+      }
       Cond::Call { fun_ty, args } => write!(f, "{}", rep_apply(&rep_fun_name(fun_ty), args)),
     }
   }

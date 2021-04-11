@@ -12,8 +12,8 @@
   (and (%just_rec.1 _1 _?.0))
   (%just_rec _1))))
 ; %just_rec bb1
-(assert (forall ((_1 ~Mut<Int>) (_?.2 Int) (_*.4_3 Int) (_*.4_4 Int)) (=>
-  (and (%just_rec (~mut<Int> _?.2 _*.4_4)) (= _*.4_3 _*.4_4) (= (~ret<Int> _1) (~cur<Int> _1)) true)
+(assert (forall ((_1 ~Mut<Int>) (_?.3 Int) (_*.4_3 Int) (_*.4_4 Int)) (=>
+  (and (%just_rec (~mut<Int> _?.3 _*.4_4)) (= _*.4_3 _*.4_4) (= (~ret<Int> _1) (~cur<Int> _1)) true)
   (%just_rec.1 _1 false))))
 (assert (forall ((_1 ~Mut<Int>)) (=>
   (and (= (~ret<Int> _1) (~cur<Int> _1)) true)

@@ -3,6 +3,8 @@
 (declare-datatypes ((%Tree 0)) ((par () (
   (%Tree-0 (%Tree-0.0 %Tree) (%Tree-0.1 Int) (%Tree-0.2 %Tree))
   %Tree-1))))
+(declare-datatypes ((%std/alloc/Global 0)) ((par () (
+  %std/alloc/Global-0))))
 
 (declare-datatypes ((~Mut<%Tree> 0)) ((par () ((~mut<%Tree> (~cur<%Tree> %Tree) (~ret<%Tree> %Tree))))))
 

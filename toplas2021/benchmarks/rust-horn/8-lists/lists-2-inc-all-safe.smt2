@@ -3,6 +3,8 @@
 (declare-datatypes ((%List 0)) ((par () (
   (%List-0 (%List-0.0 Int) (%List-0.1 %List))
   %List-1))))
+(declare-datatypes ((%std/alloc/Global 0)) ((par () (
+  %std/alloc/Global-0))))
 
 (declare-datatypes ((~Mut<%List> 0)) ((par () ((~mut<%List> (~cur<%List> %List) (~ret<%List> %List))))))
 

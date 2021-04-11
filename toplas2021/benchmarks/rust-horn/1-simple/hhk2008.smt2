@@ -2,7 +2,7 @@
 
 (declare-fun %main (Bool) Bool)
 (declare-fun %main.2 (Int Int Bool Bool) Bool)
-(declare-fun %main.3 (Int Int Bool Bool) Bool)
+(declare-fun %main.4 (Int Int Bool Bool) Bool)
 (declare-fun %main.7 (Int Int Bool Bool Bool) Bool)
 (declare-fun %main.8 (Int Int Bool Bool) Bool)
 (declare-fun %main.11 (Int Int Int Int Bool Bool) Bool)
@@ -14,18 +14,18 @@
   (%main _!))))
 ; %main bb2
 (assert (forall ((_1 Int) (_2 Int) (_! Bool)) (=>
-  (and (%main.3 _1 _2 (<= 0 _2) _!))
+  (and (%main.4 _1 _2 (<= 0 _2) _!))
   (%main.2 _1 _2 false _!))))
 (assert (forall ((_1 Int) (_2 Int) (_! Bool)) (=>
   (and (= _! false))
   (%main.2 _1 _2 true _!))))
-; %main bb3
+; %main bb4
 (assert (forall ((_1 Int) (_2 Int) (_! Bool)) (=>
   (and (%main.8 _1 _2 (not false) _!))
-  (%main.3 _1 _2 false _!))))
+  (%main.4 _1 _2 false _!))))
 (assert (forall ((_1 Int) (_2 Int) (_! Bool)) (=>
   (and (%main.7 _1 _2 true (<= _2 1000000) _!))
-  (%main.3 _1 _2 true _!))))
+  (%main.4 _1 _2 true _!))))
 ; %main bb7
 (assert (forall ((_1 Int) (_2 Int) (_10 Bool) (_! Bool)) (=>
   (and (%main.8 _1 _2 (not false) _!))

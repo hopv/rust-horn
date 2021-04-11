@@ -26,8 +26,8 @@ use graph::{get_ghosts, get_ins_outs_map, get_pivots, Basic};
 pub mod data;
 use data::{
   assign_to_place, bin_op_expr, decompose_mut, drop_expr, fun_to_bin_op, fun_to_un_op, get_proj,
-  nonce, read_opd, read_rvalue, seize_place, set_tag, traverse_prerule, var_to_expr, BasicAsks,
-  Cond, Const, End, Env, Expr, Outer, Var,
+  nonce, read_opd, read_place, read_rvalue, seize_place, set_tag, traverse_prerule, var_to_expr,
+  BasicAsks, Cond, Const, End, Env, Expr, Outer, Var,
 };
 
 #[derive(Debug)]
@@ -297,13 +297,27 @@ fn analyze_pivot<'tcx>(
           DiscrKind::Value => match &discr_ty.kind() {
             TyK::Bool => {
               assert!(main_targets.len() == 1 && main_targets[0].0 == 0);
-              for (tgt, b) in [(main_targets[0].1, false), (rest_target, true)].iter() {
+              for (b, tgt) in [(false, main_targets[0].1), (true, rest_target)].iter() {
                 let mut env = env.clone();
                 *seize_place(&discr_place, &mut env, outer) = Expr::Const(Const::Bool(*b));
                 prerules.push(get_prerule(is_main, *tgt, env, data, fun_asks));
               }
             }
-            _ => unimplemented!("value branching for non-boolean is not supported yet"),
+            TyK::Int(_) | TyK::Uint(_) => {
+              let mut neq_srcs = vec![];
+              for (val, tgt) in main_targets.iter() {
+                let mut env = env.clone();
+                let val_expr = Expr::Const(Const::Int(*val as i64));
+                *seize_place(&discr_place, &mut env, outer) = val_expr.clone();
+                prerules.push(get_prerule(is_main, *tgt, env, data, fun_asks));
+                neq_srcs.push(val_expr);
+              }
+              let neq_tgt = read_place(&discr_place, &env, outer);
+              let mut prerule = get_prerule(is_main, rest_target, env, data, fun_asks);
+              prerule.conds.push(Cond::Neq { tgt: neq_tgt, srcs: neq_srcs });
+              prerules.push(prerule);
+            }
+            _ => unimplemented!("unsupported branching"),
           },
           DiscrKind::Tag => match &discr_ty.kind() {
             TyK::Adt(AdtDef { variants, .. }, adt_substs) => {
@@ -313,15 +327,13 @@ fn analyze_pivot<'tcx>(
               {
                 assert!(*val == vrt_idx.as_u32() as u128);
                 let mut env = env.clone();
-                let fields = fields.iter().enumerate();
-                let args = fields
-                  .map(|(fld_idx, fld_def)| {
-                    var_to_expr(
-                      Var::Split(me, vrt_idx, FldIdx::from(fld_idx)),
-                      outer.fld_def_to_ty(fld_def, adt_substs),
-                    )
-                  })
-                  .collect::<Vec<_>>();
+                let map = |(fld_idx, fld_def)| {
+                  var_to_expr(
+                    Var::Split(me, vrt_idx, FldIdx::from(fld_idx)),
+                    outer.fld_def_to_ty(fld_def, adt_substs),
+                  )
+                };
+                let args = fields.iter().enumerate().map(map).collect::<Vec<_>>();
                 *seize_place(&discr_place, &mut env, outer) = Expr::Aggr(discr_ty, vrt_idx, args);
                 prerules.push(get_prerule(is_main, *tgt, env, data, fun_asks));
               }

@@ -491,6 +491,7 @@ pub fn assign_to_place<'tcx>(
 pub enum Cond<'tcx> {
   Drop { ty: Ty<'tcx>, arg: Expr<'tcx> },
   Eq { tgt: Expr<'tcx>, src: Expr<'tcx> },
+  Neq { tgt: Expr<'tcx>, srcs: Vec<Expr<'tcx>> },
   Call { fun_ty: Ty<'tcx>, args: Vec<Expr<'tcx>> },
 }
 #[derive(Debug)]
@@ -542,6 +543,12 @@ fn traverse_cond<'tcx>(
     Cond::Eq { tgt, src } => {
       traverse_expr(tgt, vars, n_nonces);
       traverse_expr(src, vars, n_nonces);
+    }
+    Cond::Neq { tgt, srcs } => {
+      traverse_expr(tgt, vars, n_nonces);
+      for src in srcs.iter_mut() {
+        traverse_expr(src, vars, n_nonces);
+      }
     }
     Cond::Call { args, .. } => {
       for arg in args.iter_mut() {

@@ -25,11 +25,11 @@
 
 ; %main
 (assert (forall ((_! Bool) (_?.0 Int) (_?.1 Int) (_?.2 Int) (_*.3_5 Int) (_*.3_6 Int) (_*.3_9 Int) (_*.3_10 Int)) (=>
-  (and (%inc_max_repeat _?.0 (~mut<Int> _?.1 _*.3_6) (~mut<Int> _?.2 _*.3_10)) (= _*.3_9 _*.3_10) (= _*.3_5 _*.3_6) (%main.4 _?.0 _*.3_5 _*.3_9 (> (- _*.3_5 _*.3_9) _?.0) _!))
+  (and (%inc_max_repeat _?.0 (~mut<Int> _?.1 _*.3_6) (~mut<Int> _?.2 _*.3_10)) (= _*.3_9 _*.3_10) (= _*.3_5 _*.3_6) (%main.4 _?.0 _*.3_5 _*.3_9 (>= (- _*.3_5 _*.3_9) _?.0) _!))
   (%main _!))))
 ; %main bb4
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_! Bool)) (=>
-  (and (%main.7 _1 _2 _3 false (> (- _3 _2) _1) _!))
+  (and (%main.7 _1 _2 _3 false (>= (- _3 _2) _1) _!))
   (%main.4 _1 _2 _3 false _!))))
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_! Bool)) (=>
   (and (%main.8 _1 _2 _3 (not true) _!))

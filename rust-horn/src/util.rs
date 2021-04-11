@@ -58,12 +58,9 @@ pub fn get_tmnt<'a, 'tcx>(bbd: &'a BBD<'tcx>) -> &'a Tmnt<'tcx> { bbd.terminator
 pub fn has_any_type(substs: &Substs) -> bool { substs.types().any(|_| true) }
 
 pub fn only_ty<'tcx>(substs: &'tcx Substs<'tcx>) -> Ty<'tcx> {
-  let mut it = substs.types();
-  if let Some(ty) = it.next_back() {
-    assert!(None == it.next_back(), "multiple types found");
-    return ty;
-  }
-  panic!("no type found");
+  let tys = substs.types().collect::<Vec<_>>();
+  assert!(tys.len() == 2 && format!("{:?}", tys[1]) == "std::alloc::Global");
+  return tys[0];
 }
 
 pub fn fun_of_fun_ty(fun_ty: Ty) -> DefId {

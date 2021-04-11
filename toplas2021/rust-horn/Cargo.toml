@@ -1,5 +1,0 @@
-[package]
-name = "rust-horn"
-version = "0.1.0"
-authors = ["松下 祐介 <y.skm24t@gmail.com>"]
-edition = "2018"

@@ -3,6 +3,8 @@
 (declare-datatypes ((%Tree 0)) ((par () (
   (%Tree-0 (%Tree-0.0 %Tree) (%Tree-0.1 Int) (%Tree-0.2 %Tree))
   %Tree-1))))
+(declare-datatypes ((%std/alloc/Global 0)) ((par () (
+  %std/alloc/Global-0))))
 
 (declare-datatypes ((~Mut<%Tree> 0)) ((par () ((~mut<%Tree> (~cur<%Tree> %Tree) (~ret<%Tree> %Tree))))))
 
@@ -26,11 +28,11 @@
   (and (= (~ret<%Tree> _1) _2) true)
   (%append.0 (~mut<%Tree> %Tree-1 (~ret<%Tree> _1)) _2))))
 ; %append bb4
-(assert (forall ((_1 ~Mut<%Tree>) (_2 %Tree) (_4 ~Mut<%Tree>) (_5 ~Mut<%Tree>) (_*.5_1 %Tree)) (=>
-  (and (%append (~mut<%Tree> (~cur<%Tree> _5) _*.5_1) _2) (= (~ret<%Tree> _5) _*.5_1) (= (~ret<%Tree> _4) (~cur<%Tree> _4)) (= (~ret<%Tree> _1) (~cur<%Tree> _1)) true)
-  (%append.4 _1 _2 _4 _5 false))))
 (assert (forall ((_1 ~Mut<%Tree>) (_2 %Tree) (_4 ~Mut<%Tree>) (_5 ~Mut<%Tree>) (_*.6_1 %Tree)) (=>
-  (and (%append (~mut<%Tree> (~cur<%Tree> _4) _*.6_1) _2) (= (~ret<%Tree> _5) (~cur<%Tree> _5)) (= (~ret<%Tree> _4) _*.6_1) (= (~ret<%Tree> _1) (~cur<%Tree> _1)) true)
+  (and (%append (~mut<%Tree> (~cur<%Tree> _5) _*.6_1) _2) (= (~ret<%Tree> _5) _*.6_1) (= (~ret<%Tree> _4) (~cur<%Tree> _4)) (= (~ret<%Tree> _1) (~cur<%Tree> _1)) true)
+  (%append.4 _1 _2 _4 _5 false))))
+(assert (forall ((_1 ~Mut<%Tree>) (_2 %Tree) (_4 ~Mut<%Tree>) (_5 ~Mut<%Tree>) (_*.5_1 %Tree)) (=>
+  (and (%append (~mut<%Tree> (~cur<%Tree> _4) _*.5_1) _2) (= (~ret<%Tree> _5) (~cur<%Tree> _5)) (= (~ret<%Tree> _4) _*.5_1) (= (~ret<%Tree> _1) (~cur<%Tree> _1)) true)
   (%append.4 _1 _2 _4 _5 true))))
 
 ; %main

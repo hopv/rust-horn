@@ -1,5 +1,0 @@
-tab_spaces = 2
-fn_single_line = true
-fn_args_layout = "Compressed"
-where_single_line = true
-use_small_heuristics = "max"
