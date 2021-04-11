@@ -141,7 +141,7 @@ fn get_prerule<'tcx>(
   let Data { basic, outer, .. } = data;
   loop {
     if let TmntK::Call { destination: None, .. } = &get_tmnt(&basic[me]).kind {
-      for (local, expr) in env.drain() {
+      for (local, expr) in sort_map(env).drain(..) {
         drop_expr(outer.local_to_ty(local), &expr, &mut conds, outer);
       }
       return Prerule { init_env, conds, end: End::Panic };
