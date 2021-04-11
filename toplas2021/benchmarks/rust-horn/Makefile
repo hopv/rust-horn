@@ -4,7 +4,7 @@ SHELL = /bin/bash
 
 RUST_LIB_PATH = $(HOME)/.multirust/toolchains/nightly-x86_64-apple-darwin/lib/rustlib/x86_64-apple-darwin/lib/
 
-RUST_HORN_PATH = ../../../rust-horn/Cargo.toml
+RUST_HORN_PATH = ../../rust-horn/Cargo.toml
 
 horn:
 	for file in */*.rs; do \
