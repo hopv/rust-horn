@@ -1,9 +1,602 @@
-#!/bin/bash
+$ z3 1-simple/01_unsat.smt2
+unsat
 
-OUT=bench-z3.out
-> $OUT
-for file in */*.smt2; do
-  echo "$ z3 $file" | tee -a $OUT
-  (time z3 "$file" -T:180) 2>&1 | tee -a $OUT
-  echo "" | tee -a $OUT
-done
+real	0m0.076s
+user	0m0.019s
+sys	0m0.009s
+
+$ z3 1-simple/04_recursive_unsat.smt2
+unsat
+
+real	0m0.727s
+user	0m0.706s
+sys	0m0.013s
+
+$ z3 1-simple/05_recursive_sat.smt2
+sat
+
+real	0m0.027s
+user	0m0.020s
+sys	0m0.005s
+
+$ z3 1-simple/06_loop_unsat.smt2
+timeout
+
+real	0m3.012s
+user	0m2.986s
+sys	0m0.024s
+
+$ z3 1-simple/hhk2008.smt2
+unsat
+
+real	0m0.030s
+user	0m0.024s
+sys	0m0.004s
+
+$ z3 1-simple/unique_scalar.smt2
+sat
+
+real	0m0.018s
+user	0m0.013s
+sys	0m0.003s
+
+$ z3 2-bmc/test-bmc-1.false.smt2
+sat
+
+real	0m0.035s
+user	0m0.030s
+sys	0m0.004s
+
+$ z3 2-bmc/test-bmc-1.true.smt2
+unsat
+
+real	0m0.041s
+user	0m0.035s
+sys	0m0.004s
+
+$ z3 2-bmc/test-bmc-2.false.smt2
+sat
+
+real	0m0.021s
+user	0m0.015s
+sys	0m0.004s
+
+$ z3 2-bmc/test-bmc-2.true.smt2
+unsat
+
+real	0m0.026s
+user	0m0.019s
+sys	0m0.006s
+
+$ z3 2-bmc/test-bmc-3.false.smt2
+sat
+
+real	0m0.026s
+user	0m0.020s
+sys	0m0.003s
+
+$ z3 2-bmc/test-bmc-3.true.smt2
+unsat
+
+real	0m0.032s
+user	0m0.027s
+sys	0m0.004s
+
+$ z3 2-bmc/test-bmc-diamond-1.false.smt2
+sat
+
+real	0m0.017s
+user	0m0.013s
+sys	0m0.003s
+
+$ z3 2-bmc/test-bmc-diamond-1.true.smt2
+unsat
+
+real	0m0.017s
+user	0m0.012s
+sys	0m0.003s
+
+$ z3 2-bmc/test-bmc-diamond-2.false.smt2
+sat
+
+real	0m0.017s
+user	0m0.012s
+sys	0m0.003s
+
+$ z3 2-bmc/test-bmc-diamond-2.true.smt2
+unsat
+
+real	0m0.017s
+user	0m0.011s
+sys	0m0.003s
+
+$ z3 3-inc-max/inc-max-1-base-safe.smt2
+sat
+
+real	0m0.020s
+user	0m0.015s
+sys	0m0.003s
+
+$ z3 3-inc-max/inc-max-1-base-safez.smt2
+unsat
+
+real	0m0.020s
+user	0m0.014s
+sys	0m0.004s
+
+$ z3 3-inc-max/inc-max-1-base-unsafe.smt2
+sat
+
+real	0m0.019s
+user	0m0.014s
+sys	0m0.003s
+
+$ z3 3-inc-max/inc-max-1-base-unsafez.smt2
+sat
+
+real	0m0.022s
+user	0m0.015s
+sys	0m0.004s
+
+$ z3 3-inc-max/inc-max-2-base3-safe.smt2
+sat
+
+real	0m0.017s
+user	0m0.012s
+sys	0m0.003s
+
+$ z3 3-inc-max/inc-max-2-base3-unsafe.smt2
+sat
+
+real	0m0.017s
+user	0m0.011s
+sys	0m0.004s
+
+$ z3 3-inc-max/inc-max-3-repeat-safe.smt2
+sat
+
+real	0m0.024s
+user	0m0.019s
+sys	0m0.004s
+
+$ z3 3-inc-max/inc-max-3-repeat-safez.smt2
+timeout
+
+real	0m3.007s
+user	0m2.991s
+sys	0m0.011s
+
+$ z3 3-inc-max/inc-max-3-repeat-unsafe.smt2
+sat
+
+real	0m0.018s
+user	0m0.013s
+sys	0m0.003s
+
+$ z3 3-inc-max/inc-max-3-repeat-unsafez.smt2
+sat
+
+real	0m0.024s
+user	0m0.018s
+sys	0m0.004s
+
+$ z3 3-inc-max/inc-max-4-repeat3-safe.smt2
+sat
+
+real	0m0.021s
+user	0m0.016s
+sys	0m0.003s
+
+$ z3 3-inc-max/inc-max-4-repeat3-unsafe.smt2
+sat
+
+real	0m0.018s
+user	0m0.013s
+sys	0m0.003s
+
+$ z3 4-swap-dec/swap-dec-1-base-safe.smt2
+sat
+
+real	0m0.026s
+user	0m0.018s
+sys	0m0.005s
+
+$ z3 4-swap-dec/swap-dec-1-base-safez.smt2
+unsat
+
+real	0m0.029s
+user	0m0.022s
+sys	0m0.004s
+
+$ z3 4-swap-dec/swap-dec-1-base-unsafe.smt2
+sat
+
+real	0m0.025s
+user	0m0.019s
+sys	0m0.003s
+
+$ z3 4-swap-dec/swap-dec-1-base-unsafez.smt2
+sat
+
+real	0m0.044s
+user	0m0.038s
+sys	0m0.004s
+
+$ z3 4-swap-dec/swap-dec-2-base3-safe.smt2
+sat
+
+real	0m0.021s
+user	0m0.016s
+sys	0m0.003s
+
+$ z3 4-swap-dec/swap-dec-2-base3-safez.smt2
+unsat
+
+real	0m0.031s
+user	0m0.024s
+sys	0m0.005s
+
+$ z3 4-swap-dec/swap-dec-2-base3-unsafe.smt2
+sat
+
+real	0m0.024s
+user	0m0.017s
+sys	0m0.005s
+
+$ z3 4-swap-dec/swap-dec-2-base3-unsafez.smt2
+sat
+
+real	0m0.075s
+user	0m0.068s
+sys	0m0.005s
+
+$ z3 4-swap-dec/swap-dec-3-exact-safe.smt2
+sat
+
+real	0m0.022s
+user	0m0.017s
+sys	0m0.003s
+
+$ z3 4-swap-dec/swap-dec-3-exact-safez.smt2
+timeout
+
+real	0m3.009s
+user	0m2.980s
+sys	0m0.026s
+
+$ z3 4-swap-dec/swap-dec-3-exact-unsafe.smt2
+sat
+
+real	0m0.021s
+user	0m0.017s
+sys	0m0.003s
+
+$ z3 4-swap-dec/swap-dec-3-exact-unsafez.smt2
+sat
+
+real	0m0.026s
+user	0m0.019s
+sys	0m0.005s
+
+$ z3 4-swap-dec/swap-dec-4-exact3-safe.smt2
+sat
+
+real	0m0.025s
+user	0m0.019s
+sys	0m0.004s
+
+$ z3 4-swap-dec/swap-dec-4-exact3-safez.smt2
+unsat
+
+real	0m0.236s
+user	0m0.227s
+sys	0m0.007s
+
+$ z3 4-swap-dec/swap-dec-4-exact3-unsafe.smt2
+sat
+
+real	0m0.020s
+user	0m0.015s
+sys	0m0.003s
+
+$ z3 4-swap-dec/swap-dec-4-exact3-unsafez.smt2
+sat
+
+real	0m0.026s
+user	0m0.018s
+sys	0m0.006s
+
+$ z3 5-swap2-dec/swap2-dec-1-base-safe.smt2
+sat
+
+real	0m0.025s
+user	0m0.020s
+sys	0m0.004s
+
+$ z3 5-swap2-dec/swap2-dec-1-base-safez.smt2
+unsat
+
+real	0m0.030s
+user	0m0.024s
+sys	0m0.005s
+
+$ z3 5-swap2-dec/swap2-dec-1-base-unsafe.smt2
+sat
+
+real	0m0.026s
+user	0m0.019s
+sys	0m0.005s
+
+$ z3 5-swap2-dec/swap2-dec-1-base-unsafez.smt2
+sat
+
+real	0m0.054s
+user	0m0.047s
+sys	0m0.005s
+
+$ z3 5-swap2-dec/swap2-dec-2-base3-safe.smt2
+sat
+
+real	0m0.032s
+user	0m0.026s
+sys	0m0.004s
+
+$ z3 5-swap2-dec/swap2-dec-2-base3-safez.smt2
+unsat
+
+real	0m0.047s
+user	0m0.033s
+sys	0m0.011s
+
+$ z3 5-swap2-dec/swap2-dec-2-base3-unsafe.smt2
+sat
+
+real	0m0.032s
+user	0m0.026s
+sys	0m0.004s
+
+$ z3 5-swap2-dec/swap2-dec-2-base3-unsafez.smt2
+sat
+
+real	0m0.165s
+user	0m0.155s
+sys	0m0.007s
+
+$ z3 5-swap2-dec/swap2-dec-3-exact-safe.smt2
+sat
+
+real	0m0.023s
+user	0m0.017s
+sys	0m0.004s
+
+$ z3 5-swap2-dec/swap2-dec-3-exact-safez.smt2
+unsat
+
+real	0m0.128s
+user	0m0.120s
+sys	0m0.005s
+
+$ z3 5-swap2-dec/swap2-dec-3-exact-unsafe.smt2
+sat
+
+real	0m0.026s
+user	0m0.019s
+sys	0m0.005s
+
+$ z3 5-swap2-dec/swap2-dec-3-exact-unsafez.smt2
+sat
+
+real	0m0.026s
+user	0m0.020s
+sys	0m0.004s
+
+$ z3 5-swap2-dec/swap2-dec-4-exact3-safe.smt2
+sat
+
+real	0m0.034s
+user	0m0.028s
+sys	0m0.004s
+
+$ z3 5-swap2-dec/swap2-dec-4-exact3-safez.smt2
+timeout
+
+real	0m3.012s
+user	0m2.980s
+sys	0m0.029s
+
+$ z3 5-swap2-dec/swap2-dec-4-exact3-unsafe.smt2
+sat
+
+real	0m0.034s
+user	0m0.027s
+sys	0m0.004s
+
+$ z3 5-swap2-dec/swap2-dec-4-exact3-unsafez.smt2
+sat
+
+real	0m0.033s
+user	0m0.026s
+sys	0m0.004s
+
+$ z3 6-just-rec/just-rec-1-base-safe.smt2
+unsat
+
+real	0m0.014s
+user	0m0.010s
+sys	0m0.002s
+
+$ z3 6-just-rec/just-rec-1-base-unsafe.smt2
+sat
+
+real	0m0.018s
+user	0m0.012s
+sys	0m0.004s
+
+$ z3 7-linger-dec/linger-dec-1-basic-safe.smt2
+sat
+
+real	0m0.079s
+user	0m0.072s
+sys	0m0.004s
+
+$ z3 7-linger-dec/linger-dec-1-basic-unsafe.smt2
+sat
+
+real	0m0.024s
+user	0m0.019s
+sys	0m0.003s
+
+$ z3 7-linger-dec/linger-dec-2-basic3-safe.smt2
+sat
+
+real	0m0.040s
+user	0m0.033s
+sys	0m0.005s
+
+$ z3 7-linger-dec/linger-dec-2-basic3-unsafe.smt2
+sat
+
+real	0m0.032s
+user	0m0.026s
+sys	0m0.004s
+
+$ z3 7-linger-dec/linger-dec-3-exact-safe.smt2
+sat
+
+real	0m0.042s
+user	0m0.035s
+sys	0m0.004s
+
+$ z3 7-linger-dec/linger-dec-3-exact-unsafe.smt2
+sat
+
+real	0m0.032s
+user	0m0.026s
+sys	0m0.004s
+
+$ z3 7-linger-dec/linger-dec-4-exact3-safe.smt2
+sat
+
+real	0m0.038s
+user	0m0.029s
+sys	0m0.007s
+
+$ z3 7-linger-dec/linger-dec-4-exact3-unsafe.smt2
+sat
+
+real	0m0.035s
+user	0m0.029s
+sys	0m0.004s
+
+$ z3 8-lists/lists-1-append-safe.smt2
+sat
+
+real	0m0.103s
+user	0m0.094s
+sys	0m0.006s
+
+$ z3 8-lists/lists-1-append-unsafe.smt2
+sat
+
+real	0m0.048s
+user	0m0.041s
+sys	0m0.005s
+
+$ z3 8-lists/lists-2-inc-all-safe.smt2
+sat
+
+real	0m1.277s
+user	0m1.259s
+sys	0m0.015s
+
+$ z3 8-lists/lists-2-inc-all-unsafe.smt2
+sat
+
+real	0m0.041s
+user	0m0.034s
+sys	0m0.005s
+
+$ z3 8-lists/lists-3-inc-some-safe.smt2
+sat
+
+real	0m0.747s
+user	0m0.731s
+sys	0m0.013s
+
+$ z3 8-lists/lists-3-inc-some-unsafe.smt2
+sat
+
+real	0m0.061s
+user	0m0.054s
+sys	0m0.005s
+
+$ z3 8-lists/lists-4-inc-some2-safe.smt2
+sat
+
+real	0m0.480s
+user	0m0.466s
+sys	0m0.011s
+
+$ z3 8-lists/lists-4-inc-some2-unsafe.smt2
+sat
+
+real	0m0.418s
+user	0m0.406s
+sys	0m0.009s
+
+$ z3 9-trees/trees-1-append-safe.smt2
+sat
+
+real	0m0.089s
+user	0m0.080s
+sys	0m0.006s
+
+$ z3 9-trees/trees-1-append-unsafe.smt2
+sat
+
+real	0m0.041s
+user	0m0.035s
+sys	0m0.005s
+
+$ z3 9-trees/trees-2-inc-all-safe.smt2
+timeout
+
+real	0m3.012s
+user	0m2.972s
+sys	0m0.036s
+
+$ z3 9-trees/trees-2-inc-all-unsafe.smt2
+sat
+
+real	0m0.047s
+user	0m0.038s
+sys	0m0.006s
+
+$ z3 9-trees/trees-3-inc-some-safe.smt2
+timeout
+
+real	0m3.012s
+user	0m2.979s
+sys	0m0.030s
+
+$ z3 9-trees/trees-3-inc-some-unsafe.smt2
+sat
+
+real	0m0.058s
+user	0m0.051s
+sys	0m0.005s
+
+$ z3 9-trees/trees-4-inc-some2-safe.smt2
+timeout
+
+real	0m3.012s
+user	0m2.974s
+sys	0m0.035s
+
+$ z3 9-trees/trees-4-inc-some2-unsafe.smt2
+timeout
+
+real	0m3.012s
+user	0m2.977s
+sys	0m0.032s
+
