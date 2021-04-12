@@ -1,4 +1,4 @@
-pub fn rand<T>() -> T { loop {} }
+pub fn rand<T>() -> T { unimplemented!() }
 
 fn linger_dec(ma: &mut i32) {
   *ma -= 1;

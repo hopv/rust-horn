@@ -1,4 +1,4 @@
-fn rand<T>() -> T { loop {} }
+fn rand<T>() -> T { unimplemented!() }
 
 fn take_max<'a>(ma: &'a mut i32, mb: &'a mut i32) -> &'a mut i32 {
   if *ma >= *mb {

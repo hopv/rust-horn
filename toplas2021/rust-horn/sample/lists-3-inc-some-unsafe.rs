@@ -1,4 +1,4 @@
-fn rand<T>() -> T { loop {} }
+fn rand<T>() -> T { unimplemented!() }
 
 enum List {
   Cons(i32, Box<List>),

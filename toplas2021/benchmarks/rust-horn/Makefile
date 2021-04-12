@@ -6,8 +6,10 @@ RUST_LIB_PATH = $(HOME)/.multirust/toolchains/nightly-x86_64-apple-darwin/lib/ru
 
 RUST_HORN_PATH = ../../rust-horn/Cargo.toml
 
+TARGET = 03-prusti
+
 horn:
-	for file in */*.rs; do \
+	for file in $(TARGET)/*.rs; do \
 		name=$${file%.rs}; \
 		time cargo run --release --manifest-path=$(RUST_HORN_PATH) \
 			"$$name.rs" -o "$$name.smt2" \
@@ -17,7 +19,7 @@ horn:
 bench-z3:
 	OUT=bench-z3; \
 	> $$OUT; \
-	for file in */*.smt2; do \
+	for file in $(TARGET)/*.smt2; do \
 		echo "$$ z3 $$file" | tee -a $$OUT; \
 		(time z3 "$$file" -T:3) 2>&1 | tee -a $$OUT; \
 		echo "" | tee -a $$OUT; \
@@ -26,7 +28,7 @@ bench-z3:
 bench-hoice:
 	OUT=bench-hoice; \
 	> $$OUT; \
-	for file in */*.smt2; do \
+	for file in $(TARGET)/*.smt2; do \
 		echo "$$ hoice $$file" | tee -a $$OUT; \
 		(time hoice "$$file" -t 3) 2>&1 | tee -a $$OUT; \
 		echo "" | tee -a $$OUT; \

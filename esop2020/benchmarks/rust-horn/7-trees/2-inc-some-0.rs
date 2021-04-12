@@ -1,4 +1,4 @@
-pub fn rand<T>() -> T { loop {} }
+pub fn rand<T>() -> T { unimplemented!() }
 
 enum Tree {
   Node(Box<Tree>, i32, Box<Tree>),

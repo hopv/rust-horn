@@ -1,4 +1,4 @@
-pub fn rand<T>() -> T { loop {} }
+pub fn rand<T>() -> T { unimplemented!() }
 use std::mem::swap;
 
 fn max_mid<'a>(

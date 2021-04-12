@@ -1,4 +1,4 @@
-pub fn rand<T>() -> T { loop {} }
+pub fn rand<T>() -> T { unimplemented!() }
 
 fn assume(cond: bool) {
   if !cond {

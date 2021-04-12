@@ -1,4 +1,4 @@
-pub fn rand<T>() -> T { loop {} }
+pub fn rand<T>() -> T { unimplemented!() }
 use std::mem::swap;
 
 fn may_swap<T>(mx: &mut T, my: &mut T) {

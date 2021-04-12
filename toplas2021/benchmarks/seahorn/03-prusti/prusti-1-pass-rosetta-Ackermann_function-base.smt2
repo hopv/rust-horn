@@ -1,0 +1,210 @@
+(set-info :original "03-prusti/prusti-1-pass-rosetta-Ackermann_function-base.bc")
+(set-info :authors "SeaHorn v.0.1.0-rc3")
+(declare-rel verifier.error (Bool Bool Bool ))
+(declare-rel ack@_tail (Int Int ))
+(declare-rel ack@_.tr13 (Int Int Int Int ))
+(declare-rel ack@tailrecurse._crit_edge.split (Int Int Int ))
+(declare-rel ack (Bool Bool Bool Int Int Int ))
+(declare-rel main@entry (Int ))
+(declare-rel main@entry.split ())
+(declare-var ack@%_br3_0 Bool )
+(declare-var ack@%.tr1.be.lcssa_1 Int )
+(declare-var ack@%_11_0 Int )
+(declare-var ack@%_7_0 Bool )
+(declare-var ack@%.tr2_2 Int )
+(declare-var ack@%_br_0 Bool )
+(declare-var ack@arg.0_0 Int )
+(declare-var ack@arg.1_0 Int )
+(declare-var ack@%_br1_0 Int )
+(declare-var ack@_tail_0 Bool )
+(declare-var ack@.lr.ph_0 Bool )
+(declare-var ack@_.tr13_0 Bool )
+(declare-var ack@%.tr13_0 Int )
+(declare-var ack@%.tr2_0 Int )
+(declare-var ack@%.tr13_1 Int )
+(declare-var ack@%.tr2_1 Int )
+(declare-var ack@tailrecurse._crit_edge_0 Bool )
+(declare-var ack@%.tr1.lcssa_0 Int )
+(declare-var ack@%.tr1.lcssa_1 Int )
+(declare-var ack@tailrecurse._crit_edge.split_0 Bool )
+(declare-var ack@%_br2_0 Int )
+(declare-var ack@_10_0 Bool )
+(declare-var ack@%_br4_0 Int )
+(declare-var ack@tailrecurse.backedge_0 Bool )
+(declare-var |tuple(ack@_.tr13_0, ack@tailrecurse.backedge_0)| Bool )
+(declare-var ack@%.tr1.be_0 Int )
+(declare-var ack@%.tr1.be_1 Int )
+(declare-var ack@%.tr1.be_2 Int )
+(declare-var ack@_.tr13_1 Bool )
+(declare-var ack@%.tr13_2 Int )
+(declare-var ack@tailrecurse._crit_edge.loopexit_0 Bool )
+(declare-var ack@%.tr1.be.lcssa_0 Int )
+(declare-var main@%_0_0 Int )
+(declare-var @nd_0 Int )
+(declare-var main@%_1_0 Int )
+(declare-var main@%_2_0 Int )
+(declare-var main@%_3_0 Int )
+(declare-var main@%_4_0 Bool )
+(declare-var main@%_5_0 Bool )
+(declare-var main@%or.cond.i_0 Bool )
+(declare-var main@%_6_0 Int )
+(declare-var main@%_7_0 Bool )
+(declare-var main@entry_0 Bool )
+(declare-var main@entry.split_0 Bool )
+(rule (verifier.error false false false))
+(rule (verifier.error false true true))
+(rule (verifier.error true false true))
+(rule (verifier.error true true true))
+(rule (ack true true true ack@arg.0_0 ack@arg.1_0 ack@%_br1_0))
+(rule (ack false true true ack@arg.0_0 ack@arg.1_0 ack@%_br1_0))
+(rule (ack false false false ack@arg.0_0 ack@arg.1_0 ack@%_br1_0))
+(rule (ack@_tail ack@arg.1_0 ack@arg.0_0))
+(rule (=> (and (ack@_tail ack@arg.1_0 ack@arg.0_0)
+         true
+         (= ack@%_br_0 (= ack@arg.0_0 0))
+         (=> ack@.lr.ph_0 (and ack@.lr.ph_0 ack@_tail_0))
+         (=> (and ack@.lr.ph_0 ack@_tail_0) (not ack@%_br_0))
+         (=> ack@_.tr13_0 (and ack@_.tr13_0 ack@.lr.ph_0))
+         ack@_.tr13_0
+         (=> (and ack@_.tr13_0 ack@.lr.ph_0) (= ack@%.tr13_0 ack@arg.1_0))
+         (=> (and ack@_.tr13_0 ack@.lr.ph_0) (= ack@%.tr2_0 ack@arg.0_0))
+         (=> (and ack@_.tr13_0 ack@.lr.ph_0) (= ack@%.tr13_1 ack@%.tr13_0))
+         (=> (and ack@_.tr13_0 ack@.lr.ph_0) (= ack@%.tr2_1 ack@%.tr2_0)))
+    (ack@_.tr13 ack@%.tr13_1 ack@%.tr2_1 ack@arg.1_0 ack@arg.0_0)))
+(rule (let ((a!1 (and (ack@_tail ack@arg.1_0 ack@arg.0_0)
+                true
+                (= ack@%_br_0 (= ack@arg.0_0 0))
+                (=> ack@tailrecurse._crit_edge_0
+                    (and ack@tailrecurse._crit_edge_0 ack@_tail_0))
+                (=> (and ack@tailrecurse._crit_edge_0 ack@_tail_0) ack@%_br_0)
+                (=> (and ack@tailrecurse._crit_edge_0 ack@_tail_0)
+                    (= ack@%.tr1.lcssa_0 ack@arg.1_0))
+                (=> (and ack@tailrecurse._crit_edge_0 ack@_tail_0)
+                    (= ack@%.tr1.lcssa_1 ack@%.tr1.lcssa_0))
+                (=> ack@tailrecurse._crit_edge_0
+                    (= ack@%_br1_0 (+ ack@%.tr1.lcssa_1 1)))
+                (=> ack@tailrecurse._crit_edge.split_0
+                    (and ack@tailrecurse._crit_edge.split_0
+                         ack@tailrecurse._crit_edge_0))
+                ack@tailrecurse._crit_edge.split_0)))
+  (=> a!1
+      (ack@tailrecurse._crit_edge.split ack@%_br1_0 ack@arg.1_0 ack@arg.0_0))))
+(rule (let ((a!1 (and (ack@_.tr13 ack@%.tr13_0 ack@%.tr2_0 ack@arg.1_0 ack@arg.0_0)
+                true
+                (= ack@%_7_0 (= ack@%.tr13_0 0))
+                (= ack@%_br2_0 (+ ack@%.tr2_0 (- 1)))
+                (=> ack@_10_0 (and ack@_10_0 ack@_.tr13_0))
+                (=> (and ack@_10_0 ack@_.tr13_0) (not ack@%_7_0))
+                (=> ack@_10_0 (= ack@%_11_0 (+ ack@%.tr13_0 (- 1))))
+                (ack ack@_10_0 false false ack@%.tr2_0 ack@%_11_0 ack@%_br4_0)
+                (=> |tuple(ack@_.tr13_0, ack@tailrecurse.backedge_0)|
+                    ack@_.tr13_0)
+                (=> ack@tailrecurse.backedge_0
+                    (or (and ack@_.tr13_0
+                             |tuple(ack@_.tr13_0, ack@tailrecurse.backedge_0)|)
+                        (and ack@tailrecurse.backedge_0 ack@_10_0)))
+                (=> (and ack@_.tr13_0
+                         |tuple(ack@_.tr13_0, ack@tailrecurse.backedge_0)|)
+                    ack@%_7_0)
+                (=> (and ack@_.tr13_0
+                         |tuple(ack@_.tr13_0, ack@tailrecurse.backedge_0)|)
+                    (= ack@%.tr1.be_0 1))
+                (=> (and ack@tailrecurse.backedge_0 ack@_10_0)
+                    (= ack@%.tr1.be_1 ack@%_br4_0))
+                (=> (and ack@_.tr13_0
+                         |tuple(ack@_.tr13_0, ack@tailrecurse.backedge_0)|)
+                    (= ack@%.tr1.be_2 ack@%.tr1.be_0))
+                (=> (and ack@tailrecurse.backedge_0 ack@_10_0)
+                    (= ack@%.tr1.be_2 ack@%.tr1.be_1))
+                (=> ack@tailrecurse.backedge_0
+                    (= ack@%_br3_0 (= ack@%_br2_0 0)))
+                (=> ack@_.tr13_1 (and ack@_.tr13_1 ack@tailrecurse.backedge_0))
+                ack@_.tr13_1
+                (=> (and ack@_.tr13_1 ack@tailrecurse.backedge_0)
+                    (not ack@%_br3_0))
+                (=> (and ack@_.tr13_1 ack@tailrecurse.backedge_0)
+                    (= ack@%.tr13_1 ack@%.tr1.be_2))
+                (=> (and ack@_.tr13_1 ack@tailrecurse.backedge_0)
+                    (= ack@%.tr2_1 ack@%_br2_0))
+                (=> (and ack@_.tr13_1 ack@tailrecurse.backedge_0)
+                    (= ack@%.tr13_2 ack@%.tr13_1))
+                (=> (and ack@_.tr13_1 ack@tailrecurse.backedge_0)
+                    (= ack@%.tr2_2 ack@%.tr2_1)))))
+  (=> a!1 (ack@_.tr13 ack@%.tr13_2 ack@%.tr2_2 ack@arg.1_0 ack@arg.0_0))))
+(rule (let ((a!1 (and (ack@_.tr13 ack@%.tr13_0 ack@%.tr2_0 ack@arg.1_0 ack@arg.0_0)
+                true
+                (= ack@%_7_0 (= ack@%.tr13_0 0))
+                (= ack@%_br2_0 (+ ack@%.tr2_0 (- 1)))
+                (=> ack@_10_0 (and ack@_10_0 ack@_.tr13_0))
+                (=> (and ack@_10_0 ack@_.tr13_0) (not ack@%_7_0))
+                (=> ack@_10_0 (= ack@%_11_0 (+ ack@%.tr13_0 (- 1))))
+                (ack ack@_10_0 false false ack@%.tr2_0 ack@%_11_0 ack@%_br4_0)
+                (=> |tuple(ack@_.tr13_0, ack@tailrecurse.backedge_0)|
+                    ack@_.tr13_0)
+                (=> ack@tailrecurse.backedge_0
+                    (or (and ack@_.tr13_0
+                             |tuple(ack@_.tr13_0, ack@tailrecurse.backedge_0)|)
+                        (and ack@tailrecurse.backedge_0 ack@_10_0)))
+                (=> (and ack@_.tr13_0
+                         |tuple(ack@_.tr13_0, ack@tailrecurse.backedge_0)|)
+                    ack@%_7_0)
+                (=> (and ack@_.tr13_0
+                         |tuple(ack@_.tr13_0, ack@tailrecurse.backedge_0)|)
+                    (= ack@%.tr1.be_0 1))
+                (=> (and ack@tailrecurse.backedge_0 ack@_10_0)
+                    (= ack@%.tr1.be_1 ack@%_br4_0))
+                (=> (and ack@_.tr13_0
+                         |tuple(ack@_.tr13_0, ack@tailrecurse.backedge_0)|)
+                    (= ack@%.tr1.be_2 ack@%.tr1.be_0))
+                (=> (and ack@tailrecurse.backedge_0 ack@_10_0)
+                    (= ack@%.tr1.be_2 ack@%.tr1.be_1))
+                (=> ack@tailrecurse.backedge_0
+                    (= ack@%_br3_0 (= ack@%_br2_0 0)))
+                (=> ack@tailrecurse._crit_edge.loopexit_0
+                    (and ack@tailrecurse._crit_edge.loopexit_0
+                         ack@tailrecurse.backedge_0))
+                (=> (and ack@tailrecurse._crit_edge.loopexit_0
+                         ack@tailrecurse.backedge_0)
+                    ack@%_br3_0)
+                (=> (and ack@tailrecurse._crit_edge.loopexit_0
+                         ack@tailrecurse.backedge_0)
+                    (= ack@%.tr1.be.lcssa_0 ack@%.tr1.be_2))
+                (=> (and ack@tailrecurse._crit_edge.loopexit_0
+                         ack@tailrecurse.backedge_0)
+                    (= ack@%.tr1.be.lcssa_1 ack@%.tr1.be.lcssa_0))
+                (=> ack@tailrecurse._crit_edge_0
+                    (and ack@tailrecurse._crit_edge_0
+                         ack@tailrecurse._crit_edge.loopexit_0))
+                (=> (and ack@tailrecurse._crit_edge_0
+                         ack@tailrecurse._crit_edge.loopexit_0)
+                    (= ack@%.tr1.lcssa_0 ack@%.tr1.be.lcssa_1))
+                (=> (and ack@tailrecurse._crit_edge_0
+                         ack@tailrecurse._crit_edge.loopexit_0)
+                    (= ack@%.tr1.lcssa_1 ack@%.tr1.lcssa_0))
+                (=> ack@tailrecurse._crit_edge_0
+                    (= ack@%_br1_0 (+ ack@%.tr1.lcssa_1 1)))
+                (=> ack@tailrecurse._crit_edge.split_0
+                    (and ack@tailrecurse._crit_edge.split_0
+                         ack@tailrecurse._crit_edge_0))
+                ack@tailrecurse._crit_edge.split_0)))
+  (=> a!1
+      (ack@tailrecurse._crit_edge.split ack@%_br1_0 ack@arg.1_0 ack@arg.0_0))))
+(rule (=> (ack@tailrecurse._crit_edge.split ack@%_br1_0 ack@arg.1_0 ack@arg.0_0)
+    (ack true false false ack@arg.0_0 ack@arg.1_0 ack@%_br1_0)))
+(rule (main@entry @nd_0))
+(rule (=> (and (main@entry @nd_0)
+         true
+         (= main@%_0_0 @nd_0)
+         (= main@%_2_0 @nd_0)
+         (= main@%_4_0 (> main@%_1_0 (- 1)))
+         (= main@%_5_0 (> main@%_3_0 (- 1)))
+         (= main@%or.cond.i_0 (and main@%_4_0 main@%_5_0))
+         main@%or.cond.i_0
+         (ack true false false main@%_1_0 main@%_3_0 main@%_6_0)
+         (= main@%_7_0 (> main@%_6_0 (- 1)))
+         (not main@%_7_0)
+         (=> main@entry.split_0 (and main@entry.split_0 main@entry_0))
+         main@entry.split_0)
+    main@entry.split))
+(query main@entry.split)
+

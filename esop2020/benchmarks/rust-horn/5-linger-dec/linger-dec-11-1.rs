@@ -1,4 +1,4 @@
-pub fn rand<T>() -> T { loop {} }
+pub fn rand<T>() -> T { unimplemented!() }
 
 fn linger_dec_bound_three(n: i32, ma: &mut i32, mb: &mut i32, mc: &mut i32) {
   if n == 0 {
