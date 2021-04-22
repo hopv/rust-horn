@@ -57,22 +57,22 @@
                 (= main@%.pmcpy.elt.i_0 (+ main@%_0_0 (* 0 8) 0))
                 (or (<= main@%_0_0 0) (> main@%.pmcpy.elt.i_0 0))
                 (= main@%.pmcpy.unpack.i_0
-                   (select main@%sm3_0 main@%.pmcpy.elt.i_0))
+                   (select main@%sm4_0 main@%.pmcpy.elt.i_0))
                 (= main@%_6_0 main@%_1_0)
                 (= main@%_7_0 @nd_0)
                 a!1
                 (or (<= main@%_1_0 0) (> main@%.pmcpy2.elt.i_0 0))
                 (= main@%.pmcpy2.unpack.i_0
-                   (select main@%sm4_0 main@%.pmcpy2.elt.i_0))
+                   (select main@%sm3_0 main@%.pmcpy2.elt.i_0))
                 a!2
                 (or (<= main@%_1_0 0) (> main@%.pmcpy2.elt10.i_0 0))
                 (> main@%_1_0 0)
                 (= main@%.pmcpy2.unpack11.i_0
-                   (select main@%sm4_0 main@%.pmcpy2.elt10.i_0))
+                   (select main@%sm3_0 main@%.pmcpy2.elt10.i_0))
                 a!3
                 (or (<= main@%malloc14.i_0 0) (> main@%.repack.i_0 0))
                 (= main@%sm_0
-                   (store main@%sm2_0
+                   (store main@%sm5_0
                           main@%.repack.i_0
                           main@%.pmcpy2.unpack.i_0))
                 a!4
@@ -88,7 +88,7 @@
                 (= main@%_11_0 main@%_10_0)
                 (= main@%_12_0 (+ main@%_11_0 (* 0 8) 0))
                 (or (<= main@%_11_0 0) (> main@%_12_0 0))
-                (= main@%_13_0 (select main@%sm5_0 main@%_12_0))
+                (= main@%_13_0 (select main@%sm2_0 main@%_12_0))
                 (= main@%_14_0 (< main@%.pmcpy.unpack.i_0 main@%_13_0))
                 (not main@%_14_0)
                 (=> main@entry.split_0 (and main@entry.split_0 main@entry_0))

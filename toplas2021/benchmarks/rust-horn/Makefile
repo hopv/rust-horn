@@ -21,7 +21,7 @@ bench-z3:
 	> $$OUT; \
 	for file in $(TARGET)/*.smt2; do \
 		echo "$$ z3 $$file" | tee -a $$OUT; \
-		(time z3 "$$file" -T:3) 2>&1 | tee -a $$OUT; \
+		(time z3 "$$file" -T:180) 2>&1 | tee -a $$OUT; \
 		echo "" | tee -a $$OUT; \
 	done
 
@@ -30,6 +30,6 @@ bench-hoice:
 	> $$OUT; \
 	for file in $(TARGET)/*.smt2; do \
 		echo "$$ hoice $$file" | tee -a $$OUT; \
-		(time hoice "$$file" -t 3) 2>&1 | tee -a $$OUT; \
+		(time hoice "$$file" -t 180) 2>&1 | tee -a $$OUT; \
 		echo "" | tee -a $$OUT; \
 	done

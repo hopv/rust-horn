@@ -57,13 +57,13 @@
 (declare-var main@empty.loop.body_0 Bool )
 (declare-var main@empty.loop_1 Bool )
 (declare-var main@tailrecurse.i_0 Bool )
-(declare-var main@%shadow.mem.0.0_0 (Array Int Int) )
 (declare-var main@%shadow.mem.4.0_0 (Array Int Int) )
+(declare-var main@%shadow.mem.0.0_0 (Array Int Int) )
 (declare-var main@%.07_0 Int )
 (declare-var main@%.0_0 Int )
 (declare-var main@%.tr.i_0 Int )
-(declare-var main@%shadow.mem.0.0_1 (Array Int Int) )
 (declare-var main@%shadow.mem.4.0_1 (Array Int Int) )
+(declare-var main@%shadow.mem.0.0_1 (Array Int Int) )
 (declare-var main@%.07_1 Int )
 (declare-var main@%.0_1 Int )
 (declare-var main@%.tr.i_1 Int )
@@ -80,8 +80,8 @@
 (declare-var main@%sm7_0 (Array Int Int) )
 (declare-var main@%_30_0 Int )
 (declare-var main@tailrecurse.i_1 Bool )
-(declare-var main@%shadow.mem.0.0_2 (Array Int Int) )
 (declare-var main@%shadow.mem.4.0_2 (Array Int Int) )
+(declare-var main@%shadow.mem.0.0_2 (Array Int Int) )
 (declare-var main@%.tr.i_2 Int )
 (declare-var main@swap2_dec_bound.exit_0 Bool )
 (declare-var main@%_31_0 Int )
@@ -105,12 +105,12 @@
          (= main@%_5_0 @nd_0)
          (= main@%_7_0 main@%_1_0)
          (= main@%_8_0 @nd_0)
-         (= main@%sm_0 (store main@%sm9_0 main@%_1_0 main@%_9_0))
+         (= main@%sm_0 (store main@%sm8_0 main@%_1_0 main@%_9_0))
          (= main@%_10_0 main@%_2_0)
          (= main@%_11_0 @nd_0)
          (= main@%sm1_0 (store main@%sm_0 main@%_2_0 main@%_12_0))
          (= main@%.0.sroa_cast_0 main@%_3_0)
-         (= main@%sm2_0 (store main@%sm8_0 main@%_3_0 main@%_1_0))
+         (= main@%sm2_0 (store main@%sm9_0 main@%_3_0 main@%_1_0))
          (= main@%.0.sroa_cast9_0 main@%_4_0)
          (= main@%sm3_0 (store main@%sm2_0 main@%_4_0 main@%_2_0))
          (=> main@empty.loop_0 (and main@empty.loop_0 main@entry_0))
@@ -120,8 +120,8 @@
                      main@%_1_0
                      main@%loop.bound_0
                      @nd_0
-                     main@%sm1_0
                      main@%sm3_0
+                     main@%sm1_0
                      main@%_3_0
                      main@%_4_0)))
 (rule (let ((a!1 (main@empty.loop main@%_9_0
@@ -129,8 +129,8 @@
                             main@%_1_0
                             main@%loop.bound_0
                             @nd_0
-                            main@%sm1_0
                             main@%sm3_0
+                            main@%sm1_0
                             main@%_3_0
                             main@%_4_0)))
   (=> (and a!1
@@ -147,8 +147,8 @@
                           main@%_1_0
                           main@%loop.bound_0
                           @nd_0
-                          main@%sm1_0
                           main@%sm3_0
+                          main@%sm1_0
                           main@%_3_0
                           main@%_4_0)
          true
@@ -156,9 +156,9 @@
          (=> (and main@tailrecurse.i_0 main@empty.loop_0)
              (not main@%nd.loop.cond_0))
          (=> (and main@tailrecurse.i_0 main@empty.loop_0)
-             (= main@%shadow.mem.0.0_0 main@%sm1_0))
-         (=> (and main@tailrecurse.i_0 main@empty.loop_0)
              (= main@%shadow.mem.4.0_0 main@%sm3_0))
+         (=> (and main@tailrecurse.i_0 main@empty.loop_0)
+             (= main@%shadow.mem.0.0_0 main@%sm1_0))
          (=> (and main@tailrecurse.i_0 main@empty.loop_0)
              (= main@%.07_0 main@%_3_0))
          (=> (and main@tailrecurse.i_0 main@empty.loop_0)
@@ -166,9 +166,9 @@
          (=> (and main@tailrecurse.i_0 main@empty.loop_0)
              (= main@%.tr.i_0 main@%_6_0))
          (=> (and main@tailrecurse.i_0 main@empty.loop_0)
-             (= main@%shadow.mem.0.0_1 main@%shadow.mem.0.0_0))
-         (=> (and main@tailrecurse.i_0 main@empty.loop_0)
              (= main@%shadow.mem.4.0_1 main@%shadow.mem.4.0_0))
+         (=> (and main@tailrecurse.i_0 main@empty.loop_0)
+             (= main@%shadow.mem.0.0_1 main@%shadow.mem.0.0_0))
          (=> (and main@tailrecurse.i_0 main@empty.loop_0)
              (= main@%.07_1 main@%.07_0))
          (=> (and main@tailrecurse.i_0 main@empty.loop_0)
@@ -260,9 +260,9 @@
                 (=> main@_23_0 (= main@%_30_0 (+ main@%.tr.i_0 (- 1))))
                 (=> main@tailrecurse.i_1 (and main@tailrecurse.i_1 main@_23_0))
                 (=> (and main@tailrecurse.i_1 main@_23_0)
-                    (= main@%shadow.mem.0.0_1 main@%sm7_0))
-                (=> (and main@tailrecurse.i_1 main@_23_0)
                     (= main@%shadow.mem.4.0_1 main@%shadow.mem.4.1_2))
+                (=> (and main@tailrecurse.i_1 main@_23_0)
+                    (= main@%shadow.mem.0.0_1 main@%sm7_0))
                 (=> (and main@tailrecurse.i_1 main@_23_0)
                     (= main@%.07_1 main@%spec.select_0))
                 (=> (and main@tailrecurse.i_1 main@_23_0)
@@ -270,9 +270,9 @@
                 (=> (and main@tailrecurse.i_1 main@_23_0)
                     (= main@%.tr.i_1 main@%_30_0))
                 (=> (and main@tailrecurse.i_1 main@_23_0)
-                    (= main@%shadow.mem.0.0_2 main@%shadow.mem.0.0_1))
-                (=> (and main@tailrecurse.i_1 main@_23_0)
                     (= main@%shadow.mem.4.0_2 main@%shadow.mem.4.0_1))
+                (=> (and main@tailrecurse.i_1 main@_23_0)
+                    (= main@%shadow.mem.0.0_2 main@%shadow.mem.0.0_1))
                 (=> (and main@tailrecurse.i_1 main@_23_0)
                     (= main@%.07_2 main@%.07_1))
                 (=> (and main@tailrecurse.i_1 main@_23_0)
