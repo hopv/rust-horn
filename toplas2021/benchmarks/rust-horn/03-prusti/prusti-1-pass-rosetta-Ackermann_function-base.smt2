@@ -5,9 +5,8 @@
 (declare-fun %ack.2 (Int Int Int Int) Bool)
 (declare-fun %main (Bool) Bool)
 (declare-fun %main.2 (Int Int Bool Bool) Bool)
-(declare-fun %main.5 (Int Int Bool Bool Bool) Bool)
-(declare-fun %main.6 (Int Int Bool Bool) Bool)
-(declare-fun %main.9 (Int Int Bool Bool Bool) Bool)
+(declare-fun %main.5 (Int Int Bool Bool) Bool)
+(declare-fun %main.8 (Int Int Bool Bool Bool) Bool)
 
 ; %ack
 (assert (forall ((_1 Int) (_2 Int) (_@ Int)) (=>
@@ -34,32 +33,25 @@
   (%main _!))))
 ; %main bb2
 (assert (forall ((_1 Int) (_2 Int) (_! Bool)) (=>
-  (and (%main.6 _1 _2 false _!))
+  (and (%main.5 _1 _2 false _!))
   (%main.2 _1 _2 false _!))))
 (assert (forall ((_1 Int) (_2 Int) (_! Bool)) (=>
-  (and (%main.5 _1 _2 true (<= 0 _2) _!))
+  (and (%main.5 _1 _2 (<= 0 _2) _!))
   (%main.2 _1 _2 true _!))))
 ; %main bb5
-(assert (forall ((_1 Int) (_2 Int) (_4 Bool) (_! Bool)) (=>
-  (and (%main.6 _1 _2 false _!))
-  (%main.5 _1 _2 _4 false _!))))
-(assert (forall ((_1 Int) (_2 Int) (_4 Bool) (_! Bool)) (=>
-  (and (%main.6 _1 _2 true _!))
-  (%main.5 _1 _2 _4 true _!))))
-; %main bb6
 (assert (forall ((_1 Int) (_2 Int) (_! Bool)) (=>
   (and (= _! false))
-  (%main.6 _1 _2 false _!))))
-(assert (forall ((_1 Int) (_2 Int) (_! Bool) (_@.7 Int)) (=>
-  (and (%ack _1 _2 _@.7) (%main.9 _1 _2 true (not (>= _@.7 0)) _!))
-  (%main.6 _1 _2 true _!))))
-; %main bb9
+  (%main.5 _1 _2 false _!))))
+(assert (forall ((_1 Int) (_2 Int) (_! Bool) (_@.6 Int)) (=>
+  (and (%ack _1 _2 _@.6) (%main.8 _1 _2 true (not (>= _@.6 0)) _!))
+  (%main.5 _1 _2 true _!))))
+; %main bb8
 (assert (forall ((_1 Int) (_2 Int) (_3 Bool) (_! Bool)) (=>
   (and (= _! false))
-  (%main.9 _1 _2 _3 false _!))))
+  (%main.8 _1 _2 _3 false _!))))
 (assert (forall ((_1 Int) (_2 Int) (_3 Bool) (_! Bool)) (=>
   (and (= _! true))
-  (%main.9 _1 _2 _3 true _!))))
+  (%main.8 _1 _2 _3 true _!))))
 
 (assert (forall ((_% Int)) (=> (%main true) false)))
 (check-sat)

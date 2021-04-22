@@ -6,8 +6,7 @@
 
 (declare-fun %main (Bool) Bool)
 (declare-fun %main.4 (Int Int Int Int Bool Bool) Bool)
-(declare-fun %main.7 (Int Int Int Int Bool Bool Bool) Bool)
-(declare-fun %main.8 (Int Int Int Int Bool Bool) Bool)
+(declare-fun %main.7 (Int Int Int Int Bool Bool) Bool)
 (declare-fun %may_swap<~Mut<Int>> (~Mut<~Mut<Int>> ~Mut<~Mut<Int>>) Bool)
 (declare-fun %may_swap<~Mut<Int>>.1 (~Mut<~Mut<Int>> ~Mut<~Mut<Int>> Bool) Bool)
 (declare-fun %may_swap<~Mut<~Mut<Int>>> (~Mut<~Mut<~Mut<Int>>> ~Mut<~Mut<~Mut<Int>>>) Bool)
@@ -21,25 +20,18 @@
   (%main _!))))
 ; %main bb4
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_! Bool)) (=>
-  (and (%main.8 _1 _2 _3 _4 (not false) _!))
+  (and (%main.7 _1 _2 _3 _4 (not false) _!))
   (%main.4 _1 _2 _3 _4 false _!))))
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_! Bool)) (=>
-  (and (%main.7 _1 _2 _3 _4 true (< (- _4 _2) (* 2 _1)) _!))
+  (and (%main.7 _1 _2 _3 _4 (not (< (- _4 _2) (* 2 _1))) _!))
   (%main.4 _1 _2 _3 _4 true _!))))
 ; %main bb7
-(assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_17 Bool) (_! Bool)) (=>
-  (and (%main.8 _1 _2 _3 _4 (not false) _!))
-  (%main.7 _1 _2 _3 _4 _17 false _!))))
-(assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_17 Bool) (_! Bool)) (=>
-  (and (%main.8 _1 _2 _3 _4 (not true) _!))
-  (%main.7 _1 _2 _3 _4 _17 true _!))))
-; %main bb8
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_! Bool)) (=>
   (and (= _! false))
-  (%main.8 _1 _2 _3 _4 false _!))))
+  (%main.7 _1 _2 _3 _4 false _!))))
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_4 Int) (_! Bool)) (=>
   (and (= _! true))
-  (%main.8 _1 _2 _3 _4 true _!))))
+  (%main.7 _1 _2 _3 _4 true _!))))
 
 ; %may_swap<~Mut<Int>>
 (assert (forall ((_1 ~Mut<~Mut<Int>>) (_2 ~Mut<~Mut<Int>>) (_?.0 Bool)) (=>

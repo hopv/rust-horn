@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for file in 03-prusti/*.c; do
+for file in */*.c; do
   echo "horn $file"
   name=${file%.c}
   time (sea fe "$name.c" -o "$name.bc"; sea horn "$name.bc" -o "$name.smt2")

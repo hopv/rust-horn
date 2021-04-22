@@ -7,8 +7,7 @@
 (declare-fun %linger_dec_bound.4 (Int ~Mut<Int> Int Int Bool) Bool)
 (declare-fun %main (Bool) Bool)
 (declare-fun %main.3 (Int Int Int Bool Bool) Bool)
-(declare-fun %main.6 (Int Int Int Bool Bool Bool) Bool)
-(declare-fun %main.7 (Int Int Int Bool Bool) Bool)
+(declare-fun %main.6 (Int Int Int Bool Bool) Bool)
 
 ; %linger_dec_bound
 (assert (forall ((_1 Int) (_2 ~Mut<Int>)) (=>
@@ -35,25 +34,18 @@
   (%main _!))))
 ; %main bb3
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_! Bool)) (=>
-  (and (%main.7 _1 _2 _3 (not false) _!))
+  (and (%main.6 _1 _2 _3 (not false) _!))
   (%main.3 _1 _2 _3 false _!))))
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_! Bool)) (=>
-  (and (%main.6 _1 _2 _3 true (< (- _3 _2) _1) _!))
+  (and (%main.6 _1 _2 _3 (not (< (- _3 _2) _1)) _!))
   (%main.3 _1 _2 _3 true _!))))
 ; %main bb6
-(assert (forall ((_1 Int) (_2 Int) (_3 Int) (_10 Bool) (_! Bool)) (=>
-  (and (%main.7 _1 _2 _3 (not false) _!))
-  (%main.6 _1 _2 _3 _10 false _!))))
-(assert (forall ((_1 Int) (_2 Int) (_3 Int) (_10 Bool) (_! Bool)) (=>
-  (and (%main.7 _1 _2 _3 (not true) _!))
-  (%main.6 _1 _2 _3 _10 true _!))))
-; %main bb7
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_! Bool)) (=>
   (and (= _! false))
-  (%main.7 _1 _2 _3 false _!))))
+  (%main.6 _1 _2 _3 false _!))))
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_! Bool)) (=>
   (and (= _! true))
-  (%main.7 _1 _2 _3 true _!))))
+  (%main.6 _1 _2 _3 true _!))))
 
 (assert (forall ((_% Int)) (=> (%main true) false)))
 (check-sat)

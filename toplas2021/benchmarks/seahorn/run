@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker run -v $(pwd):/host -w /host -it seahorn/seahorn-llvm5
+docker run -v $(pwd):/host -w /host -it seahorn/seahorn-llvm10:nightly

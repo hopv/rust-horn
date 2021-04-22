@@ -6,8 +6,7 @@
 (declare-fun %inc_max_repeat.0 (Int ~Mut<Int> ~Mut<Int> Int) Bool)
 (declare-fun %main (Bool) Bool)
 (declare-fun %main.4 (Int Int Int Bool Bool) Bool)
-(declare-fun %main.7 (Int Int Int Bool Bool Bool) Bool)
-(declare-fun %main.8 (Int Int Int Bool Bool) Bool)
+(declare-fun %main.7 (Int Int Int Bool Bool) Bool)
 (declare-fun %take_max (~Mut<Int> ~Mut<Int> ~Mut<Int>) Bool)
 (declare-fun %take_max.0 (~Mut<Int> ~Mut<Int> Bool ~Mut<Int>) Bool)
 
@@ -29,25 +28,18 @@
   (%main _!))))
 ; %main bb4
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_! Bool)) (=>
-  (and (%main.7 _1 _2 _3 false (>= (- _3 _2) _1) _!))
+  (and (%main.7 _1 _2 _3 (not (>= (- _3 _2) _1)) _!))
   (%main.4 _1 _2 _3 false _!))))
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_! Bool)) (=>
-  (and (%main.8 _1 _2 _3 (not true) _!))
+  (and (%main.7 _1 _2 _3 (not true) _!))
   (%main.4 _1 _2 _3 true _!))))
 ; %main bb7
-(assert (forall ((_1 Int) (_2 Int) (_3 Int) (_12 Bool) (_! Bool)) (=>
-  (and (%main.8 _1 _2 _3 (not false) _!))
-  (%main.7 _1 _2 _3 _12 false _!))))
-(assert (forall ((_1 Int) (_2 Int) (_3 Int) (_12 Bool) (_! Bool)) (=>
-  (and (%main.8 _1 _2 _3 (not true) _!))
-  (%main.7 _1 _2 _3 _12 true _!))))
-; %main bb8
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_! Bool)) (=>
   (and (= _! false))
-  (%main.8 _1 _2 _3 false _!))))
+  (%main.7 _1 _2 _3 false _!))))
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_! Bool)) (=>
   (and (= _! true))
-  (%main.8 _1 _2 _3 true _!))))
+  (%main.7 _1 _2 _3 true _!))))
 
 ; %take_max
 (assert (forall ((_1 ~Mut<Int>) (_2 ~Mut<Int>) (_@ ~Mut<Int>)) (=>

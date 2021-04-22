@@ -1,343 +1,350 @@
-$ hoice 01-simple/01_unsat.smt2
+$ hoice 01-simple/simple-1-01_unsat.smt2
 sat
 
-real	0m0.049s
-user	0m0.043s
-sys	0m0.014s
+real	0m0.062s
+user	0m0.045s
+sys	0m0.016s
 
-$ hoice 01-simple/04_recursive_unsat.smt2
+$ hoice 01-simple/simple-2-04_recursive_unsat.smt2
 timeout
 
-real	3m0.014s
-user	2m58.033s
-sys	0m0.143s
+real	0m3.011s
+user	0m2.814s
+sys	0m0.022s
 
-$ hoice 01-simple/05_recursive_sat.smt2
+$ hoice 01-simple/simple-3-05_recursive_sat.smt2
 unsat
 
-real	0m0.035s
-user	0m0.019s
-sys	0m0.009s
+real	0m0.036s
+user	0m0.028s
+sys	0m0.013s
 
-$ hoice 01-simple/06_loop_unsat.smt2
+$ hoice 01-simple/simple-4-06_loop_unsat.smt2
 sat
 
-real	0m0.078s
-user	0m0.072s
-sys	0m0.018s
+real	0m0.083s
+user	0m0.076s
+sys	0m0.021s
 
-$ hoice 01-simple/hhk2008.smt2
+$ hoice 01-simple/simple-5-hhk2008.smt2
+timeout
+
+real	0m3.063s
+user	0m3.045s
+sys	0m0.038s
+
+$ hoice 01-simple/simple-6-unique_scalar.smt2
+unsat
+
+real	0m0.251s
+user	0m0.230s
+sys	0m0.012s
+
+$ hoice 02-bmc/bmc-1-test-bmc-1-safe.smt2
 sat
 
-real	0m17.405s
-user	0m17.403s
-sys	0m0.058s
-
-$ hoice 01-simple/unique_scalar.smt2
-unsat
-
-real	0m0.309s
-user	0m0.007s
-sys	0m0.004s
-
-$ hoice 02-bmc/test-bmc-1-false.smt2
-unsat
-
-real	0m0.021s
-user	0m0.006s
-sys	0m0.005s
-
-$ hoice 02-bmc/test-bmc-1-true.smt2
-sat
-
-real	0m0.025s
-user	0m0.006s
-sys	0m0.004s
-
-$ hoice 02-bmc/test-bmc-2-false.smt2
-unsat
-
-real	0m0.058s
-user	0m0.034s
-sys	0m0.010s
-
-$ hoice 02-bmc/test-bmc-2-true.smt2
-sat
-
-real	0m0.063s
-user	0m0.057s
-sys	0m0.018s
-
-$ hoice 02-bmc/test-bmc-3-false.smt2
-unsat
-
-real	0m0.021s
+real	0m0.018s
 user	0m0.005s
+sys	0m0.003s
+
+$ hoice 02-bmc/bmc-1-test-bmc-1-unsafe.smt2
+unsat
+
+real	0m0.015s
+user	0m0.004s
+sys	0m0.003s
+
+$ hoice 02-bmc/bmc-2-test-bmc-2-safe.smt2
+sat
+
+real	0m0.048s
+user	0m0.044s
+sys	0m0.013s
+
+$ hoice 02-bmc/bmc-2-test-bmc-2-unsafe.smt2
+unsat
+
+real	0m0.043s
+user	0m0.026s
+sys	0m0.007s
+
+$ hoice 02-bmc/bmc-3-test-bmc-3-safe.smt2
+sat
+
+real	0m0.016s
+user	0m0.004s
+sys	0m0.003s
+
+$ hoice 02-bmc/bmc-3-test-bmc-3-unsafe.smt2
+unsat
+
+real	0m0.017s
+user	0m0.004s
+sys	0m0.003s
+
+$ hoice 02-bmc/bmc-4-test-bmc-diamond-1-safe.smt2
+sat
+
+real	0m0.024s
+user	0m0.006s
 sys	0m0.004s
 
-$ hoice 02-bmc/test-bmc-3-true.smt2
-sat
+$ hoice 02-bmc/bmc-4-test-bmc-diamond-1-unsafe.smt2
+unsat
 
-real	0m0.023s
+real	0m0.019s
 user	0m0.005s
-sys	0m0.005s
+sys	0m0.003s
 
-$ hoice 02-bmc/test-bmc-diamond-1-false.smt2
-unsat
-
-real	0m0.027s
-user	0m0.007s
-sys	0m0.005s
-
-$ hoice 02-bmc/test-bmc-diamond-1-true.smt2
+$ hoice 02-bmc/bmc-5-test-bmc-diamond-2-safe.smt2
 sat
 
-real	0m0.031s
-user	0m0.007s
-sys	0m0.005s
+real	0m0.017s
+user	0m0.005s
+sys	0m0.003s
 
-$ hoice 02-bmc/test-bmc-diamond-2-false.smt2
+$ hoice 02-bmc/bmc-5-test-bmc-diamond-2-unsafe.smt2
 unsat
 
-real	0m0.021s
-user	0m0.006s
-sys	0m0.005s
-
-$ hoice 02-bmc/test-bmc-diamond-2-true.smt2
-sat
-
-real	0m0.023s
-user	0m0.006s
-sys	0m0.005s
+real	0m0.017s
+user	0m0.005s
+sys	0m0.003s
 
 $ hoice 03-prusti/prusti-1-pass-rosetta-Ackermann_function-base.smt2
 sat
 
-real	0m0.065s
-user	0m0.055s
-sys	0m0.017s
+real	0m0.040s
+user	0m0.006s
+sys	0m0.004s
 
 $ hoice 03-prusti/prusti-2-pass-rosetta-Ackermann_function-same.smt2
 timeout
 
-real	3m0.014s
-user	2m59.945s
-sys	0m0.176s
+real	0m3.012s
+user	0m2.845s
+sys	0m0.020s
 
 $ hoice 03-prusti/prusti-3-pass-paper_examples-points-compress.smt2
 sat
 
-real	0m0.045s
-user	0m0.005s
-sys	0m0.004s
+real	0m0.035s
+user	0m0.004s
+sys	0m0.003s
 
 $ hoice 03-prusti/prusti-4-pass-paper_examples-borrows_align.smt2
 sat
 
-real	0m0.085s
-user	0m0.006s
-sys	0m0.004s
+real	0m0.062s
+user	0m0.005s
+sys	0m0.003s
 
 $ hoice 03-prusti/prusti-5-pass-demos-account.smt2
 sat
 
-real	0m0.098s
-user	0m0.006s
-sys	0m0.004s
+real	0m0.078s
+user	0m0.005s
+sys	0m0.003s
 
 $ hoice 03-prusti/prusti-6-fail-demos-account_error_1.smt2
 unsat
 
-real	0m0.189s
+real	0m0.145s
+user	0m0.005s
+sys	0m0.003s
+
+$ hoice 03-prusti/prusti-7-pass-mut_borrows-restore.smt2
+sat
+
+real	0m0.226s
 user	0m0.006s
-sys	0m0.004s
+sys	0m0.003s
 
 $ hoice 04-inc-max/inc-max-1-base-safe.smt2
 sat
 
-real	0m0.171s
-user	0m0.011s
-sys	0m0.005s
+real	0m0.129s
+user	0m0.009s
+sys	0m0.003s
 
 $ hoice 04-inc-max/inc-max-1-base-unsafe.smt2
 unsat
 
-real	0m0.176s
-user	0m0.011s
-sys	0m0.004s
+real	0m0.127s
+user	0m0.009s
+sys	0m0.003s
 
 $ hoice 04-inc-max/inc-max-2-base3-safe.smt2
 sat
 
-real	0m0.240s
-user	0m0.010s
-sys	0m0.005s
+real	0m0.179s
+user	0m0.008s
+sys	0m0.003s
 
 $ hoice 04-inc-max/inc-max-2-base3-unsafe.smt2
 unsat
 
-real	0m0.241s
-user	0m0.010s
-sys	0m0.005s
+real	0m0.170s
+user	0m0.007s
+sys	0m0.004s
 
 $ hoice 04-inc-max/inc-max-3-repeat-safe.smt2
 timeout
 
-real	3m0.026s
-user	3m0.020s
-sys	0m0.292s
+real	0m3.011s
+user	0m1.414s
+sys	0m0.022s
 
 $ hoice 04-inc-max/inc-max-3-repeat-unsafe.smt2
 unsat
 
-real	0m0.559s
-user	0m0.442s
-sys	0m0.020s
+real	0m0.388s
+user	0m0.267s
+sys	0m0.013s
 
 $ hoice 04-inc-max/inc-max-4-repeat3-safe.smt2
 timeout
 
-real	3m0.087s
-user	2m59.767s
-sys	0m0.439s
+real	0m3.028s
+user	0m0.820s
+sys	0m0.025s
 
 $ hoice 04-inc-max/inc-max-4-repeat3-unsafe.smt2
 unsat
 
-real	0m2.028s
-user	0m0.731s
-sys	0m0.029s
+real	0m1.199s
+user	0m0.477s
+sys	0m0.019s
 
 $ hoice 05-swap-dec/swap-dec-1-base-safe.smt2
 sat
 
-real	0m0.491s
-user	0m0.016s
-sys	0m0.006s
+real	0m0.440s
+user	0m0.014s
+sys	0m0.005s
 
 $ hoice 05-swap-dec/swap-dec-1-base-unsafe.smt2
 timeout
 
-real	3m16.491s
-user	3m17.256s
-sys	0m0.360s
+real	0m3.198s
+user	0m0.723s
+sys	0m0.024s
 
 $ hoice 05-swap-dec/swap-dec-2-base3-safe.smt2
 timeout
 
-real	3m0.009s
-user	1m42.433s
-sys	0m0.134s
+real	0m3.020s
+user	0m0.263s
+sys	0m0.017s
 
 $ hoice 05-swap-dec/swap-dec-2-base3-unsafe.smt2
-unsat
+timeout
 
-real	0m11.296s
-user	0m1.266s
-sys	0m0.042s
+real	0m3.188s
+user	0m0.352s
+sys	0m0.020s
 
 $ hoice 05-swap-dec/swap-dec-3-exact-safe.smt2
 sat
 
-real	0m0.706s
-user	0m0.704s
-sys	0m0.026s
+real	0m0.471s
+user	0m0.468s
+sys	0m0.017s
 
 $ hoice 05-swap-dec/swap-dec-3-exact-unsafe.smt2
-unsat
+timeout
 
-real	0m22.725s
-user	0m16.029s
-sys	0m0.045s
+real	0m3.012s
+user	0m0.913s
+sys	0m0.020s
 
 $ hoice 05-swap-dec/swap-dec-4-exact3-safe.smt2
 timeout
 
-real	3m0.491s
-user	1m52.472s
-sys	0m0.133s
+real	0m3.007s
+user	0m0.383s
+sys	0m0.018s
 
 $ hoice 05-swap-dec/swap-dec-4-exact3-unsafe.smt2
 unsat
 
-real	0m1.945s
-user	0m0.514s
-sys	0m0.026s
+real	0m1.744s
+user	0m0.343s
+sys	0m0.016s
 
 $ hoice 06-swap2-dec/swap2-dec-1-base-safe.smt2
 sat
 
-real	0m0.887s
-user	0m0.878s
-sys	0m0.030s
+real	0m0.668s
+user	0m0.664s
+sys	0m0.019s
 
 $ hoice 06-swap2-dec/swap2-dec-1-base-unsafe.smt2
 timeout
 
-real	3m0.011s
-user	2m24.022s
-sys	0m0.139s
+real	0m3.121s
+user	0m0.773s
+sys	0m0.025s
 
 $ hoice 06-swap2-dec/swap2-dec-2-base3-safe.smt2
 timeout
 
-real	3m0.018s
-user	0m26.424s
-sys	0m0.123s
+real	0m3.322s
+user	0m0.400s
+sys	0m0.026s
 
 $ hoice 06-swap2-dec/swap2-dec-2-base3-unsafe.smt2
-unsat
+timeout
 
-real	0m56.849s
-user	0m3.127s
-sys	0m0.073s
+real	0m3.331s
+user	0m0.603s
+sys	0m0.029s
 
 $ hoice 06-swap2-dec/swap2-dec-3-exact-safe.smt2
 sat
 
-real	0m1.003s
-user	0m1.017s
-sys	0m0.026s
+real	0m1.010s
+user	0m1.025s
+sys	0m0.023s
 
 $ hoice 06-swap2-dec/swap2-dec-3-exact-unsafe.smt2
 timeout
 
-real	3m0.119s
-user	2m32.253s
-sys	0m0.102s
+real	0m3.009s
+user	0m0.695s
+sys	0m0.026s
 
 $ hoice 06-swap2-dec/swap2-dec-4-exact3-safe.smt2
 timeout
 
-real	3m0.531s
-user	0m31.044s
-sys	0m0.104s
+real	0m3.488s
+user	0m0.504s
+sys	0m0.022s
 
 $ hoice 06-swap2-dec/swap2-dec-4-exact3-unsafe.smt2
-unsat
+timeout
 
-real	0m5.890s
-user	0m0.596s
-sys	0m0.031s
+real	0m3.009s
+user	0m0.574s
+sys	0m0.026s
 
 $ hoice 07-just-rec/just-rec-1-base-safe.smt2
 sat
 
-real	0m0.150s
+real	0m0.190s
 user	0m0.005s
 sys	0m0.004s
 
 $ hoice 07-just-rec/just-rec-1-base-unsafe.smt2
 unsat
 
-real	0m0.159s
-user	0m0.123s
-sys	0m0.010s
+real	0m0.192s
+user	0m0.150s
+sys	0m0.015s
 
 $ hoice 08-linger-dec/linger-dec-1-basic-safe.smt2
 sat
 
-real	0m0.169s
+real	0m0.171s
 user	0m0.006s
 sys	0m0.003s
 
@@ -346,161 +353,159 @@ unsat
 
 real	0m0.214s
 user	0m0.135s
-sys	0m0.010s
+sys	0m0.009s
 
 $ hoice 08-linger-dec/linger-dec-2-basic3-safe.smt2
 sat
 
-real	0m0.289s
+real	0m0.288s
 user	0m0.019s
 sys	0m0.003s
 
 $ hoice 08-linger-dec/linger-dec-2-basic3-unsafe.smt2
-unsat
+timeout
 
-real	0m31.146s
-user	0m24.610s
-sys	0m0.030s
+real	0m3.009s
+user	0m0.876s
+sys	0m0.019s
 
 $ hoice 08-linger-dec/linger-dec-3-exact-safe.smt2
 sat
 
-real	0m0.287s
+real	0m0.306s
 user	0m0.010s
-sys	0m0.004s
+sys	0m0.005s
 
 $ hoice 08-linger-dec/linger-dec-3-exact-unsafe.smt2
 unsat
 
-real	0m0.288s
-user	0m0.245s
-sys	0m0.012s
+real	0m0.363s
+user	0m0.303s
+sys	0m0.018s
 
 $ hoice 08-linger-dec/linger-dec-4-exact3-safe.smt2
 sat
 
-real	0m0.458s
-user	0m0.027s
-sys	0m0.003s
+real	0m0.442s
+user	0m0.028s
+sys	0m0.004s
 
 $ hoice 08-linger-dec/linger-dec-4-exact3-unsafe.smt2
-timeout
+unsat
 
-real	3m0.016s
-user	3m0.290s
-sys	0m0.289s
+real	0m1.463s
+user	0m0.478s
+sys	0m0.023s
 
 $ hoice 09-lists/lists-1-append-safe.smt2
 sat
 
-real	0m0.250s
+real	0m0.279s
 user	0m0.007s
 sys	0m0.004s
 
 $ hoice 09-lists/lists-1-append-unsafe.smt2
 unsat
 
-real	0m0.282s
-user	0m0.226s
-sys	0m0.013s
+real	0m0.298s
+user	0m0.236s
+sys	0m0.015s
 
 $ hoice 09-lists/lists-2-inc-all-safe.smt2
 sat
 
-real	0m0.349s
+real	0m0.364s
 user	0m0.008s
 sys	0m0.003s
 
 $ hoice 09-lists/lists-2-inc-all-unsafe.smt2
 unsat
 
-real	0m0.371s
-user	0m0.311s
-sys	0m0.016s
+real	0m0.448s
+user	0m0.363s
+sys	0m0.022s
 
 $ hoice 09-lists/lists-3-inc-some-safe.smt2
 sat
 
-real	0m0.331s
-user	0m0.013s
-sys	0m0.003s
+real	0m0.362s
+user	0m0.016s
+sys	0m0.005s
 
 $ hoice 09-lists/lists-3-inc-some-unsafe.smt2
 unsat
 
-real	0m0.594s
-user	0m0.299s
-sys	0m0.016s
+real	0m0.707s
+user	0m0.380s
+sys	0m0.020s
 
 $ hoice 09-lists/lists-4-inc-some2-safe.smt2
 timeout
 
-real	3m0.013s
-user	2m38.867s
-sys	0m0.186s
+real	0m3.015s
+user	0m0.737s
+sys	0m0.024s
 
 $ hoice 09-lists/lists-4-inc-some2-unsafe.smt2
 unsat
 
-real	0m0.671s
-user	0m0.269s
-sys	0m0.016s
+real	0m0.893s
+user	0m0.340s
+sys	0m0.021s
 
 $ hoice 10-trees/trees-1-append-safe.smt2
 sat
 
-real	0m0.410s
-user	0m0.008s
-sys	0m0.003s
+real	0m0.480s
+user	0m0.009s
+sys	0m0.006s
 
 $ hoice 10-trees/trees-1-append-unsafe.smt2
 unsat
 
-real	0m0.338s
-user	0m0.283s
-sys	0m0.014s
+real	0m0.379s
+user	0m0.319s
+sys	0m0.018s
 
 $ hoice 10-trees/trees-2-inc-all-safe.smt2
 timeout
 
-real	3m1.306s
-user	3m4.128s
-sys	0m0.412s
+real	0m3.011s
+user	0m0.707s
+sys	0m0.021s
 
 $ hoice 10-trees/trees-2-inc-all-unsafe.smt2
 unsat
 
-real	0m0.199s
-user	0m0.147s
-sys	0m0.011s
+real	0m0.203s
+user	0m0.149s
+sys	0m0.013s
 
 $ hoice 10-trees/trees-3-inc-some-safe.smt2
 sat
 
-real	0m0.391s
+real	0m0.422s
 user	0m0.020s
 sys	0m0.004s
 
 $ hoice 10-trees/trees-3-inc-some-unsafe.smt2
 unsat
 
-real	0m0.684s
-user	0m0.359s
+real	0m0.751s
+user	0m0.388s
 sys	0m0.017s
 
 $ hoice 10-trees/trees-4-inc-some2-safe.smt2
-(error "
-  parse error: expected `(` on `sat`
-")
+timeout
 
-real	0m42.616s
-user	0m1.556s
-sys	0m0.029s
+real	0m3.554s
+user	0m0.561s
+sys	0m0.030s
 
 $ hoice 10-trees/trees-4-inc-some2-unsafe.smt2
 unsat
 
-real	0m0.853s
-user	0m0.420s
-sys	0m0.019s
+real	0m0.887s
+user	0m0.432s
+sys	0m0.018s
 

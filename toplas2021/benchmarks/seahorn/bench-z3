@@ -1,611 +1,625 @@
-$ z3 01-simple/01_unsat.smt2
+$ z3 01-simple/simple-1-01_unsat.smt2
 unsat
 
-real	0m0.020s
-user	0m0.014s
-sys	0m0.003s
+real	0m0.023s
+user	0m0.017s
+sys	0m0.004s
 
-$ z3 01-simple/04_recursive_unsat.smt2
+$ z3 01-simple/simple-2-04_recursive_unsat.smt2
 unsat
 
-real	0m0.758s
-user	0m0.745s
-sys	0m0.010s
+real	0m0.703s
+user	0m0.689s
+sys	0m0.012s
 
-$ z3 01-simple/05_recursive_sat.smt2
+$ z3 01-simple/simple-3-05_recursive_sat.smt2
 sat
 
 real	0m0.025s
 user	0m0.020s
-sys	0m0.004s
+sys	0m0.003s
 
-$ z3 01-simple/06_loop_unsat.smt2
+$ z3 01-simple/simple-4-06_loop_unsat.smt2
 timeout
 
-real	3m0.013s
-user	2m46.674s
-sys	0m13.309s
+real	0m3.007s
+user	0m2.948s
+sys	0m0.039s
 
-$ z3 01-simple/hhk2008.smt2
+$ z3 01-simple/simple-5-hhk2008.smt2
 unsat
 
-real	0m0.032s
-user	0m0.026s
-sys	0m0.004s
+real	0m0.034s
+user	0m0.027s
+sys	0m0.005s
 
-$ z3 01-simple/unique_scalar.smt2
+$ z3 01-simple/simple-6-unique_scalar.smt2
 sat
 
-real	0m0.016s
+real	0m0.018s
+user	0m0.013s
+sys	0m0.004s
+
+$ z3 02-bmc/bmc-1-test-bmc-1-safe.smt2
+unsat
+
+real	0m0.041s
+user	0m0.034s
+sys	0m0.004s
+
+$ z3 02-bmc/bmc-1-test-bmc-1-unsafe.smt2
+sat
+
+real	0m0.036s
+user	0m0.030s
+sys	0m0.003s
+
+$ z3 02-bmc/bmc-2-test-bmc-2-safe.smt2
+unsat
+
+real	0m0.023s
+user	0m0.018s
+sys	0m0.004s
+
+$ z3 02-bmc/bmc-2-test-bmc-2-unsafe.smt2
+sat
+
+real	0m0.021s
+user	0m0.015s
+sys	0m0.003s
+
+$ z3 02-bmc/bmc-3-test-bmc-3-safe.smt2
+unsat
+
+real	0m0.034s
+user	0m0.028s
+sys	0m0.004s
+
+$ z3 02-bmc/bmc-3-test-bmc-3-unsafe.smt2
+sat
+
+real	0m0.031s
+user	0m0.024s
+sys	0m0.004s
+
+$ z3 02-bmc/bmc-4-test-bmc-diamond-1-safe.smt2
+unsat
+
+real	0m0.017s
 user	0m0.012s
 sys	0m0.003s
 
-$ z3 02-bmc/test-bmc-1.false.smt2
+$ z3 02-bmc/bmc-4-test-bmc-diamond-1-unsafe.smt2
 sat
 
-real	0m0.030s
-user	0m0.026s
+real	0m0.019s
+user	0m0.013s
 sys	0m0.003s
 
-$ z3 02-bmc/test-bmc-1.true.smt2
+$ z3 02-bmc/bmc-5-test-bmc-diamond-2-safe.smt2
 unsat
 
-real	0m0.036s
-user	0m0.031s
-sys	0m0.003s
+real	0m0.018s
+user	0m0.012s
+sys	0m0.004s
 
-$ z3 02-bmc/test-bmc-2.false.smt2
+$ z3 02-bmc/bmc-5-test-bmc-diamond-2-unsafe.smt2
 sat
 
 real	0m0.019s
 user	0m0.014s
 sys	0m0.003s
 
-$ z3 02-bmc/test-bmc-2.true.smt2
+$ z3 03-prusti/prusti-1-pass-rosetta-Ackermann_function-base.smt2
 unsat
 
-real	0m0.022s
+real	0m0.039s
+user	0m0.033s
+sys	0m0.004s
+
+$ z3 03-prusti/prusti-2-pass-rosetta-Ackermann_function-same.smt2
+timeout
+
+real	0m3.010s
+user	0m2.951s
+sys	0m0.048s
+
+$ z3 03-prusti/prusti-3-pass-paper_examples-points-compress.smt2
+sat
+
+real	0m0.016s
+user	0m0.012s
+sys	0m0.002s
+
+$ z3 03-prusti/prusti-3-pass-paper_examples-points-compress.z.smt2
+sat
+
+real	0m0.024s
 user	0m0.017s
+sys	0m0.004s
+
+$ z3 03-prusti/prusti-4-pass-paper_examples-borrows_align.smt2
+unsat
+
+real	0m0.019s
+user	0m0.012s
+sys	0m0.004s
+
+$ z3 03-prusti/prusti-5-pass-demos-account.smt2
+unsat
+
+real	0m0.017s
+user	0m0.010s
+sys	0m0.004s
+
+$ z3 03-prusti/prusti-6-pass-demos-account-error.smt2
+sat
+
+real	0m0.018s
+user	0m0.012s
+sys	0m0.005s
+
+$ z3 03-prusti/prusti-7-pass-mut_borrows-restore.smt2
+sat
+
+real	0m0.023s
+user	0m0.015s
+sys	0m0.006s
+
+$ z3 04-inc-max/inc-max-1-base-safe.smt2
+sat
+
+real	0m0.023s
+user	0m0.016s
+sys	0m0.005s
+
+$ z3 04-inc-max/inc-max-1-base-safe.z.smt2
+unsat
+
+real	0m0.021s
+user	0m0.015s
+sys	0m0.004s
+
+$ z3 04-inc-max/inc-max-1-base-unsafe.smt2
+sat
+
+real	0m0.021s
+user	0m0.015s
+sys	0m0.005s
+
+$ z3 04-inc-max/inc-max-1-base-unsafe.z.smt2
+sat
+
+real	0m0.021s
+user	0m0.014s
+sys	0m0.004s
+
+$ z3 04-inc-max/inc-max-2-base3-safe.smt2
+sat
+
+real	0m0.017s
+user	0m0.012s
 sys	0m0.003s
 
-$ z3 02-bmc/test-bmc-3.false.smt2
+$ z3 04-inc-max/inc-max-2-base3-unsafe.smt2
+sat
+
+real	0m0.018s
+user	0m0.011s
+sys	0m0.004s
+
+$ z3 04-inc-max/inc-max-3-repeat-safe.smt2
 sat
 
 real	0m0.024s
 user	0m0.018s
 sys	0m0.003s
 
-$ z3 02-bmc/test-bmc-3.true.smt2
-unsat
-
-real	0m0.030s
-user	0m0.024s
-sys	0m0.004s
-
-$ z3 02-bmc/test-bmc-diamond-1.false.smt2
-sat
-
-real	0m0.017s
-user	0m0.011s
-sys	0m0.003s
-
-$ z3 02-bmc/test-bmc-diamond-1.true.smt2
-unsat
-
-real	0m0.014s
-user	0m0.010s
-sys	0m0.003s
-
-$ z3 02-bmc/test-bmc-diamond-2.false.smt2
-sat
-
-real	0m0.017s
-user	0m0.012s
-sys	0m0.003s
-
-$ z3 02-bmc/test-bmc-diamond-2.true.smt2
-unsat
-
-real	0m0.015s
-user	0m0.010s
-sys	0m0.003s
-
-$ z3 03-prusti/prusti-1-pass-rosetta-Ackermann_function-base.smt2
-unsat
-
-real	0m0.033s
-user	0m0.027s
-sys	0m0.004s
-
-$ z3 03-prusti/prusti-2-pass-rosetta-Ackermann_function-same.smt2
+$ z3 04-inc-max/inc-max-3-repeat-safe.z.smt2
 timeout
 
-real	3m0.031s
-user	2m56.245s
-sys	0m3.770s
+real	0m3.010s
+user	0m2.974s
+sys	0m0.021s
 
-$ z3 03-prusti/prusti-3-pass-paper_examples-points-compress.smt2
+$ z3 04-inc-max/inc-max-3-repeat-unsafe.smt2
+sat
+
+real	0m0.025s
+user	0m0.017s
+sys	0m0.006s
+
+$ z3 04-inc-max/inc-max-3-repeat-unsafe.z.smt2
+sat
+
+real	0m0.031s
+user	0m0.022s
+sys	0m0.007s
+
+$ z3 04-inc-max/inc-max-4-repeat3-safe.smt2
+sat
+
+real	0m0.027s
+user	0m0.018s
+sys	0m0.006s
+
+$ z3 04-inc-max/inc-max-4-repeat3-unsafe.smt2
 sat
 
 real	0m0.019s
-user	0m0.014s
-sys	0m0.003s
+user	0m0.013s
+sys	0m0.004s
 
-$ z3 03-prusti/prusti-4-pass-paper_examples-borrows_align.smt2
+$ z3 05-swap-dec/swap-dec-1-base-safe.smt2
+sat
+
+real	0m0.026s
+user	0m0.019s
+sys	0m0.004s
+
+$ z3 05-swap-dec/swap-dec-1-base-safe.z.smt2
 unsat
 
-real	0m0.013s
-user	0m0.010s
-sys	0m0.002s
+real	0m0.033s
+user	0m0.023s
+sys	0m0.008s
 
-$ z3 03-prusti/prusti-5-pass-demos-account.smt2
+$ z3 05-swap-dec/swap-dec-1-base-unsafe.smt2
+sat
+
+real	0m0.025s
+user	0m0.019s
+sys	0m0.003s
+
+$ z3 05-swap-dec/swap-dec-1-base-unsafe.z.smt2
+sat
+
+real	0m0.057s
+user	0m0.050s
+sys	0m0.005s
+
+$ z3 05-swap-dec/swap-dec-2-base3-safe.smt2
+sat
+
+real	0m0.028s
+user	0m0.022s
+sys	0m0.004s
+
+$ z3 05-swap-dec/swap-dec-2-base3-safe.z.smt2
 unsat
 
-real	0m0.013s
-user	0m0.010s
-sys	0m0.002s
+real	0m0.042s
+user	0m0.035s
+sys	0m0.004s
 
-$ z3 03-prusti/prusti-6-pass-demos-account-error.smt2
+$ z3 05-swap-dec/swap-dec-2-base3-unsafe.smt2
 sat
 
-real	0m0.016s
-user	0m0.012s
-sys	0m0.003s
+real	0m0.027s
+user	0m0.021s
+sys	0m0.004s
 
-$ z3 04-inc-max/inc-max-1-base-safe.smt2
+$ z3 05-swap-dec/swap-dec-2-base3-unsafe.z.smt2
 sat
 
-real	0m0.018s
-user	0m0.013s
-sys	0m0.003s
+real	0m0.115s
+user	0m0.104s
+sys	0m0.008s
 
-$ z3 04-inc-max/inc-max-1-base-safez.smt2
+$ z3 05-swap-dec/swap-dec-3-exact-safe.smt2
+sat
+
+real	0m0.031s
+user	0m0.022s
+sys	0m0.007s
+
+$ z3 05-swap-dec/swap-dec-3-exact-safe.z.smt2
 unsat
 
-real	0m0.018s
-user	0m0.013s
-sys	0m0.003s
+real	0m0.228s
+user	0m0.210s
+sys	0m0.010s
 
-$ z3 04-inc-max/inc-max-1-base-unsafe.smt2
+$ z3 05-swap-dec/swap-dec-3-exact-unsafe.smt2
 sat
 
-real	0m0.018s
-user	0m0.013s
-sys	0m0.003s
+real	0m0.021s
+user	0m0.015s
+sys	0m0.004s
 
-$ z3 04-inc-max/inc-max-1-base-unsafez.smt2
+$ z3 05-swap-dec/swap-dec-3-exact-unsafe.z.smt2
 sat
 
-real	0m0.018s
-user	0m0.013s
-sys	0m0.003s
+real	0m0.040s
+user	0m0.028s
+sys	0m0.008s
 
-$ z3 04-inc-max/inc-max-2-base3-safe.smt2
+$ z3 05-swap-dec/swap-dec-4-exact3-safe.smt2
 sat
 
-real	0m0.016s
-user	0m0.011s
-sys	0m0.003s
+real	0m0.033s
+user	0m0.025s
+sys	0m0.005s
 
-$ z3 04-inc-max/inc-max-2-base3-unsafe.smt2
-sat
+$ z3 05-swap-dec/swap-dec-4-exact3-safe.z.smt2
+unsat
 
-real	0m0.016s
-user	0m0.011s
-sys	0m0.003s
+real	0m0.179s
+user	0m0.169s
+sys	0m0.007s
 
-$ z3 04-inc-max/inc-max-3-repeat-safe.smt2
-sat
-
-real	0m0.023s
-user	0m0.018s
-sys	0m0.003s
-
-$ z3 04-inc-max/inc-max-3-repeat-safez.smt2
-timeout
-
-real	3m0.015s
-user	2m59.289s
-sys	0m0.695s
-
-$ z3 04-inc-max/inc-max-3-repeat-unsafe.smt2
+$ z3 05-swap-dec/swap-dec-4-exact3-unsafe.smt2
 sat
 
 real	0m0.022s
 user	0m0.016s
 sys	0m0.004s
 
-$ z3 04-inc-max/inc-max-3-repeat-unsafez.smt2
+$ z3 05-swap-dec/swap-dec-4-exact3-unsafe.z.smt2
 sat
 
-real	0m0.027s
-user	0m0.020s
-sys	0m0.004s
-
-$ z3 04-inc-max/inc-max-4-repeat3-safe.smt2
-sat
-
-real	0m0.027s
-user	0m0.020s
-sys	0m0.005s
-
-$ z3 04-inc-max/inc-max-4-repeat3-unsafe.smt2
-sat
-
-real	0m0.022s
-user	0m0.015s
-sys	0m0.005s
-
-$ z3 05-swap-dec/swap-dec-1-base-safe.smt2
-sat
-
-real	0m0.028s
+real	0m0.029s
 user	0m0.021s
 sys	0m0.005s
-
-$ z3 05-swap-dec/swap-dec-1-base-safez.smt2
-unsat
-
-real	0m0.033s
-user	0m0.026s
-sys	0m0.005s
-
-$ z3 05-swap-dec/swap-dec-1-base-unsafe.smt2
-sat
-
-real	0m0.031s
-user	0m0.023s
-sys	0m0.006s
-
-$ z3 05-swap-dec/swap-dec-1-base-unsafez.smt2
-sat
-
-real	0m0.054s
-user	0m0.046s
-sys	0m0.005s
-
-$ z3 05-swap-dec/swap-dec-2-base3-safe.smt2
-sat
-
-real	0m0.025s
-user	0m0.019s
-sys	0m0.004s
-
-$ z3 05-swap-dec/swap-dec-2-base3-safez.smt2
-unsat
-
-real	0m0.037s
-user	0m0.028s
-sys	0m0.007s
-
-$ z3 05-swap-dec/swap-dec-2-base3-unsafe.smt2
-sat
-
-real	0m0.028s
-user	0m0.020s
-sys	0m0.005s
-
-$ z3 05-swap-dec/swap-dec-2-base3-unsafez.smt2
-sat
-
-real	0m0.084s
-user	0m0.076s
-sys	0m0.005s
-
-$ z3 05-swap-dec/swap-dec-3-exact-safe.smt2
-sat
-
-real	0m0.030s
-user	0m0.022s
-sys	0m0.005s
-
-$ z3 05-swap-dec/swap-dec-3-exact-safez.smt2
-timeout
-
-real	3m0.016s
-user	2m58.291s
-sys	0m1.646s
-
-$ z3 05-swap-dec/swap-dec-3-exact-unsafe.smt2
-sat
-
-real	0m0.026s
-user	0m0.019s
-sys	0m0.005s
-
-$ z3 05-swap-dec/swap-dec-3-exact-unsafez.smt2
-sat
-
-real	0m0.025s
-user	0m0.019s
-sys	0m0.004s
-
-$ z3 05-swap-dec/swap-dec-4-exact3-safe.smt2
-sat
-
-real	0m0.023s
-user	0m0.018s
-sys	0m0.003s
-
-$ z3 05-swap-dec/swap-dec-4-exact3-safez.smt2
-unsat
-
-real	0m0.263s
-user	0m0.256s
-sys	0m0.005s
-
-$ z3 05-swap-dec/swap-dec-4-exact3-unsafe.smt2
-sat
-
-real	0m0.023s
-user	0m0.018s
-sys	0m0.003s
-
-$ z3 05-swap-dec/swap-dec-4-exact3-unsafez.smt2
-sat
-
-real	0m0.024s
-user	0m0.019s
-sys	0m0.003s
 
 $ z3 06-swap2-dec/swap2-dec-1-base-safe.smt2
 sat
 
-real	0m0.024s
-user	0m0.018s
-sys	0m0.003s
+real	0m0.027s
+user	0m0.020s
+sys	0m0.004s
 
-$ z3 06-swap2-dec/swap2-dec-1-base-safez.smt2
+$ z3 06-swap2-dec/swap2-dec-1-base-safe.z.smt2
 unsat
 
-real	0m0.030s
-user	0m0.024s
-sys	0m0.004s
+real	0m0.033s
+user	0m0.025s
+sys	0m0.006s
 
 $ z3 06-swap2-dec/swap2-dec-1-base-unsafe.smt2
 sat
 
-real	0m0.028s
-user	0m0.021s
-sys	0m0.004s
+real	0m0.025s
+user	0m0.020s
+sys	0m0.003s
 
-$ z3 06-swap2-dec/swap2-dec-1-base-unsafez.smt2
+$ z3 06-swap2-dec/swap2-dec-1-base-unsafe.z.smt2
 sat
 
-real	0m0.056s
-user	0m0.049s
+real	0m0.064s
+user	0m0.057s
 sys	0m0.005s
 
 $ z3 06-swap2-dec/swap2-dec-2-base3-safe.smt2
 sat
 
-real	0m0.031s
+real	0m0.033s
 user	0m0.025s
-sys	0m0.004s
+sys	0m0.005s
 
-$ z3 06-swap2-dec/swap2-dec-2-base3-safez.smt2
+$ z3 06-swap2-dec/swap2-dec-2-base3-safe.z.smt2
 unsat
 
-real	0m0.041s
-user	0m0.034s
+real	0m0.050s
+user	0m0.042s
 sys	0m0.005s
 
 $ z3 06-swap2-dec/swap2-dec-2-base3-unsafe.smt2
-sat
-
-real	0m0.032s
-user	0m0.026s
-sys	0m0.004s
-
-$ z3 06-swap2-dec/swap2-dec-2-base3-unsafez.smt2
-sat
-
-real	0m0.183s
-user	0m0.173s
-sys	0m0.007s
-
-$ z3 06-swap2-dec/swap2-dec-3-exact-safe.smt2
-sat
-
-real	0m0.026s
-user	0m0.020s
-sys	0m0.004s
-
-$ z3 06-swap2-dec/swap2-dec-3-exact-safez.smt2
-unsat
-
-real	0m0.145s
-user	0m0.137s
-sys	0m0.006s
-
-$ z3 06-swap2-dec/swap2-dec-3-exact-unsafe.smt2
-sat
-
-real	0m0.024s
-user	0m0.019s
-sys	0m0.004s
-
-$ z3 06-swap2-dec/swap2-dec-3-exact-unsafez.smt2
-sat
-
-real	0m0.026s
-user	0m0.020s
-sys	0m0.004s
-
-$ z3 06-swap2-dec/swap2-dec-4-exact3-safe.smt2
 sat
 
 real	0m0.034s
 user	0m0.027s
 sys	0m0.004s
 
-$ z3 06-swap2-dec/swap2-dec-4-exact3-safez.smt2
-timeout
+$ z3 06-swap2-dec/swap2-dec-2-base3-unsafe.z.smt2
+sat
 
-real	3m0.015s
-user	2m56.637s
-sys	0m3.336s
+real	0m0.172s
+user	0m0.163s
+sys	0m0.007s
+
+$ z3 06-swap2-dec/swap2-dec-3-exact-safe.smt2
+sat
+
+real	0m0.028s
+user	0m0.020s
+sys	0m0.005s
+
+$ z3 06-swap2-dec/swap2-dec-3-exact-safe.z.smt2
+unsat
+
+real	0m0.119s
+user	0m0.109s
+sys	0m0.006s
+
+$ z3 06-swap2-dec/swap2-dec-3-exact-unsafe.smt2
+sat
+
+real	0m0.027s
+user	0m0.020s
+sys	0m0.004s
+
+$ z3 06-swap2-dec/swap2-dec-3-exact-unsafe.z.smt2
+sat
+
+real	0m0.027s
+user	0m0.021s
+sys	0m0.005s
+
+$ z3 06-swap2-dec/swap2-dec-4-exact3-safe.smt2
+sat
+
+real	0m0.032s
+user	0m0.026s
+sys	0m0.005s
+
+$ z3 06-swap2-dec/swap2-dec-4-exact3-safe.z.smt2
+unsat
+
+real	0m1.888s
+user	0m1.847s
+sys	0m0.028s
 
 $ z3 06-swap2-dec/swap2-dec-4-exact3-unsafe.smt2
+sat
+
+real	0m0.032s
+user	0m0.026s
+sys	0m0.004s
+
+$ z3 06-swap2-dec/swap2-dec-4-exact3-unsafe.z.smt2
 sat
 
 real	0m0.033s
 user	0m0.026s
 sys	0m0.004s
 
-$ z3 06-swap2-dec/swap2-dec-4-exact3-unsafez.smt2
-sat
-
-real	0m0.031s
-user	0m0.024s
-sys	0m0.005s
-
 $ z3 07-just-rec/just-rec-1-base-safe.smt2
 unsat
 
-real	0m0.014s
+real	0m0.016s
 user	0m0.010s
-sys	0m0.002s
+sys	0m0.003s
 
 $ z3 07-just-rec/just-rec-1-base-unsafe.smt2
 sat
 
-real	0m0.017s
+real	0m0.018s
 user	0m0.012s
-sys	0m0.003s
+sys	0m0.004s
 
 $ z3 08-linger-dec/linger-dec-1-basic-safe.smt2
 sat
 
-real	0m0.078s
-user	0m0.070s
+real	0m0.072s
+user	0m0.064s
 sys	0m0.005s
 
 $ z3 08-linger-dec/linger-dec-1-basic-unsafe.smt2
 sat
 
-real	0m0.023s
-user	0m0.018s
-sys	0m0.003s
+real	0m0.028s
+user	0m0.021s
+sys	0m0.005s
 
 $ z3 08-linger-dec/linger-dec-2-basic3-safe.smt2
 sat
 
-real	0m0.032s
-user	0m0.026s
-sys	0m0.003s
+real	0m0.039s
+user	0m0.032s
+sys	0m0.006s
 
 $ z3 08-linger-dec/linger-dec-2-basic3-unsafe.smt2
 sat
 
-real	0m0.028s
-user	0m0.023s
-sys	0m0.003s
+real	0m0.032s
+user	0m0.026s
+sys	0m0.005s
 
 $ z3 08-linger-dec/linger-dec-3-exact-safe.smt2
 sat
 
-real	0m0.036s
-user	0m0.031s
-sys	0m0.004s
+real	0m0.043s
+user	0m0.036s
+sys	0m0.005s
 
 $ z3 08-linger-dec/linger-dec-3-exact-unsafe.smt2
 sat
 
-real	0m0.029s
-user	0m0.023s
-sys	0m0.004s
+real	0m0.034s
+user	0m0.026s
+sys	0m0.005s
 
 $ z3 08-linger-dec/linger-dec-4-exact3-safe.smt2
 sat
 
-real	0m0.033s
-user	0m0.027s
-sys	0m0.004s
+real	0m0.039s
+user	0m0.031s
+sys	0m0.006s
 
 $ z3 08-linger-dec/linger-dec-4-exact3-unsafe.smt2
 sat
 
-real	0m0.032s
-user	0m0.026s
-sys	0m0.003s
+real	0m0.037s
+user	0m0.031s
+sys	0m0.005s
 
 $ z3 09-lists/lists-1-append-safe.smt2
 sat
 
-real	0m0.105s
-user	0m0.097s
-sys	0m0.006s
+real	0m0.096s
+user	0m0.087s
+sys	0m0.007s
 
 $ z3 09-lists/lists-1-append-unsafe.smt2
 sat
 
 real	0m0.053s
-user	0m0.043s
-sys	0m0.007s
+user	0m0.045s
+sys	0m0.006s
 
 $ z3 09-lists/lists-2-inc-all-safe.smt2
 sat
 
-real	0m1.363s
-user	0m1.343s
-sys	0m0.017s
+real	0m1.070s
+user	0m1.051s
+sys	0m0.015s
 
 $ z3 09-lists/lists-2-inc-all-unsafe.smt2
 sat
 
-real	0m0.038s
-user	0m0.029s
-sys	0m0.007s
+real	0m0.041s
+user	0m0.034s
+sys	0m0.005s
 
 $ z3 09-lists/lists-3-inc-some-safe.smt2
-sat
+timeout
 
-real	0m0.791s
-user	0m0.776s
-sys	0m0.011s
+real	0m3.012s
+user	0m2.979s
+sys	0m0.030s
 
 $ z3 09-lists/lists-3-inc-some-unsafe.smt2
 sat
 
-real	0m0.058s
-user	0m0.051s
-sys	0m0.004s
+real	0m0.080s
+user	0m0.072s
+sys	0m0.006s
 
 $ z3 09-lists/lists-4-inc-some2-safe.smt2
-sat
+timeout
 
-real	0m0.526s
-user	0m0.512s
-sys	0m0.011s
+real	0m3.012s
+user	0m2.981s
+sys	0m0.028s
 
 $ z3 09-lists/lists-4-inc-some2-unsafe.smt2
 sat
 
-real	0m0.455s
-user	0m0.441s
-sys	0m0.010s
+real	0m0.310s
+user	0m0.298s
+sys	0m0.009s
 
 $ z3 10-trees/trees-1-append-safe.smt2
 sat
 
-real	0m0.084s
+real	0m0.085s
 user	0m0.076s
-sys	0m0.006s
+sys	0m0.007s
 
 $ z3 10-trees/trees-1-append-unsafe.smt2
 sat
 
-real	0m0.044s
-user	0m0.038s
-sys	0m0.005s
+real	0m0.041s
+user	0m0.035s
+sys	0m0.004s
 
 $ z3 10-trees/trees-2-inc-all-safe.smt2
 timeout
 
-real	3m0.014s
-user	2m58.061s
-sys	0m1.931s
+real	0m3.010s
+user	0m2.977s
+sys	0m0.030s
 
 $ z3 10-trees/trees-2-inc-all-unsafe.smt2
 sat
@@ -617,28 +631,28 @@ sys	0m0.005s
 $ z3 10-trees/trees-3-inc-some-safe.smt2
 timeout
 
-real	3m0.032s
-user	2m58.453s
-sys	0m1.539s
+real	0m3.012s
+user	0m2.979s
+sys	0m0.030s
 
 $ z3 10-trees/trees-3-inc-some-unsafe.smt2
 sat
 
-real	0m0.057s
-user	0m0.049s
+real	0m0.061s
+user	0m0.054s
 sys	0m0.005s
 
 $ z3 10-trees/trees-4-inc-some2-safe.smt2
 timeout
 
-real	3m0.017s
-user	2m55.464s
-sys	0m4.525s
+real	0m3.008s
+user	0m2.975s
+sys	0m0.028s
 
 $ z3 10-trees/trees-4-inc-some2-unsafe.smt2
 timeout
 
-real	3m0.018s
-user	2m55.529s
-sys	0m4.446s
+real	0m3.009s
+user	0m2.949s
+sys	0m0.041s
 

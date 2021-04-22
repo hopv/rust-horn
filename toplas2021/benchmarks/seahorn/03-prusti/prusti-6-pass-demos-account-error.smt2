@@ -1,5 +1,5 @@
 (set-info :original "03-prusti/prusti-6-pass-demos-account-error.bc")
-(set-info :authors "SeaHorn v.0.1.0-rc3")
+(set-info :authors "SeaHorn v.10.0.0-rc0")
 (declare-rel verifier.error (Bool Bool Bool ))
 (declare-rel main@entry (Int ))
 (declare-rel main@entry.split ())

@@ -1,5 +1,5 @@
 (set-info :original "04-inc-max/inc-max-2-base3-unsafe.bc")
-(set-info :authors "SeaHorn v.0.1.0-rc3")
+(set-info :authors "SeaHorn v.10.0.0-rc0")
 (declare-rel verifier.error (Bool Bool Bool ))
 (declare-rel main@entry (Int ))
 (declare-rel main@entry.split ())

@@ -1,5 +1,4 @@
 #include "seahorn/seahorn.h"
-#include <stdlib.h>
 extern unsigned nd();
 
 typedef struct Account {
