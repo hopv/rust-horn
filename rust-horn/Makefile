@@ -6,7 +6,9 @@ build:
 	cargo fmt
 	cargo build --release
 
-RUST_LIB_PATH = $(HOME)/.multirust/toolchains/nightly-x86_64-apple-darwin/lib/rustlib/x86_64-apple-darwin/lib/
+# Please specify the appropriate path to the standard library in your platform
+# TODO: Make this portable
+RUST_LIB_PATH = ~/.rustup/toolchains/nightly-2021-04-21-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/lib
 
 try:
 	for file in sample/*.rs; do \
