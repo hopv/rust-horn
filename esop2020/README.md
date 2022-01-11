@@ -1,6 +1,6 @@
 # Materials for the ESOP 2020 Paper
 
-Materials for [the ESOP 2020 paper](https://doi.org/10.1007/978-3-030-44914-8_18).
+Materials for the paper [RustHorn: CHC-Based Verification for Rust Programs (ESOP 2020)](https://link.springer.com/chapter/10.1007%2F978-3-030-44914-8_18).
 
 - [rust-horn](./rust-horn): RustHorn implementation used for the experiments
 - [benchmarks](./benchmarks): Benchmarks and experimental results

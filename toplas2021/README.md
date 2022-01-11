@@ -1,5 +1,7 @@
 # Materials for the TOPLAS 2021 Paper
 
+Materials for the paper [RustHorn: CHC-Based Verification for Rust Programs (TOPLAS 2021)](https://dl.acm.org/doi/full/10.1145/3462205).
+
 - [rust-horn](./rust-horn): RustHorn implementation used for the experiments
 - [benchmarks](./benchmarks): Benchmarks and experimental results
 
