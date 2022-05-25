@@ -1,0 +1,5 @@
+The image rust.png was taken from https://www.rust-lang.org/logos/rust-logo-512x512.png.
+
+The image horn.png was taken from https://www.clipartmax.com/middle/m2H7d3Z5N4H7A0K9_horn-clipart-free-daily-devil-horns-transparent-background/, cropping only the left horn.
+
+The image rusthorn.svg/png was made using Inkscape, by Yusuke Matsushita.

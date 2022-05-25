@@ -1,5 +1,7 @@
 # RustHorn
 
+<img src="./logo/rusthorn.png" alt="RustHorn logo" width="100" />
+
 A CHC-based Automated Verification Tool for Rust
 
 Including materials for the paper [RustHorn: CHC-Based Verification for Rust Programs (ESOP 2020)](https://link.springer.com/chapter/10.1007%2F978-3-030-44914-8_18) and [RustHorn: CHC-Based Verification for Rust Programs (TOPLAS 2021)](https://dl.acm.org/doi/full/10.1145/3462205).
