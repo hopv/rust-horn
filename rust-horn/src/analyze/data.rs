@@ -1,6 +1,6 @@
 use rustc_hir::{def_id::DefId, Mutability};
 use rustc_middle::mir::{
-  BasicBlock as BB, BinOp as MirBinOp, Body, BorrowKind as BorK, Field as FldIdx, Local, NullOp,
+  BasicBlock as BB, BinOp as MirBinOp, Body, BorrowKind as BorK, Field as FldIdx, Local,
   Operand, Place, ProjectionElem as ProjElem, Rvalue, UnOp as MirUnOp,
 };
 use rustc_middle::ty::{
@@ -371,7 +371,6 @@ pub fn read_rvalue<'tcx>(
       let bin_op = mir_bin_op_to_bin_op(*mir_bin_op, outer.opd_to_ty(opd1));
       bin_op_expr(bin_op, read_opd(opd1, env, outer), read_opd(opd2, env, outer))
     }
-    Rvalue::NullaryOp(NullOp::Box, _) => nonce(ty),
     Rvalue::UnaryOp(mir_un_op, opd) => {
       Expr::UnOp(mir_un_op_to_un_op(*mir_un_op), Box::new(read_opd(opd, env, outer)))
     }
