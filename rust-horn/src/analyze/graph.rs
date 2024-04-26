@@ -75,7 +75,7 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
 pub fn get_pivots(basic: Basic) -> Vec<BB> {
   let mut pivots = Vec::<BB>::new();
   for (bb, bbd) in enumerate_bbds(basic.bbds) {
-    let tmnt = get_tmnt(&bbd);
+    let tmnt = get_tmnt(bbd);
     match &tmnt.kind {
       TmntK::Goto { .. }
       | TmntK::Drop { .. }

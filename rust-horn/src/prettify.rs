@@ -479,11 +479,11 @@ impl Display for PrMir<'_> {
     writeln!(f, "{} {{ \n", pr_sig(mir, fun))?;
     // variables
     for (local, local_decl) in mir.local_decls.iter_enumerated() {
-      writeln!(f, "  {}", pr_var(local, &local_decl))?;
+      writeln!(f, "  {}", pr_var(local, local_decl))?;
     }
     writeln!(f)?;
     // visit basic blocks
-    for (bb, bbd) in enumerate_bbds(&mir.basic_blocks()) {
+    for (bb, bbd) in enumerate_bbds(mir.basic_blocks()) {
       writeln!(f, "  [{}]", pr(bb))?;
       for stmt in bbd.statements.iter() {
         writeln!(f, "  {}", pr(stmt))?;
@@ -495,7 +495,7 @@ impl Display for PrMir<'_> {
 }
 
 fn html_esc<T: Display>(x: T) -> String {
-  x.to_string().replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+  x.to_string().replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
 }
 
 struct PrMirDot<'tcx> {
@@ -533,7 +533,7 @@ impl Display for PrMirDot<'_> {
     write!(f, "  </table>>;\n\n")?;
     let mut jumps = Vec::<(BB, BB, String)>::new();
     // visit basic blocks
-    for (bb, bbd) in enumerate_bbds(&mir.basic_blocks()) {
+    for (bb, bbd) in enumerate_bbds(mir.basic_blocks()) {
       writeln!(
         f,
         r##"  {} [
@@ -555,12 +555,11 @@ impl Display for PrMirDot<'_> {
         | TmntK::Return
         | TmntK::Call { .. }
         | TmntK::Drop { .. } => {
-          let bgcolor;
-          if let TmntK::SwitchInt { .. } = &tmnt.kind {
-            bgcolor = "#f8ccff";
+          let bgcolor = if let TmntK::SwitchInt { .. } = &tmnt.kind {
+            "#f8ccff"
           } else {
-            bgcolor = "#d1ffeb";
-          }
+            "#d1ffeb"
+          };
           writeln!(
             f,
             r#"      <tr><td align="left" bgcolor="{}">{}</td></tr>"#,
@@ -572,7 +571,7 @@ impl Display for PrMirDot<'_> {
       }
       match &tmnt.kind {
         TmntK::Goto { target } | TmntK::Drop { target, .. } | TmntK::Assert { target, .. } => {
-          jumps.push((bb, *target, format!("")));
+          jumps.push((bb, *target, String::new()));
         }
         TmntK::SwitchInt { switch_ty, targets, .. } => {
           for (val, tgt) in targets.iter() {
@@ -584,7 +583,7 @@ impl Display for PrMirDot<'_> {
         TmntK::Unreachable | TmntK::Return => {}
         TmntK::Call { destination, .. } => {
           if let Some((_, target)) = destination {
-            jumps.push((bb, *target, format!("")));
+            jumps.push((bb, *target, String::new()));
           }
         }
         _ => panic!("unsupported terminator {:?}", tmnt),

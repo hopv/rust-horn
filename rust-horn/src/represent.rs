@@ -40,7 +40,7 @@ where
 fn rep_name(def_id: DefId) -> String { format!("%{}", pr_name(def_id).replace("::", "/")) }
 
 fn safe_ty(ty: Ty) -> String {
-  rep(ty).to_string().replace(" ", ".").replace("(", "").replace(")", "")
+  rep(ty).to_string().replace(' ', ".").replace('(', "").replace(')', "")
 }
 
 pub fn rep_fun_name(fun_ty: Ty) -> String {
