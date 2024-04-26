@@ -6,7 +6,7 @@ build:
 	cargo fmt
 	cargo build --release
 
-RUST_LIB_PATH = $(rustc --print target-libdir)
+RUST_LIB_PATH = $(shell rustc --print target-libdir)
 
 try:
 	for file in sample/*.rs; do \
