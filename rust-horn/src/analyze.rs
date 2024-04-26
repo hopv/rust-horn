@@ -1,5 +1,5 @@
 use rustc_hir::{
-  def_id::{CrateNum, DefId},
+  def_id::DefId,
   Mutability,
 };
 use rustc_middle::mir::{
@@ -410,7 +410,7 @@ pub fn analyze<'tcx>(tcx: TyCtxt<'tcx>) -> Summary<'tcx> {
     mut_asks: Map::new(),
   };
   /* analyze the main function */
-  if let Some((main, EntryFnType::Main)) = tcx.entry_fn(CrateNum::new(0)) {
+  if let Some((main, EntryFnType::Main)) = tcx.entry_fn(()) {
     let main_ty = tcx.type_of(main);
     let main_name = rep_fun_name(main_ty);
     fun_defs.insert(main_name, analyze_fun(main_ty, tcx, &mut basic_asks));

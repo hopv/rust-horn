@@ -1,4 +1,4 @@
-use rustc_hir::def_id::{DefId, LOCAL_CRATE};
+use rustc_hir::def_id::DefId;
 use rustc_index::vec::IndexVec;
 use rustc_middle::mir::{
   interpret::{ConstValue, Scalar},
@@ -31,7 +31,7 @@ pub fn enumerate_bbds<'a, 'tcx>(bbds: &'a BBDs<'tcx>) -> impl Iterator<Item = (B
 
 pub fn enumerate_mirs<'tcx>(tcx: TyCtxt<'tcx>) -> impl Iterator<Item = (DefId, &MirBody<'tcx>)> {
   tcx
-    .mir_keys(LOCAL_CRATE)
+    .mir_keys(())
     .iter()
     .map(|fun| fun.to_def_id())
     .filter(move |&fun| {
