@@ -76,7 +76,7 @@ pub fn get_proj<'tcx>(
   match path {
     Path::Var(Var::Nonce(None), _) => path,
     Path::Var(Var::Nonce(Some(_)), _) => panic!("named nonce cannot be projected"),
-    _ => Path::Proj(ty, vrt_idx, fld_idx, box path),
+    _ => Path::Proj(ty, vrt_idx, fld_idx, Box::new(path)),
   }
 }
 
@@ -188,8 +188,8 @@ pub fn decompose_mut<'tcx>(mx: Expr<'tcx>) -> (Expr<'tcx>, Expr<'tcx>) {
         _ => panic!("unexpected type {:?} for a mutable reference", ty),
       }
       (
-        Expr::Path(Path::Proj(ty, VRT0, FLD0, box path.clone())),
-        Expr::Path(Path::Proj(ty, VRT0, FLD1, box path.clone())),
+        Expr::Path(Path::Proj(ty, VRT0, FLD0, Box::new(path.clone()))),
+        Expr::Path(Path::Proj(ty, VRT0, FLD1, Box::new(path.clone()))),
       )
     }
     Expr::Aggr(_, VRT0, mut xx_) if xx_.len() == 2 => {
@@ -203,8 +203,8 @@ pub fn decompose_mut<'tcx>(mx: Expr<'tcx>) -> (Expr<'tcx>, Expr<'tcx>) {
 
 pub fn bin_op_expr<'tcx>(bin_op: BinOp, expr1: Expr<'tcx>, expr2: Expr<'tcx>) -> Expr<'tcx> {
   match bin_op {
-    BinOp::Ne => Expr::UnOp(UnOp::Not, box Expr::BinOp(BinOp::Eq, box expr1, box expr2)),
-    _ => Expr::BinOp(bin_op, box expr1, box expr2),
+    BinOp::Ne => Expr::UnOp(UnOp::Not, Box::new(Expr::BinOp(BinOp::Eq, Box::new(expr1), Box::new(expr2)))),
+    _ => Expr::BinOp(bin_op, Box::new(expr1), Box::new(expr2)),
   }
 }
 
@@ -373,7 +373,7 @@ pub fn read_rvalue<'tcx>(
     }
     Rvalue::NullaryOp(NullOp::Box, _) => nonce(ty),
     Rvalue::UnaryOp(mir_un_op, opd) => {
-      Expr::UnOp(mir_un_op_to_un_op(*mir_un_op), box read_opd(opd, env, outer))
+      Expr::UnOp(mir_un_op_to_un_op(*mir_un_op), Box::new(read_opd(opd, env, outer)))
     }
     _ => panic!("unexpected rvalue {:?}", rvalue),
   }

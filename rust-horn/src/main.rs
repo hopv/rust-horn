@@ -1,5 +1,5 @@
 #![feature(rustc_private)]
-#![feature(box_syntax, box_patterns)]
+#![feature(box_patterns)]
 #![feature(pattern)]
 
 extern crate rustc_data_structures;

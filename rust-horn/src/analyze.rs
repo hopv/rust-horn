@@ -236,7 +236,7 @@ fn get_prerule<'tcx>(
           assign_to_place(place, res, &mut env, &mut conds, outer);
         } else if let Some(un_op) = fun_to_un_op(fun) {
           assert!(args.len() == 1);
-          let res = Expr::UnOp(un_op, box read_opd(&args[0], &mut env, outer));
+          let res = Expr::UnOp(un_op, Box::new(read_opd(&args[0], &mut env, outer)));
           assign_to_place(place, res, &mut env, &mut conds, outer);
         } else if fun_name == "<rand>" {
           assign_to_place(place, var_to_expr(Var::Rand(me), res_ty), &mut env, &mut conds, outer);
