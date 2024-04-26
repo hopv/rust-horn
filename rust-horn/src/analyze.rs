@@ -50,6 +50,7 @@ pub struct PivotDef<'tcx> {
 }
 
 pub type FunDef<'tcx> = Vec<(Option<BB>, PivotDef<'tcx>)>;
+pub type FunDefRef<'a, 'tcx> = &'a [(Option<BB>, PivotDef<'tcx>)];
 
 #[derive(Debug, Copy, Clone)]
 enum DiscrKind {
@@ -80,10 +81,10 @@ impl<'a, 'tcx> Data<'a, 'tcx> {
       TmntK::SwitchInt { discr, .. } if !basic.is_ghost_switching(pivot) => {
         match bbd.statements.last() {
           Some(Statement { kind: StmtK::Assign(box (_, Rvalue::Discriminant(place))), .. }) => {
-            (place.clone(), DiscrKind::Tag)
+            (*place, DiscrKind::Tag)
           }
           _ => match discr {
-            Operand::Copy(place) | Operand::Move(place) => (place.clone(), DiscrKind::Value),
+            Operand::Copy(place) | Operand::Move(place) => (*place, DiscrKind::Value),
             _ => panic!("unexpected operand {:?} for a discriminant", discr),
           },
         }
@@ -423,9 +424,7 @@ pub fn analyze<'tcx>(tcx: TyCtxt<'tcx>) -> Summary<'tcx> {
       break;
     }
     for (fun_name, fun_ty) in fun_asks.drain() {
-      if !fun_defs.contains_key(&fun_name) {
-        fun_defs.insert(fun_name, analyze_fun(fun_ty, tcx, &mut basic_asks));
-      }
+      fun_defs.entry(fun_name).or_insert_with(|| analyze_fun(fun_ty, tcx, &mut basic_asks));
     }
   }
   /* added drop functions */
@@ -434,9 +433,7 @@ pub fn analyze<'tcx>(tcx: TyCtxt<'tcx>) -> Summary<'tcx> {
     let mut old_drop_asks: Map<String, Ty<'tcx>> = Map::new();
     swap(&mut basic_asks.drop_asks, &mut old_drop_asks);
     for (drop_name, ty) in old_drop_asks.drain() {
-      if !drop_defs.contains_key(&drop_name) {
-        drop_defs.insert(drop_name, get_drop_def(ty, tcx, &mut basic_asks));
-      }
+      drop_defs.entry(drop_name).or_insert_with(|| get_drop_def(ty, tcx, &mut basic_asks));
     }
   }
   /* return results */

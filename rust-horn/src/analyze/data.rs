@@ -162,8 +162,8 @@ pub enum Expr<'tcx> {
   UnOp(UnOp, Box<Expr<'tcx>>),
   Aggr(Ty<'tcx>, VrtIdx, Vec<Expr<'tcx>>),
 }
-pub fn var_to_expr<'tcx>(var: Var, ty: Ty<'tcx>) -> Expr<'tcx> { Expr::Path(Path::Var(var, ty)) }
-pub fn nonce<'tcx>(ty: Ty<'tcx>) -> Expr<'tcx> { var_to_expr(Var::Nonce(None), ty) }
+pub fn var_to_expr(var: Var, ty: Ty<'_>) -> Expr<'_> { Expr::Path(Path::Var(var, ty)) }
+pub fn nonce(ty: Ty<'_>) -> Expr<'_> { var_to_expr(Var::Nonce(None), ty) }
 
 pub fn path_ty<'tcx>(path: &Path<'tcx>) -> Ty<'tcx> {
   match path {
@@ -171,7 +171,7 @@ pub fn path_ty<'tcx>(path: &Path<'tcx>) -> Ty<'tcx> {
     Path::Proj(ty, _, _, _) => ty,
   }
 }
-pub fn ty_body<'tcx>(ty: Ty<'tcx>) -> Ty<'tcx> {
+pub fn ty_body(ty: Ty<'_>) -> Ty<'_> {
   match &ty.kind() {
     TyK::Ref(_, ty, Mutability::Not) => ty_body(ty),
     TyK::Adt(adt_def, adt_substs) if adt_def.is_box() => ty_body(only_ty(adt_substs)),
@@ -179,7 +179,7 @@ pub fn ty_body<'tcx>(ty: Ty<'tcx>) -> Ty<'tcx> {
   }
 }
 
-pub fn decompose_mut<'tcx>(mx: Expr<'tcx>) -> (Expr<'tcx>, Expr<'tcx>) {
+pub fn decompose_mut(mx: Expr<'_>) -> (Expr<'_>, Expr<'_>) {
   match mx {
     Expr::Path(path) => {
       let ty = ty_body(path_ty(&path));
@@ -258,7 +258,7 @@ fn place_to_site<'tcx>(place: &Place<'tcx>, outer: Outer<'tcx>) -> Site<'tcx> {
     }
     vrt_idx = next_vrt_idx;
   }
-  return Site { local: *local, projs };
+  Site { local: *local, projs }
 }
 
 pub fn read_place<'tcx>(place: &Place<'tcx>, env: &Env<'tcx>, outer: Outer<'tcx>) -> Expr<'tcx> {
@@ -298,7 +298,7 @@ pub fn seize_place<'a, 'tcx>(
   place: &Place<'tcx>, env: &'a mut Env<'tcx>, outer: Outer<'tcx>,
 ) -> &'a mut Expr<'tcx> {
   let Site { local, projs } = place_to_site(place, outer);
-  let mut expr = env.entry(local).or_insert(nonce(outer.place_to_ty(place)));
+  let mut expr = env.entry(local).or_insert_with( || nonce(outer.place_to_ty(place)));
   for &elem in projs.iter() {
     let Proj { base_ty, vrt_idx, fld_idx } = elem;
     expr = match expr {

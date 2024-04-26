@@ -40,24 +40,16 @@ impl<'tcx> Index<BB> for Basic<'_, 'tcx> {
 }
 impl<'a, 'tcx> Basic<'a, 'tcx> {
   pub fn is_ghost_switching(self, bb: BB) -> bool {
-    match &get_tmnt(&self[bb]).kind {
-      TmntK::SwitchInt { targets, discr, .. } => {
-        if let Operand::Copy(Place { local, .. }) = discr {
-          if self.ghosts.contains(local) {
-            assert!(targets.all_targets().len() == 2);
-            return true;
-          }
-        }
+    if let TmntK::SwitchInt { targets, discr: Operand::Copy(Place { local, .. }), .. } = &get_tmnt(&self[bb]).kind {
+      if self.ghosts.contains(local) {
+        assert!(targets.all_targets().len() == 2);
+        return true;
       }
-      _ => {}
     }
     false
   }
   pub fn is_panicking(self, bb: BB) -> bool {
-    match &get_tmnt(&self[bb]).kind {
-      TmntK::Call { destination: None, .. } | TmntK::Abort | TmntK::Unreachable => true,
-      _ => false,
-    }
+    matches!(&get_tmnt(&self[bb]).kind, TmntK::Call { destination: None, .. } | TmntK::Abort | TmntK::Unreachable)
   }
   pub fn get_targets(self, bb: BB) -> Vec<BB> {
     let tmnt = get_tmnt(&self[bb]);

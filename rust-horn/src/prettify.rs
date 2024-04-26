@@ -22,18 +22,18 @@ pub fn pr_name(def_id: DefId) -> String {
 pub fn pr_fun_name(fun: DefId) -> String {
   let name = pr_name(fun);
   match name.as_str() {
-    "rand" => format!("<rand>"),
-    "alloc::alloc::box_free" => format!("<free>"),
-    "std::io::_print" => format!("<print>"),
-    "std::cmp::PartialEq::eq" => format!("<eq>"),
-    "std::cmp::PartialEq::ne" => format!("<ne>"),
-    "std::ops::Add::add" => format!("<add>"),
-    _ if "core::num::<impl".is_prefix_of(&name) && ">::abs".is_suffix_of(&name) => format!("<abs>"),
-    "std::mem::swap" => format!("<swap>"),
-    "std::rt::begin_panic" => format!("<panic>"),
-    "std::intrinsics::discriminant_value" => format!("<tag>"),
-    "std::ops::Fn::call" => format!("<call>"),
-    _ if "std::fmt".is_prefix_of(&name) => format!("<fmt>"),
+    "rand" => "<rand>".to_string(),
+    "alloc::alloc::box_free" => "<free>".to_string(),
+    "std::io::_print" => "<print>".to_string(),
+    "std::cmp::PartialEq::eq" => "<eq>".to_string(),
+    "std::cmp::PartialEq::ne" => "<ne>".to_string(),
+    "std::ops::Add::add" => "<add>".to_string(),
+    _ if "core::num::<impl".is_prefix_of(&name) && ">::abs".is_suffix_of(&name) => "<abs>".to_string(),
+    "std::mem::swap" => "<swap>".to_string(),
+    "std::rt::begin_panic" => "<panic>".to_string(),
+    "std::intrinsics::discriminant_value" => "<tag>".to_string(),
+    "std::ops::Fn::call" => "<call>".to_string(),
+    _ if "std::fmt".is_prefix_of(&name) => "<fmt>".to_string(),
     _ => name,
   }
 }
@@ -83,11 +83,11 @@ impl Display for Pr<ClosureKind> {
 
 pub fn pr_adt_name(adt_def: &AdtDef) -> String {
   if adt_def.is_box() {
-    format!("Box")
+    "Box".to_string()
   } else {
     let name = pr_name(adt_def.did);
     if "std::fmt::".is_prefix_of(&name) {
-      format!("<fmt>")
+      "<fmt>".to_string()
     } else {
       name
     }
@@ -481,7 +481,7 @@ impl Display for PrMir<'_> {
     for (local, local_decl) in mir.local_decls.iter_enumerated() {
       writeln!(f, "  {}", pr_var(local, &local_decl))?;
     }
-    writeln!(f, "")?;
+    writeln!(f)?;
     // visit basic blocks
     for (bb, bbd) in enumerate_bbds(&mir.basic_blocks()) {
       writeln!(f, "  [{}]", pr(bb))?;
@@ -579,7 +579,7 @@ impl Display for PrMirDot<'_> {
             let label = pr_bits(switch_ty, val, tcx).to_string();
             jumps.push((bb, tgt, label));
           }
-          jumps.push((bb, targets.otherwise(), format!("else")));
+          jumps.push((bb, targets.otherwise(), "else".to_string()));
         }
         TmntK::Unreachable | TmntK::Return => {}
         TmntK::Call { destination, .. } => {
@@ -594,7 +594,7 @@ impl Display for PrMirDot<'_> {
     // jumps and postlude
     for (bb, bb2, label) in jumps.iter() {
       write!(f, "  {} -> {}", pr(bb), pr(bb2))?;
-      if label != "" {
+      if !label.is_empty() {
         write!(f, r##" [taillabel = "{}", fontcolor = "#ef8cff"]"##, label)?;
       }
       writeln!(f, ";")?;
