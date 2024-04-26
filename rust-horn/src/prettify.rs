@@ -279,6 +279,7 @@ impl Display for Pr<NullOp> {
     match self.unpr {
       NullOp::SizeOf => write!(f, "sizeof"),
       NullOp::Box => write!(f, "box"),
+      NullOp::AlignOf => write!(f, "alignof"),
     }
   }
 }
