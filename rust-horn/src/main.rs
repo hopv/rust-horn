@@ -1,5 +1,5 @@
 #![feature(rustc_private)]
-#![feature(box_syntax, box_patterns)]
+#![feature(box_patterns)]
 #![feature(pattern)]
 
 extern crate rustc_data_structures;
@@ -8,7 +8,6 @@ extern crate rustc_hir;
 extern crate rustc_index;
 extern crate rustc_interface;
 extern crate rustc_middle;
-extern crate rustc_mir;
 extern crate rustc_session;
 extern crate rustc_span;
 extern crate rustc_target;

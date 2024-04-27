@@ -8,7 +8,7 @@ use rustc_target::abi::VariantIdx as VrtIdx;
 use std::fmt::{Display, Formatter, Result as FResult};
 
 use crate::analyze::data::{BinOp, Cond, Const, End, Expr, Path, UnOp, Var};
-use crate::analyze::{FunDef, PivotDef, Rule, Summary};
+use crate::analyze::{FunDef, FunDefRef, PivotDef, Rule, Summary};
 use crate::prettify::pr_name;
 use crate::util::{
   enumerate_fld_defs, fun_of_fun_ty, has_any_type, only_ty, substs_of_fun_ty, Cap, FLD0, FLD1, VRT0,
@@ -40,7 +40,7 @@ where
 fn rep_name(def_id: DefId) -> String { format!("%{}", pr_name(def_id).replace("::", "/")) }
 
 fn safe_ty(ty: Ty) -> String {
-  rep(ty).to_string().replace(" ", ".").replace("(", "").replace(")", "")
+  rep(ty).to_string().replace(' ', ".").replace('(', "").replace(')', "")
 }
 
 pub fn rep_fun_name(fun_ty: Ty) -> String {
@@ -50,7 +50,7 @@ fn rep_fun_name_pivot(fun_name: &str, pivot: Option<BB>) -> String {
   if let Some(bb) = pivot {
     format!("{}.{}", fun_name, bb.index())
   } else {
-    format!("{}", fun_name)
+    fun_name.to_string()
   }
 }
 pub fn rep_drop_name(ty: Ty) -> String { format!("drop<{}>", safe_ty(ty)) }
@@ -186,7 +186,7 @@ impl Display for RepVrt<'_> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let RepVrt { adt_def, vrt_idx, vrt_def, tcx } = *self;
     let fld_defs = &vrt_def.fields;
-    if fld_defs.len() == 0 {
+    if fld_defs.is_empty() {
       write!(f, "{}", rep_adt_builder_name(adt_def, vrt_idx))
     } else {
       write!(f, "({}", rep_adt_builder_name(adt_def, vrt_idx))?;
@@ -239,7 +239,7 @@ impl Display for RepTup<'_> {
     let RepTup { substs } = self;
     write!(f, "(declare-datatypes ((~Tup{} 0)) ((par () (", rep(substs))?;
     let types = substs.types().collect::<Vec<_>>();
-    if types.len() == 0 {
+    if types.is_empty() {
       write!(f, "~tup{}", rep(substs))?;
     } else {
       write!(f, "(~tup{}", rep(substs))?;
@@ -255,7 +255,7 @@ impl Display for RepTup<'_> {
 struct RepMut<'tcx> {
   ty: Ty<'tcx>,
 }
-fn rep_mut<'tcx>(ty: Ty<'tcx>) -> impl Display + 'tcx { RepMut { ty } }
+fn rep_mut(ty: Ty<'_>) -> impl Display + '_ { RepMut { ty } }
 impl Display for RepMut<'_> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let RepMut { ty } = self;
@@ -347,7 +347,7 @@ impl Display for Rep<&Expr<'_>> {
         write!(f, "({} {})", name, rep(expr))
       }
       Expr::Aggr(ty, vrt_idx, flds) => {
-        if flds.len() == 0 {
+        if flds.is_empty() {
           write!(f, "{}", rep_builder(ty, *vrt_idx))
         } else {
           write!(f, "({}", rep_builder(ty, *vrt_idx))?;
@@ -363,17 +363,17 @@ impl Display for Rep<&Expr<'_>> {
 
 struct RepApply<'a, 'tcx> {
   fun_name: &'a str,
-  args: &'a Vec<Expr<'tcx>>,
+  args: &'a [Expr<'tcx>],
 }
 fn rep_apply<'a, 'tcx>(
-  fun_name: &'a str, args: &'a Vec<Expr<'tcx>>,
+  fun_name: &'a str, args: &'a [Expr<'tcx>],
 ) -> impl Display + Cap<'tcx> + 'a {
   RepApply { fun_name, args }
 }
 impl Display for RepApply<'_, '_> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let RepApply { fun_name, args } = *self;
-    if args.len() == 0 {
+    if args.is_empty() {
       write!(f, "{}", fun_name)
     } else {
       write!(f, "({}", fun_name)?;
@@ -422,17 +422,15 @@ impl Display for RepEnd<'_, '_> {
       End::Return { res } => {
         if fun_name == &"%main" {
           write!(f, "(= _! false)")
-        } else {
-          if let Some(expr) = res {
-            let r = format!("{}", rep(expr));
-            if r == "~tup0" {
-              write!(f, "true")
-            } else {
-              write!(f, "(= _@ {})", r)
-            }
-          } else {
+        } else if let Some(expr) = res {
+          let r = format!("{}", rep(expr));
+          if r == "~tup0" {
             write!(f, "true")
+          } else {
+            write!(f, "(= _@ {})", r)
           }
+        } else {
+          write!(f, "true")
         }
       }
       End::Panic => {
@@ -448,10 +446,10 @@ impl Display for RepEnd<'_, '_> {
 
 struct RepFunSig<'a, 'tcx> {
   fun_name: &'a str,
-  fun_def: &'a FunDef<'tcx>,
+  fun_def: FunDefRef<'a, 'tcx>,
 }
 fn rep_fun_sig<'a, 'tcx: 'a>(
-  fun_name: &'a str, fun_def: &'a FunDef<'tcx>,
+  fun_name: &'a str, fun_def: FunDefRef<'a, 'tcx>,
 ) -> impl Display + Cap<'tcx> + 'a {
   RepFunSig { fun_name, fun_def }
 }
@@ -485,7 +483,7 @@ fn rep_fun_def<'a, 'tcx: 'a>(
 impl Display for RepFunDef<'_, '_> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let RepFunDef { fun_name, fun_def } = self;
-    if fun_def.len() > 0 {
+    if !fun_def.is_empty() {
       writeln!(f)?;
     }
     for (pivot, PivotDef { rules, .. }) in fun_def.iter() {
@@ -496,7 +494,7 @@ impl Display for RepFunDef<'_, '_> {
       }
       for Rule { vars, args, conds, end } in rules.iter() {
         write!(f, "(assert (forall (")?;
-        if vars.len() > 0 {
+        if !vars.is_empty() {
           let mut sep = "";
           for (var, ty) in vars.iter() {
             write!(f, "{}({} {})", sep, rep(var), rep(ty))?;
@@ -534,28 +532,28 @@ impl Display for RepSummary<'_, '_> {
       self;
     writeln!(f, "(set-logic HORN)")?;
     // adt definitions
-    if adt_asks.len() > 0 {
+    if !adt_asks.is_empty() {
       writeln!(f)?;
     }
     for &adt_id in adt_asks.iter() {
       write!(f, "{}", rep_adt(tcx.adt_def(adt_id), *tcx))?;
     }
     // muts
-    if mut_asks.len() > 0 {
+    if !mut_asks.is_empty() {
       writeln!(f)?;
     }
     for (_, ty) in mut_asks.iter() {
       write!(f, "{}", rep_mut(ty))?;
     }
     // tuples
-    if tup_asks.len() > 0 {
+    if !tup_asks.is_empty() {
       writeln!(f)?;
     }
     for (_, substs) in tup_asks.iter() {
       write!(f, "{}", rep_tup(substs))?;
     }
     // drop definitions
-    if drop_defs.len() > 0 {
+    if !drop_defs.is_empty() {
       writeln!(f)?;
     }
     for (drop_name, drop_def) in drop_defs.iter() {
@@ -565,7 +563,7 @@ impl Display for RepSummary<'_, '_> {
       write!(f, "{}", rep_fun_def(drop_name, drop_def))?;
     }
     // functions
-    if fun_defs.len() > 0 {
+    if !fun_defs.is_empty() {
       writeln!(f)?;
     }
     for (fun_name, fun_def) in fun_defs.iter() {

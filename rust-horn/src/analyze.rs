@@ -1,5 +1,5 @@
 use rustc_hir::{
-  def_id::{CrateNum, DefId},
+  def_id::DefId,
   Mutability,
 };
 use rustc_middle::mir::{
@@ -50,6 +50,7 @@ pub struct PivotDef<'tcx> {
 }
 
 pub type FunDef<'tcx> = Vec<(Option<BB>, PivotDef<'tcx>)>;
+pub type FunDefRef<'a, 'tcx> = &'a [(Option<BB>, PivotDef<'tcx>)];
 
 #[derive(Debug, Copy, Clone)]
 enum DiscrKind {
@@ -80,10 +81,10 @@ impl<'a, 'tcx> Data<'a, 'tcx> {
       TmntK::SwitchInt { discr, .. } if !basic.is_ghost_switching(pivot) => {
         match bbd.statements.last() {
           Some(Statement { kind: StmtK::Assign(box (_, Rvalue::Discriminant(place))), .. }) => {
-            (place.clone(), DiscrKind::Tag)
+            (*place, DiscrKind::Tag)
           }
           _ => match discr {
-            Operand::Copy(place) | Operand::Move(place) => (place.clone(), DiscrKind::Value),
+            Operand::Copy(place) | Operand::Move(place) => (*place, DiscrKind::Value),
             _ => panic!("unexpected operand {:?} for a discriminant", discr),
           },
         }
@@ -236,7 +237,7 @@ fn get_prerule<'tcx>(
           assign_to_place(place, res, &mut env, &mut conds, outer);
         } else if let Some(un_op) = fun_to_un_op(fun) {
           assert!(args.len() == 1);
-          let res = Expr::UnOp(un_op, box read_opd(&args[0], &mut env, outer));
+          let res = Expr::UnOp(un_op, Box::new(read_opd(&args[0], &mut env, outer)));
           assign_to_place(place, res, &mut env, &mut conds, outer);
         } else if fun_name == "<rand>" {
           assign_to_place(place, var_to_expr(Var::Rand(me), res_ty), &mut env, &mut conds, outer);
@@ -409,7 +410,7 @@ pub fn analyze<'tcx>(tcx: TyCtxt<'tcx>) -> Summary<'tcx> {
     mut_asks: Map::new(),
   };
   /* analyze the main function */
-  if let Some((main, EntryFnType::Main)) = tcx.entry_fn(CrateNum::new(0)) {
+  if let Some((main, EntryFnType::Main)) = tcx.entry_fn(()) {
     let main_ty = tcx.type_of(main);
     let main_name = rep_fun_name(main_ty);
     fun_defs.insert(main_name, analyze_fun(main_ty, tcx, &mut basic_asks));
@@ -423,9 +424,7 @@ pub fn analyze<'tcx>(tcx: TyCtxt<'tcx>) -> Summary<'tcx> {
       break;
     }
     for (fun_name, fun_ty) in fun_asks.drain() {
-      if !fun_defs.contains_key(&fun_name) {
-        fun_defs.insert(fun_name, analyze_fun(fun_ty, tcx, &mut basic_asks));
-      }
+      fun_defs.entry(fun_name).or_insert_with(|| analyze_fun(fun_ty, tcx, &mut basic_asks));
     }
   }
   /* added drop functions */
@@ -434,9 +433,7 @@ pub fn analyze<'tcx>(tcx: TyCtxt<'tcx>) -> Summary<'tcx> {
     let mut old_drop_asks: Map<String, Ty<'tcx>> = Map::new();
     swap(&mut basic_asks.drop_asks, &mut old_drop_asks);
     for (drop_name, ty) in old_drop_asks.drain() {
-      if !drop_defs.contains_key(&drop_name) {
-        drop_defs.insert(drop_name, get_drop_def(ty, tcx, &mut basic_asks));
-      }
+      drop_defs.entry(drop_name).or_insert_with(|| get_drop_def(ty, tcx, &mut basic_asks));
     }
   }
   /* return results */

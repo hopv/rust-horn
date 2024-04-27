@@ -1,6 +1,6 @@
 use rustc_hir::{def_id::DefId, Mutability};
 use rustc_middle::mir::{
-  BasicBlock as BB, BinOp as MirBinOp, Body, BorrowKind as BorK, Field as FldIdx, Local, NullOp,
+  BasicBlock as BB, BinOp as MirBinOp, Body, BorrowKind as BorK, Field as FldIdx, Local,
   Operand, Place, ProjectionElem as ProjElem, Rvalue, UnOp as MirUnOp,
 };
 use rustc_middle::ty::{
@@ -76,7 +76,7 @@ pub fn get_proj<'tcx>(
   match path {
     Path::Var(Var::Nonce(None), _) => path,
     Path::Var(Var::Nonce(Some(_)), _) => panic!("named nonce cannot be projected"),
-    _ => Path::Proj(ty, vrt_idx, fld_idx, box path),
+    _ => Path::Proj(ty, vrt_idx, fld_idx, Box::new(path)),
   }
 }
 
@@ -162,8 +162,8 @@ pub enum Expr<'tcx> {
   UnOp(UnOp, Box<Expr<'tcx>>),
   Aggr(Ty<'tcx>, VrtIdx, Vec<Expr<'tcx>>),
 }
-pub fn var_to_expr<'tcx>(var: Var, ty: Ty<'tcx>) -> Expr<'tcx> { Expr::Path(Path::Var(var, ty)) }
-pub fn nonce<'tcx>(ty: Ty<'tcx>) -> Expr<'tcx> { var_to_expr(Var::Nonce(None), ty) }
+pub fn var_to_expr(var: Var, ty: Ty<'_>) -> Expr<'_> { Expr::Path(Path::Var(var, ty)) }
+pub fn nonce(ty: Ty<'_>) -> Expr<'_> { var_to_expr(Var::Nonce(None), ty) }
 
 pub fn path_ty<'tcx>(path: &Path<'tcx>) -> Ty<'tcx> {
   match path {
@@ -171,7 +171,7 @@ pub fn path_ty<'tcx>(path: &Path<'tcx>) -> Ty<'tcx> {
     Path::Proj(ty, _, _, _) => ty,
   }
 }
-pub fn ty_body<'tcx>(ty: Ty<'tcx>) -> Ty<'tcx> {
+pub fn ty_body(ty: Ty<'_>) -> Ty<'_> {
   match &ty.kind() {
     TyK::Ref(_, ty, Mutability::Not) => ty_body(ty),
     TyK::Adt(adt_def, adt_substs) if adt_def.is_box() => ty_body(only_ty(adt_substs)),
@@ -179,7 +179,7 @@ pub fn ty_body<'tcx>(ty: Ty<'tcx>) -> Ty<'tcx> {
   }
 }
 
-pub fn decompose_mut<'tcx>(mx: Expr<'tcx>) -> (Expr<'tcx>, Expr<'tcx>) {
+pub fn decompose_mut(mx: Expr<'_>) -> (Expr<'_>, Expr<'_>) {
   match mx {
     Expr::Path(path) => {
       let ty = ty_body(path_ty(&path));
@@ -188,8 +188,8 @@ pub fn decompose_mut<'tcx>(mx: Expr<'tcx>) -> (Expr<'tcx>, Expr<'tcx>) {
         _ => panic!("unexpected type {:?} for a mutable reference", ty),
       }
       (
-        Expr::Path(Path::Proj(ty, VRT0, FLD0, box path.clone())),
-        Expr::Path(Path::Proj(ty, VRT0, FLD1, box path.clone())),
+        Expr::Path(Path::Proj(ty, VRT0, FLD0, Box::new(path.clone()))),
+        Expr::Path(Path::Proj(ty, VRT0, FLD1, Box::new(path.clone()))),
       )
     }
     Expr::Aggr(_, VRT0, mut xx_) if xx_.len() == 2 => {
@@ -203,8 +203,8 @@ pub fn decompose_mut<'tcx>(mx: Expr<'tcx>) -> (Expr<'tcx>, Expr<'tcx>) {
 
 pub fn bin_op_expr<'tcx>(bin_op: BinOp, expr1: Expr<'tcx>, expr2: Expr<'tcx>) -> Expr<'tcx> {
   match bin_op {
-    BinOp::Ne => Expr::UnOp(UnOp::Not, box Expr::BinOp(BinOp::Eq, box expr1, box expr2)),
-    _ => Expr::BinOp(bin_op, box expr1, box expr2),
+    BinOp::Ne => Expr::UnOp(UnOp::Not, Box::new(Expr::BinOp(BinOp::Eq, Box::new(expr1), Box::new(expr2)))),
+    _ => Expr::BinOp(bin_op, Box::new(expr1), Box::new(expr2)),
   }
 }
 
@@ -258,7 +258,7 @@ fn place_to_site<'tcx>(place: &Place<'tcx>, outer: Outer<'tcx>) -> Site<'tcx> {
     }
     vrt_idx = next_vrt_idx;
   }
-  return Site { local: *local, projs };
+  Site { local: *local, projs }
 }
 
 pub fn read_place<'tcx>(place: &Place<'tcx>, env: &Env<'tcx>, outer: Outer<'tcx>) -> Expr<'tcx> {
@@ -298,7 +298,7 @@ pub fn seize_place<'a, 'tcx>(
   place: &Place<'tcx>, env: &'a mut Env<'tcx>, outer: Outer<'tcx>,
 ) -> &'a mut Expr<'tcx> {
   let Site { local, projs } = place_to_site(place, outer);
-  let mut expr = env.entry(local).or_insert(nonce(outer.place_to_ty(place)));
+  let mut expr = env.entry(local).or_insert_with( || nonce(outer.place_to_ty(place)));
   for &elem in projs.iter() {
     let Proj { base_ty, vrt_idx, fld_idx } = elem;
     expr = match expr {
@@ -371,9 +371,8 @@ pub fn read_rvalue<'tcx>(
       let bin_op = mir_bin_op_to_bin_op(*mir_bin_op, outer.opd_to_ty(opd1));
       bin_op_expr(bin_op, read_opd(opd1, env, outer), read_opd(opd2, env, outer))
     }
-    Rvalue::NullaryOp(NullOp::Box, _) => nonce(ty),
     Rvalue::UnaryOp(mir_un_op, opd) => {
-      Expr::UnOp(mir_un_op_to_un_op(*mir_un_op), box read_opd(opd, env, outer))
+      Expr::UnOp(mir_un_op_to_un_op(*mir_un_op), Box::new(read_opd(opd, env, outer)))
     }
     _ => panic!("unexpected rvalue {:?}", rvalue),
   }

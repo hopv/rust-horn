@@ -1,4 +1,4 @@
-use rustc_hir::def_id::{DefId, LOCAL_CRATE};
+use rustc_hir::def_id::DefId;
 use rustc_index::vec::IndexVec;
 use rustc_middle::mir::{
   interpret::{ConstValue, Scalar},
@@ -31,7 +31,7 @@ pub fn enumerate_bbds<'a, 'tcx>(bbds: &'a BBDs<'tcx>) -> impl Iterator<Item = (B
 
 pub fn enumerate_mirs<'tcx>(tcx: TyCtxt<'tcx>) -> impl Iterator<Item = (DefId, &MirBody<'tcx>)> {
   tcx
-    .mir_keys(LOCAL_CRATE)
+    .mir_keys(())
     .iter()
     .map(|fun| fun.to_def_id())
     .filter(move |&fun| {
@@ -43,7 +43,7 @@ pub fn enumerate_mirs<'tcx>(tcx: TyCtxt<'tcx>) -> impl Iterator<Item = (DefId, &
     })
 }
 
-pub fn enumerate_fld_defs(fld_defs: &Vec<FldDef>) -> impl Iterator<Item = (FldIdx, &FldDef)> {
+pub fn enumerate_fld_defs(fld_defs: &[FldDef]) -> impl Iterator<Item = (FldIdx, &FldDef)> {
   fld_defs.iter().enumerate().map(|(i, fld_def)| (FldIdx::from(i), fld_def))
 }
 
@@ -60,7 +60,7 @@ pub fn has_any_type(substs: &Substs) -> bool { substs.types().any(|_| true) }
 pub fn only_ty<'tcx>(substs: &'tcx Substs<'tcx>) -> Ty<'tcx> {
   let tys = substs.types().collect::<Vec<_>>();
   assert!(tys.len() == 2 && format!("{:?}", tys[1]) == "std::alloc::Global");
-  return tys[0];
+  tys[0]
 }
 
 pub fn fun_of_fun_ty(fun_ty: Ty) -> DefId {
@@ -71,7 +71,7 @@ pub fn fun_of_fun_ty(fun_ty: Ty) -> DefId {
   }
 }
 
-pub fn substs_of_fun_ty<'tcx>(fun_ty: Ty<'tcx>) -> &'tcx Substs<'tcx> {
+pub fn substs_of_fun_ty(fun_ty: Ty<'_>) -> &'_ Substs<'_> {
   match &fun_ty.kind() {
     TyK::FnDef(_, substs) | TyK::Closure(_, substs) => substs,
     _ => panic!("unexpected type {} for a function type", fun_ty),

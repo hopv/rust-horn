@@ -6,9 +6,7 @@ build:
 	cargo fmt
 	cargo build --release
 
-# Please specify the appropriate path to the standard library in your platform
-# TODO: Make this portable
-RUST_LIB_PATH = ~/.rustup/toolchains/nightly-2021-04-21-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/lib
+RUST_LIB_PATH = $(shell rustc --print target-libdir)
 
 try:
 	for file in sample/*.rs; do \
