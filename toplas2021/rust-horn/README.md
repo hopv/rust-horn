@@ -6,7 +6,6 @@ Please check the version of `rustc` before you try the verifier.
 
 You can build the verifier by `make build`.
 You can try the verifier for the files `sample/*.rs` by `make try`.
-(Please modify the variable `RUST_LIB_PATH` in `Makefile` depending on your platform.)
 
 ## Supported Features
 

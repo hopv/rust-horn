@@ -6,7 +6,7 @@ build:
 	cargo fmt
 	cargo build --release
 
-RUST_LIB_PATH = $(HOME)/.multirust/toolchains/nightly-x86_64-apple-darwin/lib/rustlib/x86_64-apple-darwin/lib/
+RUST_LIB_PATH = $(shell rustc --print target-libdir)
 
 try:
 	for file in sample/*.rs; do \
