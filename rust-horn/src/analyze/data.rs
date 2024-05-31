@@ -1,55 +1,50 @@
-use rustc_hir::{def_id::DefId, Mutability};
-use rustc_middle::mir::{
-  BasicBlock as BB, BinOp as MirBinOp, Body, BorrowKind as BorK, Field as FldIdx, Local,
-  Operand, Place, ProjectionElem as ProjElem, Rvalue, UnOp as MirUnOp,
-};
-use rustc_middle::ty::{
-  subst::{InternalSubsts as Substs, Subst},
-  Const as TyConst, FieldDef, Ty, TyCtxt, TyKind as TyK,
-};
-use rustc_target::abi::VariantIdx as VrtIdx;
-
-use std::collections::{HashMap as Map, HashSet as Set};
 use std::mem::swap;
 
 use crate::prettify::{pr, pr_fun_name};
 use crate::represent::{rep, rep_drop_name};
+use crate::types::{
+  BasicBlock, BorrowKind, DefId, FieldDef, FieldIdx, GenericArgs, GenericArgsRef, Local, Map,
+  MirBinOp, MirBody, MirUnOp, Mutability, Operand, Place, ProjectionElem, Rvalue, Set, Subst, Ty,
+  TyConst, TyCtxt, TyKind, VariantIdx,
+};
 use crate::util::{only_ty, sort_map, FLD0, FLD1, VRT0};
 
 #[derive(Copy, Clone)]
 pub struct Outer<'tcx> {
-  pub mir: &'tcx Body<'tcx>,
-  pub substs: &'tcx Substs<'tcx>,
+  pub mir: &'tcx MirBody<'tcx>,
+  pub generic_args: GenericArgsRef<'tcx>,
   pub tcx: TyCtxt<'tcx>,
 }
 impl<'tcx> Outer<'tcx> {
-  pub fn get_bool(self) -> Ty<'tcx> { self.tcx.mk_ty(TyK::Bool) }
+  pub fn get_bool(self) -> Ty<'tcx> { Ty::new(self.tcx.mk_ty(TyKind::Bool)) }
   pub fn local_to_ty(self, local: Local) -> Ty<'tcx> {
-    let Outer { mir, substs, tcx } = self;
-    mir.local_decls[local].ty.subst(tcx, substs)
+    let Outer { mir, generic_args, tcx } = self;
+    Ty::new(mir.local_decls[local].ty.subst(tcx, generic_args))
   }
   pub fn local_to_expr(self, local: Local) -> Expr<'tcx> {
     Expr::Path(Path::Var(Var::Input(local), self.local_to_ty(local)))
   }
   pub fn place_to_ty(self, place: &Place<'tcx>) -> Ty<'tcx> {
-    let Outer { mir, substs, tcx } = self;
-    place.ty(mir, tcx).ty.subst(tcx, substs)
+    let Outer { mir, generic_args, tcx } = self;
+    Ty::new(place.ty(mir, tcx).ty.subst(tcx, generic_args))
   }
   pub fn base_i_place_to_ty(self, place: &Place<'tcx>, i: usize) -> Ty<'tcx> {
-    let Outer { mir, substs, tcx } = self;
-    Place::ty_from(place.local, &place.projection[0..i], mir, tcx).ty.subst(tcx, substs)
+    let Outer { mir, generic_args, tcx } = self;
+    Ty::new(
+      Place::ty_from(place.local, &place.projection[0..i], mir, tcx).ty.subst(tcx, generic_args),
+    )
   }
   pub fn opd_to_ty(self, opd: &Operand<'tcx>) -> Ty<'tcx> {
-    let Outer { mir, substs, tcx } = self;
-    opd.ty(mir, tcx).subst(tcx, substs)
+    let Outer { mir, generic_args, tcx } = self;
+    Ty::new(opd.ty(mir, tcx).subst(tcx, generic_args))
   }
   pub fn rvalue_to_ty(self, rvalue: &Rvalue<'tcx>) -> Ty<'tcx> {
-    let Outer { mir, substs, tcx } = self;
-    rvalue.ty(mir, tcx).subst(tcx, substs)
+    let Outer { mir, generic_args, tcx } = self;
+    Ty::new(rvalue.ty(mir, tcx).subst(tcx, generic_args))
   }
-  pub fn fld_def_to_ty(self, fld_def: &FieldDef, adt_substs: &'tcx Substs<'tcx>) -> Ty<'tcx> {
-    let Outer { substs, tcx, .. } = self;
-    fld_def.ty(tcx, adt_substs).subst(tcx, substs)
+  pub fn fld_def_to_ty(self, fld_def: &FieldDef, adt_substs: &'tcx GenericArgs<'tcx>) -> Ty<'tcx> {
+    let Outer { generic_args, tcx, .. } = self;
+    Ty::new(fld_def.ty(tcx, adt_substs).subst(tcx, generic_args))
   }
 }
 
@@ -58,25 +53,32 @@ pub enum Var {
   Input(Local),
   SelfResult,
   SelfPanic,
-  CallResult(BB),
-  Rand(BB),
-  MutRet(BB, usize),
-  Split(BB, VrtIdx, FldIdx),
+  CallResult(BasicBlock),
+  Rand(BasicBlock),
+  MutRet(BasicBlock, usize),
+  Split(BasicBlock, VariantIdx, FieldIdx),
   Nonce(Option<usize>),
 }
 
 #[derive(Debug, Clone)]
 pub enum Path<'tcx> {
   Var(Var, Ty<'tcx>),
-  Proj(Ty<'tcx>, VrtIdx, FldIdx, Box<Path<'tcx>>),
+  Proj(Ty<'tcx>, VariantIdx, FieldIdx, Box<Path<'tcx>>),
 }
-pub fn get_proj<'tcx>(
-  ty: Ty<'tcx>, vrt_idx: VrtIdx, fld_idx: FldIdx, path: Path<'tcx>,
-) -> Path<'tcx> {
-  match path {
-    Path::Var(Var::Nonce(None), _) => path,
-    Path::Var(Var::Nonce(Some(_)), _) => panic!("named nonce cannot be projected"),
-    _ => Path::Proj(ty, vrt_idx, fld_idx, Box::new(path)),
+
+impl<'tcx> Path<'tcx> {
+  fn ty(&self) -> Ty<'tcx> {
+    match self {
+      Path::Var(_, ty) => *ty,
+      Path::Proj(ty, _, _, _) => *ty,
+    }
+  }
+  pub fn get_proj(&self, ty: Ty<'tcx>, variant_index: VariantIdx, field_index: FieldIdx) -> Self {
+    match self {
+      Path::Var(Var::Nonce(None), _) => self.clone(),
+      Path::Var(Var::Nonce(Some(_)), _) => panic!("named nonce cannot be projected"),
+      _ => Path::Proj(ty, variant_index, field_index, Box::new(self.clone())),
+    }
   }
 }
 
@@ -104,34 +106,38 @@ pub enum BinOp {
   Ge,
   Gt,
 }
-fn mir_bin_op_to_bin_op(mir_bin_op: MirBinOp, ty: Ty) -> BinOp {
-  match mir_bin_op {
-    MirBinOp::Add => BinOp::Add,
-    MirBinOp::Sub => BinOp::Sub,
-    MirBinOp::Mul => BinOp::Mul,
-    MirBinOp::Div => match &ty.kind() {
-      TyK::Int(_) | TyK::Uint(_) => BinOp::DivInt,
-      TyK::Float(_) => BinOp::DivReal,
-      _ => panic!("unexpected type {} for division", ty),
-    },
-    MirBinOp::Rem => BinOp::Mod,
-    MirBinOp::BitAnd => BinOp::And,
-    MirBinOp::Eq => BinOp::Eq,
-    MirBinOp::Lt => BinOp::Lt,
-    MirBinOp::Le => BinOp::Le,
-    MirBinOp::Ne => BinOp::Ne,
-    MirBinOp::Ge => BinOp::Ge,
-    MirBinOp::Gt => BinOp::Gt,
-    _ => panic!("unsupported binary operator {:?}", mir_bin_op),
+
+impl BinOp {
+  fn from_mir_bin_op(mir_bin_op: MirBinOp, ty: Ty) -> Self {
+    match mir_bin_op {
+      MirBinOp::Add => BinOp::Add,
+      MirBinOp::Sub => BinOp::Sub,
+      MirBinOp::Mul => BinOp::Mul,
+      MirBinOp::Div => match &ty.kind() {
+        TyKind::Int(_) | TyKind::Uint(_) => BinOp::DivInt,
+        TyKind::Float(_) => BinOp::DivReal,
+        _ => panic!("unexpected type {} for division", ty),
+      },
+      MirBinOp::Rem => BinOp::Mod,
+      MirBinOp::BitAnd => BinOp::And,
+      MirBinOp::Eq => BinOp::Eq,
+      MirBinOp::Lt => BinOp::Lt,
+      MirBinOp::Le => BinOp::Le,
+      MirBinOp::Ne => BinOp::Ne,
+      MirBinOp::Ge => BinOp::Ge,
+      MirBinOp::Gt => BinOp::Gt,
+      _ => panic!("unsupported binary operator {:?}", mir_bin_op),
+    }
   }
-}
-pub fn fun_to_bin_op(fun: DefId) -> Option<BinOp> {
-  match pr_fun_name(fun).as_str() {
-    "<eq>" => Some(BinOp::Eq),
-    "<ne>" => Some(BinOp::Ne),
-    "<add>" => Some(BinOp::Add),
-    "<div-int>" => Some(BinOp::DivInt),
-    _ => None,
+
+  pub fn try_from_fun(fun: DefId) -> Option<Self> {
+    match pr_fun_name(fun).as_str() {
+      "<eq>" => Some(BinOp::Eq),
+      "<ne>" => Some(BinOp::Ne),
+      "<add>" => Some(BinOp::Add),
+      "<div-int>" => Some(BinOp::DivInt),
+      _ => None,
+    }
   }
 }
 
@@ -141,16 +147,18 @@ pub enum UnOp {
   Not,
   Abs,
 }
-pub fn mir_un_op_to_un_op(mir_un_op: MirUnOp) -> UnOp {
-  match mir_un_op {
-    MirUnOp::Not => UnOp::Not,
-    MirUnOp::Neg => UnOp::Neg,
+impl UnOp {
+  pub fn from_mir_un_op(mir_un_op: MirUnOp) -> Self {
+    match mir_un_op {
+      MirUnOp::Not => Self::Not,
+      MirUnOp::Neg => Self::Neg,
+    }
   }
-}
-pub fn fun_to_un_op(fun: DefId) -> Option<UnOp> {
-  match pr_fun_name(fun).as_str() {
-    "<abs>" => Some(UnOp::Abs),
-    _ => None,
+  pub fn try_from_fun(fun: DefId) -> Option<UnOp> {
+    match pr_fun_name(fun).as_str() {
+      "<abs>" => Some(UnOp::Abs),
+      _ => None,
+    }
   }
 }
 
@@ -160,51 +168,54 @@ pub enum Expr<'tcx> {
   Const(Const),
   BinOp(BinOp, Box<Expr<'tcx>>, Box<Expr<'tcx>>),
   UnOp(UnOp, Box<Expr<'tcx>>),
-  Aggr(Ty<'tcx>, VrtIdx, Vec<Expr<'tcx>>),
-}
-pub fn var_to_expr(var: Var, ty: Ty<'_>) -> Expr<'_> { Expr::Path(Path::Var(var, ty)) }
-pub fn nonce(ty: Ty<'_>) -> Expr<'_> { var_to_expr(Var::Nonce(None), ty) }
-
-pub fn path_ty<'tcx>(path: &Path<'tcx>) -> Ty<'tcx> {
-  match path {
-    Path::Var(_, ty) => ty,
-    Path::Proj(ty, _, _, _) => ty,
-  }
-}
-pub fn ty_body(ty: Ty<'_>) -> Ty<'_> {
-  match &ty.kind() {
-    TyK::Ref(_, ty, Mutability::Not) => ty_body(ty),
-    TyK::Adt(adt_def, adt_substs) if adt_def.is_box() => ty_body(only_ty(adt_substs)),
-    _ => ty,
-  }
+  Aggregate(Ty<'tcx>, VariantIdx, Vec<Expr<'tcx>>),
 }
 
-pub fn decompose_mut(mx: Expr<'_>) -> (Expr<'_>, Expr<'_>) {
-  match mx {
-    Expr::Path(path) => {
-      let ty = ty_body(path_ty(&path));
-      match &ty.kind() {
-        TyK::Ref(_, _, Mutability::Mut) => {}
-        _ => panic!("unexpected type {:?} for a mutable reference", ty),
+impl<'tcx> Expr<'tcx> {
+  pub fn from_var(var: Var, ty: Ty<'tcx>) -> Self { Expr::Path(Path::Var(var, ty)) }
+  pub fn nonce(ty: Ty<'tcx>) -> Self { Self::from_var(Var::Nonce(None), ty) }
+
+  pub fn from_bin_op(bin_op: BinOp, expr1: Self, expr2: Self) -> Self {
+    match bin_op {
+      BinOp::Ne => {
+        Expr::UnOp(UnOp::Not, Box::new(Expr::BinOp(BinOp::Eq, Box::new(expr1), Box::new(expr2))))
       }
-      (
-        Expr::Path(Path::Proj(ty, VRT0, FLD0, Box::new(path.clone()))),
-        Expr::Path(Path::Proj(ty, VRT0, FLD1, Box::new(path.clone()))),
-      )
+      _ => Expr::BinOp(bin_op, Box::new(expr1), Box::new(expr2)),
     }
-    Expr::Aggr(_, VRT0, mut xx_) if xx_.len() == 2 => {
-      let x_ = xx_.pop().unwrap();
-      let x = xx_.pop().unwrap();
-      (x, x_)
-    }
-    _ => panic!("unexpected expression {:?} for a mutable reference", mx),
   }
 }
 
-pub fn bin_op_expr<'tcx>(bin_op: BinOp, expr1: Expr<'tcx>, expr2: Expr<'tcx>) -> Expr<'tcx> {
-  match bin_op {
-    BinOp::Ne => Expr::UnOp(UnOp::Not, Box::new(Expr::BinOp(BinOp::Eq, Box::new(expr1), Box::new(expr2)))),
-    _ => Expr::BinOp(bin_op, Box::new(expr1), Box::new(expr2)),
+impl Ty<'_> {
+  pub fn ty_body(self) -> Self {
+    match &self.kind() {
+      TyKind::Ref(_, ty, Mutability::Not) => Ty::new(ty).ty_body(),
+      TyKind::Adt(adt_def, adt_substs) if adt_def.is_box() => only_ty(adt_substs).ty_body(),
+      _ => self,
+    }
+  }
+}
+
+impl Expr<'_> {
+  pub fn decompose_mut(self) -> (Self, Self) {
+    match self {
+      Expr::Path(path) => {
+        let ty = path.ty().ty_body();
+        match &ty.kind() {
+          TyKind::Ref(_, _, Mutability::Mut) => {}
+          _ => panic!("unexpected type {:?} for a mutable reference", ty),
+        }
+        (
+          Expr::Path(Path::Proj(ty, VRT0, FLD0, Box::new(path.clone()))),
+          Expr::Path(Path::Proj(ty, VRT0, FLD1, Box::new(path.clone()))),
+        )
+      }
+      Expr::Aggregate(_, VRT0, mut xx_) if xx_.len() == 2 => {
+        let x_ = xx_.pop().unwrap();
+        let x = xx_.pop().unwrap();
+        (x, x_)
+      }
+      _ => panic!("unexpected expression {:?} for a mutable reference", self),
+    }
   }
 }
 
@@ -213,8 +224,8 @@ pub type Env<'tcx> = Map<Local, Expr<'tcx>>;
 #[derive(Debug, Copy, Clone)]
 struct Proj<'tcx> {
   base_ty: Ty<'tcx>,
-  vrt_idx: VrtIdx,
-  fld_idx: FldIdx,
+  variant_index: VariantIdx,
+  field_index: FieldIdx,
 }
 #[derive(Debug)]
 struct Site<'tcx> {
@@ -222,58 +233,60 @@ struct Site<'tcx> {
   projs: Vec<Proj<'tcx>>,
 }
 
-fn place_to_site<'tcx>(place: &Place<'tcx>, outer: Outer<'tcx>) -> Site<'tcx> {
-  let Place { local, projection } = place;
-  let mut projs = Vec::<Proj>::new();
-  let mut vrt_idx = VRT0;
-  for (i, proj) in projection.iter().enumerate() {
-    let mut next_vrt_idx = VRT0;
-    let base_ty = outer.base_i_place_to_ty(place, i);
-    match &proj {
-      ProjElem::Deref => match &base_ty.kind() {
-        TyK::Ref(_, _, Mutability::Not) => {}
-        TyK::Adt(adt_def, _) if adt_def.is_box() => {}
-        TyK::Ref(_, _, Mutability::Mut) => {
-          projs.push(Proj { vrt_idx: VRT0, fld_idx: FLD0, base_ty })
-        }
-        _ => panic!("unexpected type {} for dereference", base_ty),
-      },
-      ProjElem::Downcast(_, vrt_idx) => {
-        next_vrt_idx = *vrt_idx;
-      }
-      ProjElem::Field(fld_idx, _) => {
-        match &base_ty.kind() {
-          TyK::Adt(adt_def, _) => assert!(
-            vrt_idx.index() < adt_def.variants.len()
-              && fld_idx.index() < adt_def.variants[vrt_idx].fields.len()
-          ),
-          TyK::Tuple(substs) => {
-            assert!(vrt_idx == VRT0 && fld_idx.index() < substs.types().count())
+impl<'tcx> Site<'tcx> {
+  fn from_place(place: &Place<'tcx>, outer: Outer<'tcx>) -> Self {
+    let Place { local, projection } = place;
+    let mut projs = Vec::<Proj>::new();
+    let mut variant_index = VRT0;
+    for (i, proj) in projection.iter().enumerate() {
+      let mut next_variant_index = VRT0;
+      let base_ty = outer.base_i_place_to_ty(place, i);
+      match &proj {
+        ProjectionElem::Deref => match &base_ty.kind() {
+          TyKind::Ref(_, _, Mutability::Not) => {}
+          TyKind::Adt(adt_def, _) if adt_def.is_box() => {}
+          TyKind::Ref(_, _, Mutability::Mut) => {
+            projs.push(Proj { variant_index: VRT0, field_index: FLD0, base_ty })
           }
-          _ => panic!("unexpected type {} for taking a field", base_ty),
-        };
-        projs.push(Proj { vrt_idx, fld_idx: *fld_idx, base_ty });
+          _ => panic!("unexpected type {} for dereference", base_ty),
+        },
+        ProjectionElem::Downcast(_, variant_index) => {
+          next_variant_index = *variant_index;
+        }
+        ProjectionElem::Field(field_index, _) => {
+          match &base_ty.kind() {
+            TyKind::Adt(adt_def, _) => assert!(
+              variant_index.index() < adt_def.variants.len()
+                && field_index.index() < adt_def.variants[variant_index].fields.len()
+            ),
+            TyKind::Tuple(generic_args) => {
+              assert!(variant_index == VRT0 && field_index.index() < generic_args.types().count())
+            }
+            _ => panic!("unexpected type {} for taking a field", base_ty),
+          };
+          projs.push(Proj { variant_index, field_index: *field_index, base_ty });
+        }
+        _ => panic!("unsupported projection element {:?}", proj),
       }
-      _ => panic!("unsupported projection element {:?}", proj),
+      variant_index = next_variant_index;
     }
-    vrt_idx = next_vrt_idx;
+    Site { local: *local, projs }
   }
-  Site { local: *local, projs }
 }
 
 pub fn read_place<'tcx>(place: &Place<'tcx>, env: &Env<'tcx>, outer: Outer<'tcx>) -> Expr<'tcx> {
-  let Site { local, projs } = place_to_site(place, outer);
+  let Site { local, projs } = Site::from_place(place, outer);
   let mut expr = match env.get(&local) {
-    None => nonce(outer.place_to_ty(place)),
+    None => Expr::nonce(outer.place_to_ty(place)),
     Some(expr) => expr.clone(),
   };
   for &proj in projs.iter() {
-    let Proj { base_ty, vrt_idx, fld_idx } = proj;
+    let Proj { base_ty, variant_index, field_index } = proj;
     expr = match expr {
-      Expr::Path(path) => Expr::Path(get_proj(base_ty, vrt_idx, fld_idx, path)),
-      Expr::Aggr(_, vrt_idx2, mut flds) => {
-        assert!(vrt_idx == vrt_idx2);
-        flds.remove(fld_idx.index())
+      Expr::Path(path) => Expr::Path(path.get_proj(base_ty, variant_index, field_index)),
+      Expr::Aggregate(_, variant_index2, mut flds) => {
+        assert!(variant_index == variant_index2);
+        flds.remove(field_index.index())
       }
       _ => panic!("unexpected expr {:?}", &expr),
     }
@@ -281,15 +294,15 @@ pub fn read_place<'tcx>(place: &Place<'tcx>, env: &Env<'tcx>, outer: Outer<'tcx>
   expr
 }
 
-fn get_n_flds(base_ty: Ty, vrt_idx: VrtIdx) -> usize {
+fn get_n_flds(base_ty: Ty, variant_index: VariantIdx) -> usize {
   match &base_ty.kind() {
-    TyK::Ref(_, _, Mutability::Mut) => 2,
-    TyK::Adt(adt_def, _) => {
+    TyKind::Ref(_, _, Mutability::Mut) => 2,
+    TyKind::Adt(adt_def, _) => {
       assert!(!adt_def.is_box());
-      assert!(vrt_idx.index() < adt_def.variants.len());
-      adt_def.variants[vrt_idx].fields.len()
+      assert!(variant_index.index() < adt_def.variants.len());
+      adt_def.variants[variant_index].fields.len()
     }
-    TyK::Tuple(substs) => substs.types().count(),
+    TyKind::Tuple(generic_args) => generic_args.types().count(),
     _ => panic!("unexpected type {} for projection", base_ty),
   }
 }
@@ -297,28 +310,28 @@ fn get_n_flds(base_ty: Ty, vrt_idx: VrtIdx) -> usize {
 pub fn seize_place<'a, 'tcx>(
   place: &Place<'tcx>, env: &'a mut Env<'tcx>, outer: Outer<'tcx>,
 ) -> &'a mut Expr<'tcx> {
-  let Site { local, projs } = place_to_site(place, outer);
-  let mut expr = env.entry(local).or_insert_with( || nonce(outer.place_to_ty(place)));
+  let Site { local, projs } = Site::from_place(place, outer);
+  let mut expr = env.entry(local).or_insert_with(|| Expr::nonce(outer.place_to_ty(place)));
   for &elem in projs.iter() {
-    let Proj { base_ty, vrt_idx, fld_idx } = elem;
+    let Proj { base_ty, variant_index, field_index } = elem;
     expr = match expr {
       Expr::Path(path) => {
-        *expr = Expr::Aggr(
+        *expr = Expr::Aggregate(
           base_ty,
-          vrt_idx,
-          (0..get_n_flds(base_ty, vrt_idx))
-            .map(|i| Expr::Path(get_proj(base_ty, vrt_idx, FldIdx::from(i), path.clone())))
+          variant_index,
+          (0..get_n_flds(base_ty, variant_index))
+            .map(|i| Expr::Path(path.get_proj(base_ty, variant_index, FieldIdx::from(i))))
             .collect(),
         );
-        if let Expr::Aggr(_, _, flds) = expr {
-          &mut flds[fld_idx.index()]
+        if let Expr::Aggregate(_, _, flds) = expr {
+          &mut flds[field_index.index()]
         } else {
           unreachable!()
         }
       }
-      Expr::Aggr(_, vrt_idx2, flds) => {
-        assert!(vrt_idx == *vrt_idx2);
-        &mut flds[fld_idx.index()]
+      Expr::Aggregate(_, variant_index2, flds) => {
+        assert!(variant_index == *variant_index2);
+        &mut flds[field_index.index()]
       }
       _ => panic!("unexpected expr {:?}", expr),
     }
@@ -326,13 +339,13 @@ pub fn seize_place<'a, 'tcx>(
   expr
 }
 
-fn ty_cnst_to_cnst<'tcx>(ty_cnst: &'tcx TyConst<'tcx>) -> Const {
+fn ty_cnst_to_cnst(ty_cnst: &TyConst<'_>) -> Const {
   let buf = pr(ty_cnst).to_string();
   match &ty_cnst.ty.kind() {
-    TyK::Int(_) | TyK::Uint(_) => Const::Int(buf.parse().unwrap()),
-    TyK::Float(_) => Const::Real(buf.parse().unwrap()),
-    TyK::Bool => Const::Bool(buf.parse().unwrap()),
-    TyK::Tuple(substs) if substs.len() == 0 => Const::Unit,
+    TyKind::Int(_) | TyKind::Uint(_) => Const::Int(buf.parse().unwrap()),
+    TyKind::Float(_) => Const::Real(buf.parse().unwrap()),
+    TyKind::Bool => Const::Bool(buf.parse().unwrap()),
+    TyKind::Tuple(generic_args) if generic_args.len() == 0 => Const::Unit,
     _ => panic!("unexpected type {:?}", ty_cnst.ty),
   }
 }
@@ -342,7 +355,7 @@ pub fn read_opd<'tcx>(opd: &Operand<'tcx>, env: &mut Env<'tcx>, outer: Outer<'tc
     Operand::Copy(place) => read_place(place, env, outer),
     Operand::Move(place) => {
       let expr = seize_place(place, env, outer);
-      let mut res = nonce(outer.place_to_ty(place));
+      let mut res = Expr::nonce(outer.place_to_ty(place));
       swap(expr, &mut res);
       res
     }
@@ -353,60 +366,59 @@ pub fn read_opd<'tcx>(opd: &Operand<'tcx>, env: &mut Env<'tcx>, outer: Outer<'tc
 }
 
 pub fn read_rvalue<'tcx>(
-  rvalue: &Rvalue<'tcx>, env: &mut Env<'tcx>, outer: Outer<'tcx>, me: BB, i: usize,
+  rvalue: &Rvalue<'tcx>, env: &mut Env<'tcx>, outer: Outer<'tcx>, me: BasicBlock, i: usize,
 ) -> Expr<'tcx> {
   let ty = outer.rvalue_to_ty(rvalue);
   match rvalue {
     Rvalue::Use(opd) => read_opd(opd, env, outer),
-    Rvalue::Ref(_, BorK::Shared, place) => read_place(place, env, outer),
-    Rvalue::Ref(_, BorK::Mut { .. }, place) => {
+    Rvalue::Ref(_, BorrowKind::Shared, place) => read_place(place, env, outer),
+    Rvalue::Ref(_, BorrowKind::Mut { .. }, place) => {
       let expr = seize_place(place, env, outer);
       let var = Var::MutRet(me, i);
       let ty2 = outer.place_to_ty(place);
-      let mut expr_buf = var_to_expr(var, ty2);
+      let mut expr_buf = Expr::from_var(var, ty2);
       swap(expr, &mut expr_buf);
-      Expr::Aggr(ty, VRT0, vec![expr_buf, var_to_expr(var, ty2)])
+      Expr::Aggregate(ty, VRT0, vec![expr_buf, Expr::from_var(var, ty2)])
     }
     Rvalue::BinaryOp(mir_bin_op, box (opd1, opd2)) => {
-      let bin_op = mir_bin_op_to_bin_op(*mir_bin_op, outer.opd_to_ty(opd1));
-      bin_op_expr(bin_op, read_opd(opd1, env, outer), read_opd(opd2, env, outer))
+      let bin_op = BinOp::from_mir_bin_op(*mir_bin_op, outer.opd_to_ty(opd1));
+      Expr::from_bin_op(bin_op, read_opd(opd1, env, outer), read_opd(opd2, env, outer))
     }
     Rvalue::UnaryOp(mir_un_op, opd) => {
-      Expr::UnOp(mir_un_op_to_un_op(*mir_un_op), Box::new(read_opd(opd, env, outer)))
+      Expr::UnOp(UnOp::from_mir_un_op(*mir_un_op), Box::new(read_opd(opd, env, outer)))
     }
     _ => panic!("unexpected rvalue {:?}", rvalue),
   }
 }
 
-pub fn set_tag<'tcx>(place: &Place<'tcx>, tag: VrtIdx, env: &mut Env<'tcx>, outer: Outer<'tcx>) {
+pub fn set_tag<'tcx>(
+  place: &Place<'tcx>, tag: VariantIdx, env: &mut Env<'tcx>, outer: Outer<'tcx>,
+) {
   let expr = seize_place(place, env, outer);
   let base_ty = outer.place_to_ty(place);
   match expr {
     Expr::Path(path) => {
       let n_flds = get_n_flds(base_ty, tag);
-      *expr = Expr::Aggr(
+      *expr = Expr::Aggregate(
         base_ty,
         tag,
-        (0..n_flds)
-          .map(|i| Expr::Path(get_proj(base_ty, tag, FldIdx::from(i), path.clone())))
-          .collect(),
+        (0..n_flds).map(|i| Expr::Path(path.get_proj(base_ty, tag, FieldIdx::from(i)))).collect(),
       );
     }
-    Expr::Aggr(_, vrt_idx, _) => assert!(tag == *vrt_idx),
+    Expr::Aggregate(_, variant_index, _) => assert!(tag == *variant_index),
     _ => panic!("unexpected expr {:?}", expr),
   }
 }
 
 fn needs_drop<'tcx>(ty: Ty<'tcx>, outer: Outer<'tcx>, seen: &mut Set<String>) -> bool {
   match &ty.kind() {
-    TyK::Bool | TyK::Int(_) | TyK::Uint(_) | TyK::Float(_) => false,
-    TyK::Adt(adt_def, adt_substs) => {
+    TyKind::Bool | TyKind::Int(_) | TyKind::Uint(_) | TyKind::Float(_) => false,
+    TyKind::Adt(adt_def, adt_substs) => {
       if adt_def.is_box() {
         needs_drop(only_ty(*adt_substs), outer, seen)
       } else {
         let key = rep(ty).to_string();
-        if !seen.contains(&key) {
-          seen.insert(key);
+        if seen.insert(key) {
           adt_def
             .all_fields()
             .any(|fld_def| needs_drop(outer.fld_def_to_ty(fld_def, adt_substs), outer, seen))
@@ -415,9 +427,11 @@ fn needs_drop<'tcx>(ty: Ty<'tcx>, outer: Outer<'tcx>, seen: &mut Set<String>) ->
         }
       }
     }
-    TyK::Ref(_, _, Mutability::Not) => false,
-    TyK::Ref(_, _, Mutability::Mut) => true,
-    TyK::Tuple(substs) => substs.types().any(|ty| needs_drop(ty, outer, seen)),
+    TyKind::Ref(_, _, Mutability::Not) => false,
+    TyKind::Ref(_, _, Mutability::Mut) => true,
+    TyKind::Tuple(generic_args) => {
+      generic_args.types().any(|ty| needs_drop(Ty::new(ty), outer, seen))
+    }
     _ => panic!("unsupported type {}", ty),
   }
 }
@@ -426,13 +440,13 @@ fn drop_path<'tcx>(ty: Ty<'tcx>, path: &Path<'tcx>, conds: &mut Vec<Cond<'tcx>>)
     return;
   }
   match &ty.kind() {
-    TyK::Ref(_, _, Mutability::Mut) => {
+    TyKind::Ref(_, _, Mutability::Mut) => {
       conds.push(Cond::Eq {
-        src: Expr::Path(get_proj(ty, VRT0, FLD0, path.clone())),
-        tgt: Expr::Path(get_proj(ty, VRT0, FLD1, path.clone())),
+        src: Expr::Path(path.get_proj(ty, VRT0, FLD0)),
+        tgt: Expr::Path(path.get_proj(ty, VRT0, FLD1)),
       });
     }
-    TyK::Adt(adt_def, adt_substs) => {
+    TyKind::Adt(adt_def, adt_substs) => {
       if adt_def.is_box() {
         drop_path(only_ty(*adt_substs), path, conds);
       } else {
@@ -451,24 +465,24 @@ pub fn drop_expr<'tcx>(
         drop_path(ty, path, conds);
       }
     }
-    Expr::Aggr(ty, vrt_idx, flds) => match &ty.kind() {
-      TyK::Ref(_, _, Mutability::Mut) => {
-        let (x, x_) = decompose_mut(arg.clone());
+    Expr::Aggregate(ty, variant_index, flds) => match &ty.kind() {
+      TyKind::Ref(_, _, Mutability::Mut) => {
+        let (x, x_) = arg.clone().decompose_mut();
         conds.push(Cond::Eq { tgt: x_, src: x });
       }
-      TyK::Adt(adt_def, adt_substs) => {
+      TyKind::Adt(adt_def, adt_substs) => {
         assert!(!adt_def.is_box());
-        assert!(vrt_idx.index() < adt_def.variants.len());
-        let fld_defs = &adt_def.variants[*vrt_idx].fields;
+        assert!(variant_index.index() < adt_def.variants.len());
+        let fld_defs = &adt_def.variants[*variant_index].fields;
         assert!(flds.len() == fld_defs.len());
         for (fld_def, fld) in fld_defs.iter().zip(flds.iter()) {
           drop_expr(outer.fld_def_to_ty(fld_def, adt_substs), fld, conds, outer);
         }
       }
-      TyK::Tuple(substs) => {
-        assert!(flds.len() == substs.types().count());
-        for (ty, fld) in substs.types().zip(flds.iter()) {
-          drop_expr(ty, fld, conds, outer);
+      TyKind::Tuple(generic_args) => {
+        assert!(flds.len() == generic_args.types().count());
+        for (ty, fld) in generic_args.types().zip(flds.iter()) {
+          drop_expr(Ty::new(ty), fld, conds, outer);
         }
       }
       _ => panic!("unexpected type {} for aggregation", ty),
@@ -495,7 +509,7 @@ pub enum Cond<'tcx> {
 }
 #[derive(Debug)]
 pub enum End<'tcx> {
-  Pivot { pivot: BB, args: Vec<Expr<'tcx>> },
+  Pivot { pivot: BasicBlock, args: Vec<Expr<'tcx>> },
   Return { res: Option<Expr<'tcx>> },
   Panic,
   NeverReturn,
@@ -509,7 +523,7 @@ fn traverse_path<'tcx>(path: &mut Path<'tcx>, vars: &mut Map<Var, Ty<'tcx>>, n_n
         *i = Some(*n_nonces);
         *n_nonces += 1;
       }
-      vars.insert(*var, ty);
+      vars.insert(*var, *ty);
     }
     Path::Proj(_, _, _, box path) => traverse_path(path, vars, n_nonces),
   }
@@ -523,7 +537,7 @@ fn traverse_expr<'tcx>(expr: &mut Expr<'tcx>, vars: &mut Map<Var, Ty<'tcx>>, n_n
       traverse_expr(expr2, vars, n_nonces);
     }
     Expr::UnOp(_, box expr) => traverse_expr(expr, vars, n_nonces),
-    Expr::Aggr(_, _, flds) => {
+    Expr::Aggregate(_, _, flds) => {
       for fld in flds.iter_mut() {
         traverse_expr(fld, vars, n_nonces);
       }
@@ -572,17 +586,16 @@ fn traverse_end<'tcx>(end: &mut End<'tcx>, vars: &mut Map<Var, Ty<'tcx>>, n_nonc
 }
 fn traverse_ty<'tcx>(
   ty: Ty<'tcx>, outer: Outer<'tcx>, adt_asks: &mut Set<DefId>,
-  tup_asks: &mut Map<String, &'tcx Substs<'tcx>>, mut_asks: &mut Map<String, Ty<'tcx>>,
+  tup_asks: &mut Map<String, &'tcx GenericArgs<'tcx>>, mut_asks: &mut Map<String, Ty<'tcx>>,
 ) {
   match &ty.kind() {
-    TyK::Bool | TyK::Int(_) | TyK::Uint(_) | TyK::Float(_) => {}
-    TyK::Adt(adt_def, adt_substs) => {
+    TyKind::Bool | TyKind::Int(_) | TyKind::Uint(_) | TyKind::Float(_) => {}
+    TyKind::Adt(adt_def, adt_substs) => {
       if adt_def.is_box() {
         for ty in adt_substs.types() {
-          traverse_ty(ty, outer, adt_asks, tup_asks, mut_asks);
+          traverse_ty(Ty::new(ty), outer, adt_asks, tup_asks, mut_asks);
         }
-      } else if !adt_asks.contains(&adt_def.did) {
-        adt_asks.insert(adt_def.did);
+      } else if adt_asks.insert(adt_def.did) {
         for fld_def in adt_def.all_fields() {
           traverse_ty(
             outer.fld_def_to_ty(fld_def, adt_substs),
@@ -594,15 +607,17 @@ fn traverse_ty<'tcx>(
         }
       }
     }
-    TyK::Ref(_, ty, mutimmut) => {
-      if let Mutability::Mut = mutimmut {
+    TyKind::Ref(_, ty, mutability) => {
+      let ty = Ty::new(ty);
+      if let Mutability::Mut = mutability {
         mut_asks.insert(rep(ty).to_string(), ty);
       }
       traverse_ty(ty, outer, adt_asks, tup_asks, mut_asks);
     }
-    TyK::Tuple(substs) => {
-      tup_asks.insert(rep(substs).to_string(), substs);
-      for ty in substs.types() {
+    TyKind::Tuple(generic_args) => {
+      tup_asks.insert(rep(generic_args).to_string(), generic_args);
+      for ty in generic_args.types() {
+        let ty = Ty::new(ty);
         traverse_ty(ty, outer, adt_asks, tup_asks, mut_asks)
       }
     }
@@ -615,7 +630,7 @@ pub struct BasicAsks<'tcx> {
   pub fun_asks: Map<String, Ty<'tcx>>,
   pub drop_asks: Map<String, Ty<'tcx>>,
   pub adt_asks: Set<DefId>,
-  pub tup_asks: Map<String, &'tcx Substs<'tcx>>,
+  pub tup_asks: Map<String, &'tcx GenericArgs<'tcx>>,
   pub mut_asks: Map<String, Ty<'tcx>>,
 }
 
@@ -634,7 +649,7 @@ pub fn traverse_prerule<'tcx>(
   }
   traverse_end(end, &mut vars, &mut n_nonces);
   for (_, ty) in vars.iter() {
-    traverse_ty(ty, outer, adt_asks, tup_asks, mut_asks);
+    traverse_ty(*ty, outer, adt_asks, tup_asks, mut_asks);
   }
   sort_map(vars)
 }

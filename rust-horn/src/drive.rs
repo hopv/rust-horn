@@ -1,5 +1,3 @@
-use rustc_middle::ty::TyCtxt;
-
 use std::fs::File;
 use std::io::{Result, Write};
 use std::path::PathBuf;
@@ -7,6 +5,7 @@ use std::path::PathBuf;
 use crate::analyze::analyze;
 use crate::prettify::{pr_mir, pr_mir_dot, pr_name};
 use crate::represent::rep_summary;
+use crate::types::TyCtxt;
 use crate::util::enumerate_mirs;
 
 pub struct Options {

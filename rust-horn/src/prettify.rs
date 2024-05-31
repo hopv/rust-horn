@@ -1,19 +1,13 @@
-use rustc_hir::{def_id::DefId, Mutability};
-use rustc_middle::mir::{
-  AggregateKind as AggrK, BasicBlock as BB, BinOp, Body, BorrowKind as BorK, Field, Local,
-  LocalDecl, NullOp, Operand, Place, ProjectionElem as ProjElem, Rvalue, Statement as Stmt,
-  StatementKind as StmtK, Terminator as Tmnt, TerminatorKind as TmntK, UnOp,
-};
-use rustc_middle::ty::{
-  subst::InternalSubsts as Substs, tls::with as with_tcx, AdtDef, ClosureKind, Const, FnSig, Ty,
-  TyCtxt, TyKind as TyK,
-};
-use rustc_target::abi::VariantIdx as VrtIdx;
-
 use std::fmt::{Display, Formatter, Result as FResult};
 use std::str::pattern::Pattern;
 
-use crate::util::{bits_to_cnst, enumerate_bbds, get_tmnt, Cap};
+use crate::types::{
+  with_tcx, AdtDef, AggregateKind, BasicBlock, BorrowKind, ClosureKind, DefId, FieldIdx, FnSig,
+  GenericArgs, Local, LocalDecl, MirBinOp, MirBody, MirUnOp, Mutability, NullOp, Operand, Place,
+  ProjectionElem, Rvalue, Statement, StatementKind, Terminator, TerminatorKind, Ty, TyConst,
+  TyCtxt, TyKind, VariantIdx,
+};
+use crate::util::{bits_to_cnst, enumerate_bbds, get_tmnt};
 
 pub fn pr_name(def_id: DefId) -> String {
   with_tcx(|tcx| tcx.def_path_str(def_id)).replace("{{closure}}", "{clsr}")
@@ -28,7 +22,9 @@ pub fn pr_fun_name(fun: DefId) -> String {
     "std::cmp::PartialEq::eq" => "<eq>".to_string(),
     "std::cmp::PartialEq::ne" => "<ne>".to_string(),
     "std::ops::Add::add" => "<add>".to_string(),
-    _ if "core::num::<impl".is_prefix_of(&name) && ">::abs".is_suffix_of(&name) => "<abs>".to_string(),
+    _ if "core::num::<impl".is_prefix_of(&name) && ">::abs".is_suffix_of(&name) => {
+      "<abs>".to_string()
+    }
     "std::mem::swap" => "<swap>".to_string(),
     "std::rt::begin_panic" => "<panic>".to_string(),
     "std::intrinsics::discriminant_value" => "<tag>".to_string(),
@@ -95,56 +91,61 @@ pub fn pr_adt_name(adt_def: &AdtDef) -> String {
 }
 
 impl Display for Pr<Ty<'_>> {
+  fn fmt(&self, f: &mut Formatter<'_>) -> FResult { self.unpr.ty.fmt(f) }
+}
+impl Display for Pr<rustc_middle::ty::Ty<'_>> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let ty = self.unpr;
     match &ty.kind() {
-      TyK::Bool => write!(f, "bool"),
-      TyK::Char => write!(f, "char"),
-      TyK::Int(_) | TyK::Uint(_) => write!(f, "int"),
-      TyK::Float(_) => write!(f, "float"),
-      TyK::Adt(adt_def, substs) => write!(f, "{}{}", pr_adt_name(adt_def), pr(substs)),
-      TyK::Str => write!(f, "str"),
-      TyK::Array(ty, cnst) => write!(f, "[{}; {}]", pr(ty), pr(cnst)),
-      TyK::Foreign(_) => write!(f, "<foreign>"),
-      TyK::Slice(ty) => write!(f, "[{}]", pr(ty)),
-      TyK::RawPtr(_) => write!(f, "<raw_ptr>"),
-      TyK::Ref(_, ty, Mutability::Not) => write!(f, "&{}", pr(ty)),
-      TyK::Ref(_, ty, Mutability::Mut) => write!(f, "&mut {}", pr(ty)),
-      TyK::FnDef(fun, substs) => with_tcx(|tcx| {
+      TyKind::Bool => write!(f, "bool"),
+      TyKind::Char => write!(f, "char"),
+      TyKind::Int(_) | TyKind::Uint(_) => write!(f, "int"),
+      TyKind::Float(_) => write!(f, "float"),
+      TyKind::Adt(adt_def, generic_args) => {
+        write!(f, "{}{}", pr_adt_name(adt_def), pr(generic_args))
+      }
+      TyKind::Str => write!(f, "str"),
+      TyKind::Array(ty, cnst) => write!(f, "[{}; {}]", pr(ty), pr(cnst)),
+      TyKind::Foreign(_) => write!(f, "<foreign>"),
+      TyKind::Slice(ty) => write!(f, "[{}]", pr(ty)),
+      TyKind::RawPtr(_) => write!(f, "<raw_ptr>"),
+      TyKind::Ref(_, ty, Mutability::Not) => write!(f, "&{}", pr(ty)),
+      TyKind::Ref(_, ty, Mutability::Mut) => write!(f, "&mut {}", pr(ty)),
+      TyKind::FnDef(fun, generic_args) => with_tcx(|tcx| {
         let fn_sig = tcx.fn_sig(*fun).skip_binder();
-        write!(f, "fn {}{}{}", pr_fun_name(*fun), pr(substs), pr(fn_sig))
+        write!(f, "fn {}{}{}", pr_fun_name(*fun), pr(generic_args), pr(fn_sig))
       }),
-      TyK::FnPtr(poly_fn_sig) => {
+      TyKind::FnPtr(poly_fn_sig) => {
         write!(f, "fn {}", pr(poly_fn_sig.skip_binder()))
       }
-      TyK::Closure(fun, substs) => {
-        let len = substs.len();
+      TyKind::Closure(fun, generic_args) => {
+        let len = generic_args.len();
         let from = with_tcx(|tcx| tcx.generics_of(*fun).parent_count);
-        let clsr_kind = substs.type_at(from).to_opt_closure_kind().unwrap();
+        let clsr_kind = generic_args.type_at(from).to_opt_closure_kind().unwrap();
         write!(f, "{}{{", pr(clsr_kind))?;
         let mut sep = "";
         for i in from + 2..len {
-          write!(f, "{}{}", sep, pr(substs.type_at(i)))?;
+          write!(f, "{}{}", sep, pr(generic_args.type_at(i)))?;
           sep = ", ";
         }
         write!(f, "}}({})", pr_name(*fun))
       }
-      TyK::Dynamic(_, _) => write!(f, "<dyn>"),
-      TyK::Never => write!(f, "!"),
-      TyK::Tuple(substs) => {
+      TyKind::Dynamic(_, _) => write!(f, "<dyn>"),
+      TyKind::Never => write!(f, "!"),
+      TyKind::Tuple(generic_args) => {
         write!(f, "(")?;
         let mut sep = "";
         let mut cnt = 0;
-        for ty in substs.types() {
+        for ty in generic_args.types() {
           write!(f, "{}{}", sep, pr(ty))?;
           sep = ", ";
           cnt += 1;
         }
         write!(f, "{})", if cnt == 1 { "," } else { "" })
       }
-      TyK::Projection(_) => write!(f, "<proj>"),
-      TyK::Opaque(_, _) => write!(f, "<opaque>"),
-      TyK::Param(param_ty) => write!(f, "{}", param_ty.name),
+      TyKind::Projection(_) => write!(f, "<proj>"),
+      TyKind::Opaque(_, _) => write!(f, "<opaque>"),
+      TyKind::Param(param_ty) => write!(f, "{}", param_ty.name),
       _ => panic!("unsupported type {}", ty),
     }
   }
@@ -156,13 +157,13 @@ impl Display for Pr<Local> {
     write!(f, "_{}", local.index())
   }
 }
-impl Display for Pr<VrtIdx> {
+impl Display for Pr<VariantIdx> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
-    let vrt_idx = self.unpr;
-    write!(f, "${}", vrt_idx.index())
+    let variant_index = self.unpr;
+    write!(f, "${}", variant_index.index())
   }
 }
-impl Display for Pr<Field> {
+impl Display for Pr<FieldIdx> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let fld = self.unpr;
     write!(f, "{}", fld.index())
@@ -174,28 +175,28 @@ impl Display for Pr<&Place<'_>> {
     write!(f, "{}", pr(local))?;
     for proj in projection.iter() {
       match proj {
-        ProjElem::Deref => write!(f, ".*")?,
-        ProjElem::Field(fld_idx, _) => write!(f, ".{}", pr(fld_idx))?,
-        ProjElem::Index(local) => write!(f, "[{}]", pr(local))?,
-        ProjElem::ConstantIndex { offset, from_end, .. } => {
+        ProjectionElem::Deref => write!(f, ".*")?,
+        ProjectionElem::Field(field_index, _) => write!(f, ".{}", pr(field_index))?,
+        ProjectionElem::Index(local) => write!(f, "[{}]", pr(local))?,
+        ProjectionElem::ConstantIndex { offset, from_end, .. } => {
           let sign = if from_end { "-" } else { "" };
           write!(f, "[{}{}]", sign, offset)?;
         }
-        ProjElem::Subslice { from, to, from_end } => {
+        ProjectionElem::Subslice { from, to, from_end } => {
           write!(f, "[{}:-{}{}]", from, to, if from_end { " rev" } else { "" })?
         }
-        ProjElem::Downcast(_, vrt_idx) => write!(f, "<{}>", pr(vrt_idx))?,
+        ProjectionElem::Downcast(_, variant_index) => write!(f, "<{}>", pr(variant_index))?,
       }
     }
     Ok(())
   }
 }
 
-impl Display for Pr<&Substs<'_>> {
+impl Display for Pr<&GenericArgs<'_>> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
-    let substs = self.unpr;
+    let generic_args = self.unpr;
     let mut sep = "<";
-    for ty in substs.types() {
+    for ty in generic_args.types() {
       write!(f, "{}{}", sep, pr(ty))?;
       sep = ", ";
     }
@@ -206,15 +207,15 @@ impl Display for Pr<&Substs<'_>> {
   }
 }
 
-impl<'tcx> Display for Pr<&Const<'tcx>> {
+impl<'tcx> Display for Pr<&TyConst<'tcx>> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let cnst = self.unpr;
-    if let TyK::FnDef(fun, substs) = cnst.ty.kind() {
-      write!(f, "{}{}", pr_fun_name(*fun), pr(substs))
+    if let TyKind::FnDef(fun, generic_args) = cnst.ty.kind() {
+      write!(f, "{}{}", pr_fun_name(*fun), pr(generic_args))
     } else {
       let buf = format!("{}", cnst);
       match cnst.ty.kind() {
-        TyK::Int(_) | TyK::Uint(_) | TyK::Float(_) => {
+        TyKind::Int(_) | TyKind::Uint(_) | TyKind::Float(_) => {
           write!(f, "{}", buf.split('_').next().unwrap())
         }
         _ => write!(f, "{}", buf),
@@ -223,7 +224,7 @@ impl<'tcx> Display for Pr<&Const<'tcx>> {
   }
 }
 
-fn pr_bits<'tcx>(ty: Ty<'tcx>, bits: u128, tcx: TyCtxt<'tcx>) -> impl Display + Cap<'tcx> {
+fn pr_bits<'tcx>(ty: Ty<'tcx>, bits: u128, tcx: TyCtxt<'tcx>) -> impl Display + 'tcx {
   pr(bits_to_cnst(ty, bits, tcx))
 }
 
@@ -240,36 +241,36 @@ impl Display for Pr<&Operand<'_>> {
   }
 }
 
-impl Display for Pr<BorK> {
+impl Display for Pr<BorrowKind> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let bor_kind = self.unpr;
     match bor_kind {
-      BorK::Shared => write!(f, "&"),
-      BorK::Mut { .. } => write!(f, "&mut "),
+      BorrowKind::Shared => write!(f, "&"),
+      BorrowKind::Mut { .. } => write!(f, "&mut "),
       _ => panic!("unsupported borrow kind {:?}", bor_kind),
     }
   }
 }
-impl Display for Pr<BinOp> {
+impl Display for Pr<MirBinOp> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let bin_op = self.unpr;
     match bin_op {
-      BinOp::Add => write!(f, "+"),
-      BinOp::Sub => write!(f, "-"),
-      BinOp::Mul => write!(f, "*"),
-      BinOp::Div => write!(f, "/"),
-      BinOp::Rem => write!(f, "%"),
-      BinOp::BitXor => write!(f, "^"),
-      BinOp::BitAnd => write!(f, "&"),
-      BinOp::BitOr => write!(f, "|"),
-      BinOp::Shl => write!(f, "<<"),
-      BinOp::Shr => write!(f, ">>"),
-      BinOp::Eq => write!(f, "=="),
-      BinOp::Lt => write!(f, "<"),
-      BinOp::Le => write!(f, "<="),
-      BinOp::Ne => write!(f, "!="),
-      BinOp::Ge => write!(f, ">="),
-      BinOp::Gt => write!(f, "<"),
+      MirBinOp::Add => write!(f, "+"),
+      MirBinOp::Sub => write!(f, "-"),
+      MirBinOp::Mul => write!(f, "*"),
+      MirBinOp::Div => write!(f, "/"),
+      MirBinOp::Rem => write!(f, "%"),
+      MirBinOp::BitXor => write!(f, "^"),
+      MirBinOp::BitAnd => write!(f, "&"),
+      MirBinOp::BitOr => write!(f, "|"),
+      MirBinOp::Shl => write!(f, "<<"),
+      MirBinOp::Shr => write!(f, ">>"),
+      MirBinOp::Eq => write!(f, "=="),
+      MirBinOp::Lt => write!(f, "<"),
+      MirBinOp::Le => write!(f, "<="),
+      MirBinOp::Ne => write!(f, "!="),
+      MirBinOp::Ge => write!(f, ">="),
+      MirBinOp::Gt => write!(f, "<"),
       _ => panic!("unsupported binary operator {:?}", bin_op),
     }
   }
@@ -282,11 +283,11 @@ impl Display for Pr<NullOp> {
     }
   }
 }
-impl Display for Pr<UnOp> {
+impl Display for Pr<MirUnOp> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     match self.unpr {
-      UnOp::Not => write!(f, "!"),
-      UnOp::Neg => write!(f, "-"),
+      MirUnOp::Not => write!(f, "!"),
+      MirUnOp::Neg => write!(f, "-"),
     }
   }
 }
@@ -305,7 +306,7 @@ impl Display for Pr<&Rvalue<'_>> {
       Rvalue::NullaryOp(null_op, ty) => write!(f, "{}<{}>", pr(null_op), pr(ty)),
       Rvalue::UnaryOp(un_op, opd) => write!(f, "{}{}", pr(un_op), pr(opd)),
       Rvalue::Discriminant(place) => write!(f, "{}.tag", pr(place)),
-      Rvalue::Aggregate(box AggrK::Array(_), opds) => {
+      Rvalue::Aggregate(box AggregateKind::Array(_), opds) => {
         write!(f, "[")?;
         let mut sep = "";
         for opd in opds.iter() {
@@ -319,46 +320,46 @@ impl Display for Pr<&Rvalue<'_>> {
   }
 }
 
-impl Display for Pr<&Stmt<'_>> {
+impl Display for Pr<&Statement<'_>> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let stmt = self.unpr;
     match &stmt.kind {
-      StmtK::Assign(box (place, rvalue)) => write!(f, "{} := {}", pr(place), pr(rvalue)),
-      StmtK::SetDiscriminant { place: box place, variant_index } => {
+      StatementKind::Assign(box (place, rvalue)) => write!(f, "{} := {}", pr(place), pr(rvalue)),
+      StatementKind::SetDiscriminant { place: box place, variant_index } => {
         write!(f, "{}.tag := {}", pr(place), variant_index.index())
       }
-      StmtK::StorageLive(local) => write!(f, "live {}", pr(local)),
-      StmtK::StorageDead(local) => write!(f, "dead {}", pr(local)),
-      StmtK::AscribeUserType(_, _) => write!(f, "ascribe type"),
-      StmtK::Nop => write!(f, "nop"),
+      StatementKind::StorageLive(local) => write!(f, "live {}", pr(local)),
+      StatementKind::StorageDead(local) => write!(f, "dead {}", pr(local)),
+      StatementKind::AscribeUserType(_, _) => write!(f, "ascribe type"),
+      StatementKind::Nop => write!(f, "nop"),
       _ => panic!("unsupported statement {:?}", stmt),
     }
   }
 }
 
-struct PrTmntShort<'tcx> {
-  tmnt: &'tcx Tmnt<'tcx>,
-  mir: &'tcx Body<'tcx>,
+struct PrTerminatorShort<'tcx> {
+  tmnt: &'tcx Terminator<'tcx>,
+  mir: &'tcx MirBody<'tcx>,
   tcx: TyCtxt<'tcx>,
 }
 fn pr_tmnt_short<'tcx>(
-  tmnt: &'tcx Tmnt<'tcx>, mir: &'tcx Body<'tcx>, tcx: TyCtxt<'tcx>,
+  tmnt: &'tcx Terminator<'tcx>, mir: &'tcx MirBody<'tcx>, tcx: TyCtxt<'tcx>,
 ) -> impl Display + 'tcx {
-  PrTmntShort { tmnt, mir, tcx }
+  PrTerminatorShort { tmnt, mir, tcx }
 }
-impl Display for PrTmntShort<'_> {
+impl Display for PrTerminatorShort<'_> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
-    let PrTmntShort { tmnt, mir, tcx } = *self;
+    let PrTerminatorShort { tmnt, mir, tcx } = *self;
     match &tmnt.kind {
-      TmntK::Goto { .. } => Ok(()),
-      TmntK::SwitchInt { discr, .. } => write!(f, "? {}", pr(discr)),
-      TmntK::Unreachable => write!(f, "panic"),
-      TmntK::Return => write!(f, "return _0"),
-      TmntK::Drop { place, .. } => {
+      TerminatorKind::Goto { .. } => Ok(()),
+      TerminatorKind::SwitchInt { discr, .. } => write!(f, "? {}", pr(discr)),
+      TerminatorKind::Unreachable => write!(f, "panic"),
+      TerminatorKind::Return => write!(f, "return _0"),
+      TerminatorKind::Drop { place, .. } => {
         let ty = place.ty(mir, tcx).ty;
         write!(f, "drop<{}>({})", pr(ty), pr(place))
       }
-      TmntK::Call { func, args, destination, .. } => {
+      TerminatorKind::Call { func, args, destination, .. } => {
         if let Some((place, _)) = destination {
           write!(f, "{} := ", pr(place))?;
         }
@@ -370,42 +371,44 @@ impl Display for PrTmntShort<'_> {
         }
         write!(f, ")")
       }
-      TmntK::Assert { cond, expected, .. } => write!(f, "assert!({} == {})", pr(cond), expected),
+      TerminatorKind::Assert { cond, expected, .. } => {
+        write!(f, "assert!({} == {})", pr(cond), expected)
+      }
       _ => panic!("unsupported terminator {:?}", tmnt),
     }
   }
 }
-struct PrTmnt<'tcx> {
-  tmnt: &'tcx Tmnt<'tcx>,
-  mir: &'tcx Body<'tcx>,
+struct PrTerminator<'tcx> {
+  tmnt: &'tcx Terminator<'tcx>,
+  mir: &'tcx MirBody<'tcx>,
   tcx: TyCtxt<'tcx>,
 }
 fn pr_tmnt<'tcx>(
-  tmnt: &'tcx Tmnt<'tcx>, mir: &'tcx Body<'tcx>, tcx: TyCtxt<'tcx>,
+  tmnt: &'tcx Terminator<'tcx>, mir: &'tcx MirBody<'tcx>, tcx: TyCtxt<'tcx>,
 ) -> impl Display + 'tcx {
-  PrTmnt { tmnt, mir, tcx }
+  PrTerminator { tmnt, mir, tcx }
 }
-impl Display for PrTmnt<'_> {
+impl Display for PrTerminator<'_> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
-    let PrTmnt { tmnt, mir, tcx } = *self;
+    let PrTerminator { tmnt, mir, tcx } = *self;
     write!(f, "{}", pr_tmnt_short(tmnt, mir, tcx))?;
     match &tmnt.kind {
-      TmntK::Goto { target } => {
+      TerminatorKind::Goto { target } => {
         write!(f, "goto {}", pr(target))?;
       }
-      TmntK::SwitchInt { switch_ty, targets, .. } => {
+      TerminatorKind::SwitchInt { switch_ty, targets, .. } => {
         write!(f, " [")?;
         for (val, tgt) in targets.iter() {
-          let label = pr_bits(switch_ty, val, tcx).to_string();
+          let label = pr_bits(Ty::new(switch_ty), val, tcx).to_string();
           write!(f, "{} -> goto {}, ", label, pr(tgt))?;
         }
         write!(f, "else -> goto {}]", pr(targets.otherwise()))?;
       }
-      TmntK::Unreachable | TmntK::Return => {}
-      TmntK::Drop { target, .. } | TmntK::Assert { target, .. } => {
+      TerminatorKind::Unreachable | TerminatorKind::Return => {}
+      TerminatorKind::Drop { target, .. } | TerminatorKind::Assert { target, .. } => {
         write!(f, "; goto {}", pr(target))?;
       }
-      TmntK::Call { destination, .. } => {
+      TerminatorKind::Call { destination, .. } => {
         if let Some((_, target)) = destination {
           write!(f, "; goto {}", pr(target))?;
         }
@@ -418,7 +421,7 @@ impl Display for PrTmnt<'_> {
   }
 }
 
-impl Display for Pr<BB> {
+impl Display for Pr<BasicBlock> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let bb = self.unpr;
     write!(f, "bb{}", bb.index())
@@ -426,17 +429,17 @@ impl Display for Pr<BB> {
 }
 
 struct PrSig<'tcx> {
-  mir: &'tcx Body<'tcx>,
+  mir: &'tcx MirBody<'tcx>,
   fun: DefId,
 }
-fn pr_sig<'tcx>(mir: &'tcx Body<'tcx>, fun: DefId) -> impl Display + 'tcx { PrSig { mir, fun } }
+fn pr_sig<'tcx>(mir: &'tcx MirBody<'tcx>, fun: DefId) -> impl Display + 'tcx { PrSig { mir, fun } }
 impl Display for PrSig<'_> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let PrSig { mir, fun } = *self;
     write!(f, "fn {}", pr_name(fun))?;
     with_tcx(|tcx| match &tcx.type_of(fun).kind() {
-      TyK::FnDef(_, substs) => write!(f, "{}", pr(substs)),
-      TyK::Closure(_, _) => Ok(()),
+      TyKind::FnDef(_, generic_args) => write!(f, "{}", pr(generic_args)),
+      TyKind::Closure(_, _) => Ok(()),
       _ => panic!("unknown function type"),
     })?;
     write!(f, "(")?;
@@ -465,11 +468,13 @@ impl Display for PrVar<'_> {
 }
 
 struct PrMir<'tcx> {
-  mir: &'tcx Body<'tcx>,
+  mir: &'tcx MirBody<'tcx>,
   fun: DefId,
   tcx: TyCtxt<'tcx>,
 }
-pub fn pr_mir<'tcx>(mir: &'tcx Body<'tcx>, fun: DefId, tcx: TyCtxt<'tcx>) -> impl Display + 'tcx {
+pub fn pr_mir<'tcx>(
+  mir: &'tcx MirBody<'tcx>, fun: DefId, tcx: TyCtxt<'tcx>,
+) -> impl Display + 'tcx {
   PrMir { mir, fun, tcx }
 }
 impl Display for PrMir<'_> {
@@ -499,12 +504,12 @@ fn html_esc<T: Display>(x: T) -> String {
 }
 
 struct PrMirDot<'tcx> {
-  mir: &'tcx Body<'tcx>,
+  mir: &'tcx MirBody<'tcx>,
   fun: DefId,
   tcx: TyCtxt<'tcx>,
 }
 pub fn pr_mir_dot<'tcx>(
-  mir: &'tcx Body<'tcx>, fun: DefId, tcx: TyCtxt<'tcx>,
+  mir: &'tcx MirBody<'tcx>, fun: DefId, tcx: TyCtxt<'tcx>,
 ) -> impl Display + 'tcx {
   PrMirDot { mir, fun, tcx }
 }
@@ -531,7 +536,7 @@ impl Display for PrMirDot<'_> {
       writeln!(f, r#"    <tr><td align="left">{}</td></tr>"#, html_esc(pr_var(local, local_decl)))?;
     }
     write!(f, "  </table>>;\n\n")?;
-    let mut jumps = Vec::<(BB, BB, String)>::new();
+    let mut jumps = Vec::<(BasicBlock, BasicBlock, String)>::new();
     // visit basic blocks
     for (bb, bbd) in enumerate_bbds(mir.basic_blocks()) {
       writeln!(
@@ -548,18 +553,15 @@ impl Display for PrMirDot<'_> {
       }
       let tmnt = get_tmnt(bbd);
       match &tmnt.kind {
-        TmntK::Goto { .. } => {}
-        TmntK::SwitchInt { .. }
-        | TmntK::Unreachable
-        | TmntK::Assert { .. }
-        | TmntK::Return
-        | TmntK::Call { .. }
-        | TmntK::Drop { .. } => {
-          let bgcolor = if let TmntK::SwitchInt { .. } = &tmnt.kind {
-            "#f8ccff"
-          } else {
-            "#d1ffeb"
-          };
+        TerminatorKind::Goto { .. } => {}
+        TerminatorKind::SwitchInt { .. }
+        | TerminatorKind::Unreachable
+        | TerminatorKind::Assert { .. }
+        | TerminatorKind::Return
+        | TerminatorKind::Call { .. }
+        | TerminatorKind::Drop { .. } => {
+          let bgcolor =
+            if let TerminatorKind::SwitchInt { .. } = &tmnt.kind { "#f8ccff" } else { "#d1ffeb" };
           writeln!(
             f,
             r#"      <tr><td align="left" bgcolor="{}">{}</td></tr>"#,
@@ -570,18 +572,20 @@ impl Display for PrMirDot<'_> {
         _ => panic!("unsupported terminator {:?}", tmnt),
       }
       match &tmnt.kind {
-        TmntK::Goto { target } | TmntK::Drop { target, .. } | TmntK::Assert { target, .. } => {
+        TerminatorKind::Goto { target }
+        | TerminatorKind::Drop { target, .. }
+        | TerminatorKind::Assert { target, .. } => {
           jumps.push((bb, *target, String::new()));
         }
-        TmntK::SwitchInt { switch_ty, targets, .. } => {
+        TerminatorKind::SwitchInt { switch_ty, targets, .. } => {
           for (val, tgt) in targets.iter() {
-            let label = pr_bits(switch_ty, val, tcx).to_string();
+            let label = pr_bits(Ty::new(switch_ty), val, tcx).to_string();
             jumps.push((bb, tgt, label));
           }
           jumps.push((bb, targets.otherwise(), "else".to_string()));
         }
-        TmntK::Unreachable | TmntK::Return => {}
-        TmntK::Call { destination, .. } => {
+        TerminatorKind::Unreachable | TerminatorKind::Return => {}
+        TerminatorKind::Call { destination, .. } => {
           if let Some((_, target)) = destination {
             jumps.push((bb, *target, String::new()));
           }

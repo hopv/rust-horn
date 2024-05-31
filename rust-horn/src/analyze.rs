@@ -1,33 +1,21 @@
-use rustc_hir::{
-  def_id::DefId,
-  Mutability,
-};
-use rustc_middle::mir::{
-  BasicBlock as BB, Field as FldIdx, Local, Operand, Place, Rvalue, Statement,
-  StatementKind as StmtK, TerminatorKind as TmntK,
-};
-use rustc_middle::ty::{
-  subst::InternalSubsts as Substs, AdtDef, Ty, TyCtxt, TyKind as TyK, VariantDef as VrtDef,
-};
-use rustc_session::config::EntryFnType;
-
-use std::collections::{HashMap as Map, HashSet as Set};
 use std::mem::swap;
 
 use crate::prettify::pr_fun_name;
 use crate::represent::rep_fun_name;
-use crate::util::{
-  fun_of_fun_ty, get_tmnt, sort_map, sort_set, substs_of_fun_ty, BB0, FLD0, FLD1, VRT0, _0,
+use crate::types::{
+  AdtDef, BasicBlock, DefId, EntryFnType, FieldIdx, GenericArgsRef, Local, Map, Mutability,
+  Operand, Place, Rvalue, Set, Statement, StatementKind, TerminatorKind, Ty, TyCtxt, TyKind,
+  VariantDef,
 };
+use crate::util::{get_tmnt, sort_map, sort_set, BB0, FLD0, FLD1, VRT0, _0};
 
 pub mod graph;
-use graph::{get_ghosts, get_ins_outs_map, get_pivots, Basic};
+use graph::{get_ghosts, Basic};
 
 pub mod data;
 use data::{
-  assign_to_place, bin_op_expr, decompose_mut, drop_expr, fun_to_bin_op, fun_to_un_op, get_proj,
-  nonce, read_opd, read_place, read_rvalue, seize_place, set_tag, traverse_prerule, var_to_expr,
-  BasicAsks, Cond, Const, End, Env, Expr, Outer, Var,
+  assign_to_place, drop_expr, read_opd, read_place, read_rvalue, seize_place, set_tag,
+  traverse_prerule, BasicAsks, BinOp, Cond, Const, End, Env, Expr, Outer, UnOp, Var,
 };
 
 #[derive(Debug)]
@@ -49,8 +37,8 @@ pub struct PivotDef<'tcx> {
   pub rules: Vec<Rule<'tcx>>,
 }
 
-pub type FunDef<'tcx> = Vec<(Option<BB>, PivotDef<'tcx>)>;
-pub type FunDefRef<'a, 'tcx> = &'a [(Option<BB>, PivotDef<'tcx>)];
+pub type FunDef<'tcx> = Vec<(Option<BasicBlock>, PivotDef<'tcx>)>;
+pub type FunDefRef<'a, 'tcx> = &'a [(Option<BasicBlock>, PivotDef<'tcx>)];
 
 #[derive(Debug, Copy, Clone)]
 enum DiscrKind {
@@ -60,13 +48,13 @@ enum DiscrKind {
 
 #[derive(Copy, Clone)]
 struct Data<'a, 'tcx> {
-  ins_map: &'a Map<BB, Set<Local>>,
-  outs_map: &'a Map<BB, Set<Local>>,
+  ins_map: &'a Map<BasicBlock, Set<Local>>,
+  outs_map: &'a Map<BasicBlock, Set<Local>>,
   basic: Basic<'a, 'tcx>,
   outer: Outer<'tcx>,
 }
 impl<'a, 'tcx> Data<'a, 'tcx> {
-  fn get_locals(self, pivot: Option<BB>) -> &'a Set<Local> {
+  fn get_locals(self, pivot: Option<BasicBlock>) -> &'a Set<Local> {
     let Data { ins_map, outs_map, .. } = self;
     if let Some(bb) = pivot {
       &outs_map[&bb]
@@ -74,15 +62,16 @@ impl<'a, 'tcx> Data<'a, 'tcx> {
       &ins_map[&BB0]
     }
   }
-  fn discr_place_kind(self, pivot: BB) -> (Place<'tcx>, DiscrKind) {
+  fn discr_place_kind(self, pivot: BasicBlock) -> (Place<'tcx>, DiscrKind) {
     let Data { basic, .. } = self;
     let bbd = &basic[pivot];
     match &get_tmnt(bbd).kind {
-      TmntK::SwitchInt { discr, .. } if !basic.is_ghost_switching(pivot) => {
+      TerminatorKind::SwitchInt { discr, .. } if !basic.is_ghost_switching(pivot) => {
         match bbd.statements.last() {
-          Some(Statement { kind: StmtK::Assign(box (_, Rvalue::Discriminant(place))), .. }) => {
-            (*place, DiscrKind::Tag)
-          }
+          Some(Statement {
+            kind: StatementKind::Assign(box (_, Rvalue::Discriminant(place))),
+            ..
+          }) => (*place, DiscrKind::Tag),
           _ => match discr {
             Operand::Copy(place) | Operand::Move(place) => (*place, DiscrKind::Value),
             _ => panic!("unexpected operand {:?} for a discriminant", discr),
@@ -92,7 +81,7 @@ impl<'a, 'tcx> Data<'a, 'tcx> {
       _ => panic!("unexpected type of pivot for a discriminant"),
     }
   }
-  fn get_param_tys(self, is_main: bool, pivot: Option<BB>) -> Vec<Ty<'tcx>> {
+  fn get_param_tys(self, is_main: bool, pivot: Option<BasicBlock>) -> Vec<Ty<'tcx>> {
     let Data { outer, .. } = self;
     let locals = sort_set(self.get_locals(pivot).clone());
     let mut res = locals.iter().map(|local| outer.local_to_ty(*local)).collect::<Vec<_>>();
@@ -108,32 +97,28 @@ impl<'a, 'tcx> Data<'a, 'tcx> {
 }
 
 fn pivot_up<'tcx>(
-  init_env: Env<'tcx>, is_main: bool, pivot: BB, mut conds: Vec<Cond<'tcx>>, mut env: Env<'tcx>,
-  data: Data<'_, 'tcx>,
+  init_env: Env<'tcx>, is_main: bool, pivot: BasicBlock, mut conds: Vec<Cond<'tcx>>,
+  mut env: Env<'tcx>, data: Data<'_, 'tcx>,
 ) -> Prerule<'tcx> {
   let Data { outer, .. } = data;
   let mut args = Vec::<Expr<'tcx>>::new();
   for local in sort_set(data.get_locals(Some(pivot)).clone()).iter() {
-    args.push(if let Some(expr) = env.remove(local) {
-      expr
-    } else {
-      nonce(outer.local_to_ty(*local))
-    });
+    args.push(env.remove(local).unwrap_or_else(|| Expr::nonce(outer.local_to_ty(*local))));
   }
-  for (local, expr) in sort_map(env).drain(..) {
+  for (local, expr) in sort_map(env) {
     drop_expr(outer.local_to_ty(local), &expr, &mut conds, outer);
   }
   let res_ty = outer.local_to_ty(_0);
   if !res_ty.is_unit() {
-    args.push(var_to_expr(Var::SelfResult, res_ty));
+    args.push(Expr::from_var(Var::SelfResult, res_ty));
   }
   if is_main {
-    args.push(var_to_expr(Var::SelfPanic, outer.get_bool()));
+    args.push(Expr::from_var(Var::SelfPanic, outer.get_bool()));
   }
   Prerule { init_env, conds, end: End::Pivot { pivot, args } }
 }
 fn get_prerule<'tcx>(
-  is_main: bool, init_me: BB, init_env: Env<'tcx>, data: Data<'_, 'tcx>,
+  is_main: bool, init_me: BasicBlock, init_env: Env<'tcx>, data: Data<'_, 'tcx>,
   fun_asks: &mut Map<String, Ty<'tcx>>,
 ) -> Prerule<'tcx> {
   let mut me = init_me;
@@ -141,60 +126,64 @@ fn get_prerule<'tcx>(
   let mut env = init_env.clone();
   let Data { basic, outer, .. } = data;
   loop {
-    if let TmntK::Call { destination: None, .. } = &get_tmnt(&basic[me]).kind {
-      for (local, expr) in sort_map(env).drain(..) {
+    if let TerminatorKind::Call { destination: None, .. } = &get_tmnt(&basic[me]).kind {
+      for (local, expr) in sort_map(env) {
         drop_expr(outer.local_to_ty(local), &expr, &mut conds, outer);
       }
       return Prerule { init_env, conds, end: End::Panic };
     }
     for (stmt_idx, stmt) in basic[me].statements.iter().enumerate() {
       match &stmt.kind {
-        StmtK::Assign(box (Place { local, .. }, _)) if basic.ghosts.contains(local) => {}
-        StmtK::Assign(box (_, Rvalue::Discriminant(_))) => {
+        StatementKind::Assign(box (Place { local, .. }, _)) if basic.ghosts.contains(local) => {}
+        StatementKind::Assign(box (_, Rvalue::Discriminant(_))) => {
           assert!(stmt_idx == basic[me].statements.len() - 1);
           let tmnt = get_tmnt(&basic[me]);
           match &tmnt.kind {
-            TmntK::SwitchInt { .. } => {}
+            TerminatorKind::SwitchInt { .. } => {}
             _ => panic!("unexpected terminator {:?} for taking discriminant", tmnt),
           }
         }
-        StmtK::Assign(box (place, Rvalue::Use(Operand::Copy(place2))))
+        StatementKind::Assign(box (place, Rvalue::Use(Operand::Copy(place2))))
           if outer.place_to_ty(place2).is_mutable_ptr() =>
         {
           let expr2 = seize_place(place2, &mut env, outer);
           let var = Var::MutRet(me, stmt_idx);
           let ty_body = match &outer.place_to_ty(place2).kind() {
-            TyK::Ref(_, ty_body, Mutability::Mut) => ty_body,
+            TyKind::Ref(_, ty_body, Mutability::Mut) => ty_body,
             _ => unreachable!(),
           };
+          let ty_body = Ty::new(ty_body);
           match expr2 {
             Expr::Path(path) => {
               let ty = outer.place_to_ty(place2);
-              let cur = Expr::Path(get_proj(ty, VRT0, FLD0, path.clone()));
-              let ret = Expr::Path(get_proj(ty, VRT0, FLD1, path.clone()));
-              *expr2 = Expr::Aggr(ty, VRT0, vec![var_to_expr(var, ty_body), ret]);
-              let new_expr = Expr::Aggr(ty, VRT0, vec![cur, var_to_expr(var, ty_body)]);
+              let cur = Expr::Path(path.get_proj(ty, VRT0, FLD0));
+              let ret = Expr::Path(path.get_proj(ty, VRT0, FLD1));
+              *expr2 = Expr::Aggregate(ty, VRT0, vec![Expr::from_var(var, ty_body), ret]);
+              let new_expr = Expr::Aggregate(ty, VRT0, vec![cur, Expr::from_var(var, ty_body)]);
               assign_to_place(place, new_expr, &mut env, &mut conds, outer);
             }
-            Expr::Aggr(ty, VRT0, flds) => {
+            Expr::Aggregate(ty, VRT0, flds) => {
               assert!(flds.len() == 2);
-              let mut expr_buf = var_to_expr(var, ty_body);
+              let mut expr_buf = Expr::from_var(var, ty_body);
               swap(&mut flds[FLD0.index()], &mut expr_buf);
-              let new_expr = Expr::Aggr(ty, VRT0, vec![expr_buf, var_to_expr(var, ty_body)]);
+              let new_expr =
+                Expr::Aggregate(*ty, VRT0, vec![expr_buf, Expr::from_var(var, ty_body)]);
               assign_to_place(place, new_expr, &mut env, &mut conds, outer);
             }
             _ => panic!("unexpected expression {:?} for a mutable reference", expr2),
           }
         }
-        StmtK::Assign(box (place, rvalue)) => {
+        StatementKind::Assign(box (place, rvalue)) => {
           let expr = read_rvalue(rvalue, &mut env, outer, me, stmt_idx);
           assign_to_place(place, expr, &mut env, &mut conds, outer);
         }
-        StmtK::SetDiscriminant { place, variant_index } => {
+        StatementKind::SetDiscriminant { place, variant_index } => {
           set_tag(place, *variant_index, &mut env, outer);
         }
-        StmtK::StorageLive(_) | StmtK::AscribeUserType(_, _) | StmtK::Nop => {}
-        StmtK::StorageDead(local) => {
+        StatementKind::StorageLive(_)
+        | StatementKind::AscribeUserType(_, _)
+        | StatementKind::Nop => {}
+        StatementKind::StorageDead(local) => {
           if let Some(expr) = env.remove(local) {
             drop_expr(outer.local_to_ty(*local), &expr, &mut conds, outer);
           }
@@ -204,16 +193,18 @@ fn get_prerule<'tcx>(
     }
     let tmnt = get_tmnt(&basic[me]);
     match &tmnt.kind {
-      TmntK::Goto { target } if *target == me => {
+      TerminatorKind::Goto { target } if *target == me => {
         return Prerule { init_env, conds, end: End::NeverReturn };
       }
-      TmntK::Goto { target } | TmntK::Drop { target, .. } | TmntK::Assert { target, .. } => {
+      TerminatorKind::Goto { target }
+      | TerminatorKind::Drop { target, .. }
+      | TerminatorKind::Assert { target, .. } => {
         me = *target;
         continue;
       }
-      TmntK::Return => {
+      TerminatorKind::Return => {
         let mut res: Option<Expr> = None;
-        for (local, expr) in sort_map(env).drain(..) {
+        for (local, expr) in sort_map(env) {
           if local != _0 {
             drop_expr(outer.local_to_ty(local), &expr, &mut conds, outer);
           } else {
@@ -222,29 +213,35 @@ fn get_prerule<'tcx>(
         }
         return Prerule { init_env, conds, end: End::Return { res } };
       }
-      TmntK::Call { func, args, destination: Some((place, target)), .. } => {
+      TerminatorKind::Call { func, args, destination: Some((place, target)), .. } => {
         let fun_ty = outer.opd_to_ty(func);
-        let fun = fun_of_fun_ty(fun_ty);
+        let fun = fun_ty.fun_of_fun_ty();
         let fun_name = pr_fun_name(fun);
         let res_ty = outer.place_to_ty(place);
-        if let Some(bin_op) = fun_to_bin_op(fun) {
+        if let Some(bin_op) = BinOp::try_from_fun(fun) {
           assert!(args.len() == 2);
-          let res = bin_op_expr(
+          let res = Expr::from_bin_op(
             bin_op,
             read_opd(&args[0], &mut env, outer),
             read_opd(&args[1], &mut env, outer),
           );
           assign_to_place(place, res, &mut env, &mut conds, outer);
-        } else if let Some(un_op) = fun_to_un_op(fun) {
+        } else if let Some(un_op) = UnOp::try_from_fun(fun) {
           assert!(args.len() == 1);
           let res = Expr::UnOp(un_op, Box::new(read_opd(&args[0], &mut env, outer)));
           assign_to_place(place, res, &mut env, &mut conds, outer);
         } else if fun_name == "<rand>" {
-          assign_to_place(place, var_to_expr(Var::Rand(me), res_ty), &mut env, &mut conds, outer);
+          assign_to_place(
+            place,
+            Expr::from_var(Var::Rand(me), res_ty),
+            &mut env,
+            &mut conds,
+            outer,
+          );
         } else if fun_name == "<swap>" {
           assert!(args.len() == 2);
-          let (x, x_) = decompose_mut(read_opd(&args[0], &mut env, outer));
-          let (y, y_) = decompose_mut(read_opd(&args[1], &mut env, outer));
+          let (x, x_) = read_opd(&args[0], &mut env, outer).decompose_mut();
+          let (y, y_) = read_opd(&args[1], &mut env, outer).decompose_mut();
           conds.push(Cond::Eq { tgt: y_, src: x });
           conds.push(Cond::Eq { tgt: x_, src: y });
         } else if fun_name == "<free>" {
@@ -253,7 +250,7 @@ fn get_prerule<'tcx>(
           fun_asks.insert(rep_fun_name(fun_ty), fun_ty);
           let mut args: Vec<_> = args.iter().map(|arg| read_opd(arg, &mut env, outer)).collect();
           if !res_ty.is_unit() {
-            let res = var_to_expr(Var::CallResult(me), res_ty);
+            let res = Expr::from_var(Var::CallResult(me), res_ty);
             assign_to_place(place, res.clone(), &mut env, &mut conds, outer);
             args.push(res.clone());
           }
@@ -262,7 +259,7 @@ fn get_prerule<'tcx>(
         me = *target;
         continue;
       }
-      TmntK::SwitchInt { targets, .. } => {
+      TerminatorKind::SwitchInt { targets, .. } => {
         if basic.is_ghost_switching(me) {
           me = targets.all_targets()[0];
           continue;
@@ -274,7 +271,7 @@ fn get_prerule<'tcx>(
   }
 }
 fn analyze_pivot<'tcx>(
-  is_main: bool, pivot: Option<BB>, data: Data<'_, 'tcx>, basic_asks: &mut BasicAsks<'tcx>,
+  is_main: bool, pivot: Option<BasicBlock>, data: Data<'_, 'tcx>, basic_asks: &mut BasicAsks<'tcx>,
 ) -> PivotDef<'tcx> {
   let Data { basic, outer, .. } = data;
   let BasicAsks { fun_asks, .. } = basic_asks;
@@ -288,7 +285,7 @@ fn analyze_pivot<'tcx>(
   if let Some(me) = pivot {
     let tmnt = get_tmnt(&basic[me]);
     match &tmnt.kind {
-      TmntK::SwitchInt { targets, .. } => {
+      TerminatorKind::SwitchInt { targets, .. } => {
         assert!(!basic.is_ghost_switching(me));
         let (discr_place, discr_kind) = data.discr_place_kind(me);
         let discr_ty = outer.place_to_ty(&discr_place);
@@ -296,7 +293,7 @@ fn analyze_pivot<'tcx>(
         let rest_target = targets.otherwise();
         match discr_kind {
           DiscrKind::Value => match &discr_ty.kind() {
-            TyK::Bool => {
+            TyKind::Bool => {
               assert!(main_targets.len() == 1 && main_targets[0].0 == 0);
               for (b, tgt) in [(false, main_targets[0].1), (true, rest_target)].iter() {
                 let mut env = env.clone();
@@ -304,7 +301,7 @@ fn analyze_pivot<'tcx>(
                 prerules.push(get_prerule(is_main, *tgt, env, data, fun_asks));
               }
             }
-            TyK::Int(_) | TyK::Uint(_) => {
+            TyKind::Int(_) | TyKind::Uint(_) => {
               let mut neq_srcs = vec![];
               for (val, tgt) in main_targets.iter() {
                 let mut env = env.clone();
@@ -321,21 +318,22 @@ fn analyze_pivot<'tcx>(
             _ => unimplemented!("unsupported branching"),
           },
           DiscrKind::Tag => match &discr_ty.kind() {
-            TyK::Adt(AdtDef { variants, .. }, adt_substs) => {
+            TyKind::Adt(AdtDef { variants, .. }, adt_substs) => {
               assert!(variants.len() == main_targets.len());
-              for ((vrt_idx, VrtDef { fields, .. }), (val, tgt)) in
+              for ((variant_index, VariantDef { fields, .. }), (val, tgt)) in
                 variants.iter_enumerated().zip(main_targets.iter())
               {
-                assert!(*val == vrt_idx.as_u32() as u128);
+                assert!(*val == variant_index.as_u32() as u128);
                 let mut env = env.clone();
-                let map = |(fld_idx, fld_def)| {
-                  var_to_expr(
-                    Var::Split(me, vrt_idx, FldIdx::from(fld_idx)),
+                let map = |(field_index, fld_def)| {
+                  Expr::from_var(
+                    Var::Split(me, variant_index, FieldIdx::from(field_index)),
                     outer.fld_def_to_ty(fld_def, adt_substs),
                   )
                 };
                 let args = fields.iter().enumerate().map(map).collect::<Vec<_>>();
-                *seize_place(&discr_place, &mut env, outer) = Expr::Aggr(discr_ty, vrt_idx, args);
+                *seize_place(&discr_place, &mut env, outer) =
+                  Expr::Aggregate(discr_ty, variant_index, args);
                 prerules.push(get_prerule(is_main, *tgt, env, data, fun_asks));
               }
             }
@@ -349,15 +347,15 @@ fn analyze_pivot<'tcx>(
     prerules.push(get_prerule(is_main, BB0, env.clone(), data, fun_asks));
   }
   let rules = prerules
-    .drain(..)
+    .into_iter()
     .map(|Prerule { init_env, mut conds, mut end }| {
-      let mut args = sort_map(init_env).drain(..).map(|(_, expr)| expr).collect::<Vec<_>>();
+      let mut args = sort_map(init_env).into_iter().map(|(_, expr)| expr).collect::<Vec<_>>();
       let res_ty = outer.local_to_ty(_0);
       if !res_ty.is_unit() {
-        args.push(var_to_expr(Var::SelfResult, res_ty));
+        args.push(Expr::from_var(Var::SelfResult, res_ty));
       }
       if is_main {
-        args.push(var_to_expr(Var::SelfPanic, outer.get_bool()));
+        args.push(Expr::from_var(Var::SelfPanic, outer.get_bool()));
       }
       let vars = traverse_prerule(&mut args, &mut conds, &mut end, outer, basic_asks);
       Rule { vars, args, conds, end }
@@ -368,19 +366,19 @@ fn analyze_pivot<'tcx>(
 fn analyze_fun<'tcx>(
   fun_ty: Ty<'tcx>, tcx: TyCtxt<'tcx>, basic_asks: &mut BasicAsks<'tcx>,
 ) -> FunDef<'tcx> {
-  let mir = tcx.optimized_mir(fun_of_fun_ty(fun_ty));
+  let mir = tcx.optimized_mir(fun_ty.fun_of_fun_ty());
   let bbds = mir.basic_blocks();
-  let outer = Outer { mir, substs: substs_of_fun_ty(fun_ty), tcx };
+  let outer = Outer { mir, generic_args: fun_ty.substs_of_fun_ty(), tcx };
   /* preparations */
   let ghosts = get_ghosts(&bbds[BB0], mir.arg_count);
   let basic = Basic { bbds, ghosts: &ghosts };
-  let (ins_map, outs_map) = get_ins_outs_map(basic, mir.arg_count);
+  let (ins_map, outs_map) = basic.get_ins_outs_map(mir.arg_count);
   let data = Data { ins_map: &ins_map, outs_map: &outs_map, basic, outer };
   /* wrap up */
-  let mut fun_def = Map::<Option<BB>, PivotDef<'tcx>>::new();
+  let mut fun_def = Map::<Option<BasicBlock>, PivotDef<'tcx>>::new();
   let is_main = &rep_fun_name(fun_ty) == "%main";
   fun_def.insert(None, analyze_pivot(is_main, None, data, basic_asks));
-  for pivot in get_pivots(basic) {
+  for pivot in basic.get_pivots() {
     fun_def.insert(Some(pivot), analyze_pivot(is_main, Some(pivot), data, basic_asks));
   }
   sort_map(fun_def)
@@ -390,7 +388,7 @@ pub struct Summary<'tcx> {
   pub fun_defs: Vec<(String, FunDef<'tcx>)>,
   pub drop_defs: Vec<(String, FunDef<'tcx>)>,
   pub adt_asks: Vec<DefId>,
-  pub tup_asks: Vec<(String, &'tcx Substs<'tcx>)>,
+  pub tup_asks: Vec<(String, GenericArgsRef<'tcx>)>,
   pub mut_asks: Vec<(String, Ty<'tcx>)>,
 }
 
@@ -412,6 +410,7 @@ pub fn analyze<'tcx>(tcx: TyCtxt<'tcx>) -> Summary<'tcx> {
   /* analyze the main function */
   if let Some((main, EntryFnType::Main)) = tcx.entry_fn(()) {
     let main_ty = tcx.type_of(main);
+    let main_ty = Ty::new(main_ty);
     let main_name = rep_fun_name(main_ty);
     fun_defs.insert(main_name, analyze_fun(main_ty, tcx, &mut basic_asks));
   } else {

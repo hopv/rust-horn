@@ -20,5 +20,6 @@ mod drive;
 mod prettify;
 mod represent;
 mod run;
+mod types;
 
 fn main() { run::run_rust_horn(); }

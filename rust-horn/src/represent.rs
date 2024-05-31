@@ -1,18 +1,13 @@
-use rustc_hir::{def_id::DefId, Mutability};
-use rustc_middle::mir::{BasicBlock as BB, Field as FldIdx};
-use rustc_middle::ty::{
-  subst::InternalSubsts as Substs, AdtDef, Ty, TyCtxt, TyKind as TyK, VariantDef as VrtDef,
-};
-use rustc_target::abi::VariantIdx as VrtIdx;
-
 use std::fmt::{Display, Formatter, Result as FResult};
 
 use crate::analyze::data::{BinOp, Cond, Const, End, Expr, Path, UnOp, Var};
 use crate::analyze::{FunDef, FunDefRef, PivotDef, Rule, Summary};
 use crate::prettify::pr_name;
-use crate::util::{
-  enumerate_fld_defs, fun_of_fun_ty, has_any_type, only_ty, substs_of_fun_ty, Cap, FLD0, FLD1, VRT0,
+use crate::types::{
+  AdtDef, BasicBlock, DefId, FieldIdx, GenericArgs, Mutability, Ty, TyCtxt, TyKind, VariantDef,
+  VariantIdx,
 };
+use crate::util::{enumerate_fld_defs, has_any_type, only_ty, Cap, FLD0, FLD1, VRT0};
 
 /* basic */
 
@@ -44,9 +39,9 @@ fn safe_ty(ty: Ty) -> String {
 }
 
 pub fn rep_fun_name(fun_ty: Ty) -> String {
-  format!("{}{}", rep_name(fun_of_fun_ty(fun_ty)), rep(substs_of_fun_ty(fun_ty)))
+  format!("{}{}", rep_name(fun_ty.fun_of_fun_ty()), rep(fun_ty.substs_of_fun_ty()))
 }
-fn rep_fun_name_pivot(fun_name: &str, pivot: Option<BB>) -> String {
+fn rep_fun_name_pivot(fun_name: &str, pivot: Option<BasicBlock>) -> String {
   if let Some(bb) = pivot {
     format!("{}.{}", fun_name, bb.index())
   } else {
@@ -59,49 +54,51 @@ fn rep_adt_name(adt_def: &AdtDef) -> String {
   assert!(!adt_def.is_box());
   rep_name(adt_def.did)
 }
-fn rep_adt_builder_name(adt_def: &AdtDef, vrt_idx: VrtIdx) -> String {
+fn rep_adt_builder_name(adt_def: &AdtDef, variant_index: VariantIdx) -> String {
   assert!(!adt_def.is_box());
-  format!("{}-{}", rep_adt_name(adt_def), vrt_idx.index())
+  format!("{}-{}", rep_adt_name(adt_def), variant_index.index())
 }
-fn rep_adt_selector_name(adt_def: &AdtDef, vrt_idx: VrtIdx, fld_idx: FldIdx) -> String {
+fn rep_adt_selector_name(
+  adt_def: &AdtDef, variant_index: VariantIdx, field_index: FieldIdx,
+) -> String {
   assert!(!adt_def.is_box());
-  format!("{}-{}.{}", rep_adt_name(adt_def), vrt_idx.index(), fld_idx.index())
+  format!("{}-{}.{}", rep_adt_name(adt_def), variant_index.index(), field_index.index())
 }
-fn rep_builder(base_ty: Ty, vrt_idx: VrtIdx) -> String {
+fn rep_builder(base_ty: Ty, variant_index: VariantIdx) -> String {
   match &base_ty.kind() {
-    TyK::Ref(_, ty, Mutability::Mut) => {
-      assert!(vrt_idx == VRT0);
+    TyKind::Ref(_, ty, Mutability::Mut) => {
+      assert!(variant_index == VRT0);
       format!("~mut<{}>", rep(ty))
     }
-    TyK::Adt(adt_def, substs) => {
-      let name = rep_adt_builder_name(adt_def, vrt_idx);
-      if !has_any_type(substs) {
+    TyKind::Adt(adt_def, generic_args) => {
+      let name = rep_adt_builder_name(adt_def, variant_index);
+      if !has_any_type(generic_args) {
         name
       } else {
         format!("(as {} {})", name, rep(base_ty))
       }
     }
-    TyK::Tuple(substs) => {
-      assert!(vrt_idx == VRT0);
-      format!("~tup{}", rep(substs))
+    TyKind::Tuple(generic_args) => {
+      assert!(variant_index == VRT0);
+      format!("~tup{}", rep(generic_args))
     }
     _ => panic!("unexpected type {} for projection", base_ty),
   }
 }
-fn rep_selector_name(base_ty: Ty, vrt_idx: VrtIdx, fld_idx: FldIdx) -> String {
+fn rep_selector_name(base_ty: Ty, variant_index: VariantIdx, field_index: FieldIdx) -> String {
   match &base_ty.kind() {
-    TyK::Ref(_, ty, Mutability::Mut) => {
-      assert!(vrt_idx == VRT0);
-      match fld_idx {
+    TyKind::Ref(_, ty, Mutability::Mut) => {
+      assert!(variant_index == VRT0);
+      match field_index {
         FLD0 => format!("~cur<{}>", rep(ty)),
         FLD1 => format!("~ret<{}>", rep(ty)),
-        _ => panic!("unexpected field {} for a mutable reference", fld_idx.index()),
+        _ => panic!("unexpected field {} for a mutable reference", field_index.index()),
       }
     }
-    TyK::Adt(adt_def, _) => rep_adt_selector_name(adt_def, vrt_idx, fld_idx),
-    TyK::Tuple(substs) => {
-      assert!(vrt_idx == VRT0);
-      format!("~at{}/{}", fld_idx.index(), rep(substs))
+    TyKind::Adt(adt_def, _) => rep_adt_selector_name(adt_def, variant_index, field_index),
+    TyKind::Tuple(generic_args) => {
+      assert!(variant_index == VRT0);
+      format!("~at{}/{}", field_index.index(), rep(generic_args))
     }
     _ => panic!("unexpected type {} for projection", base_ty),
   }
@@ -111,17 +108,19 @@ fn rep_selector_name(base_ty: Ty, vrt_idx: VrtIdx, fld_idx: FldIdx) -> String {
 
 struct RepAdtTy<'tcx> {
   adt_def: &'tcx AdtDef,
-  substs: &'tcx Substs<'tcx>,
+  generic_args: &'tcx GenericArgs<'tcx>,
 }
-fn rep_adt_ty<'tcx>(adt_def: &'tcx AdtDef, substs: &'tcx Substs<'tcx>) -> impl Display + 'tcx {
-  RepAdtTy { adt_def, substs }
+fn rep_adt_ty<'tcx>(
+  adt_def: &'tcx AdtDef, generic_args: &'tcx GenericArgs<'tcx>,
+) -> impl Display + 'tcx {
+  RepAdtTy { adt_def, generic_args }
 }
 impl Display for RepAdtTy<'_> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
-    let RepAdtTy { adt_def, substs } = *self;
-    if has_any_type(substs) {
+    let RepAdtTy { adt_def, generic_args } = *self;
+    if has_any_type(generic_args) {
       write!(f, "({}", rep_adt_name(adt_def))?;
-      for ty in substs.types() {
+      for ty in generic_args.types() {
         write!(f, " {}", rep(ty))?;
       }
       write!(f, ")")
@@ -131,36 +130,39 @@ impl Display for RepAdtTy<'_> {
   }
 }
 impl Display for Rep<Ty<'_>> {
+  fn fmt(&self, f: &mut Formatter<'_>) -> FResult { rep(self.unrep.ty).fmt(f) }
+}
+impl Display for Rep<rustc_middle::ty::Ty<'_>> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let ty = self.unrep;
     match &ty.kind() {
-      TyK::Bool => write!(f, "Bool"),
-      TyK::Int(_) | TyK::Uint(_) => write!(f, "Int"),
-      TyK::Float(_) => write!(f, "Real"),
-      TyK::Adt(adt_def, substs) => {
+      TyKind::Bool => write!(f, "Bool"),
+      TyKind::Int(_) | TyKind::Uint(_) => write!(f, "Int"),
+      TyKind::Float(_) => write!(f, "Real"),
+      TyKind::Adt(adt_def, generic_args) => {
         if adt_def.is_box() {
-          write!(f, "{}", rep(only_ty(substs)))
+          write!(f, "{}", rep(only_ty(generic_args)))
         } else {
-          write!(f, "{}", rep_adt_ty(adt_def, substs))
+          write!(f, "{}", rep_adt_ty(adt_def, generic_args))
         }
       }
-      TyK::Ref(_, ty, Mutability::Not) => write!(f, "{}", rep(ty)),
-      TyK::Ref(_, ty, Mutability::Mut) => write!(f, "~Mut<{}>", rep(ty)),
-      TyK::Tuple(substs) => write!(f, "~Tup{}", rep(substs)),
-      TyK::Param(param_ty) => write!(f, "%{}", param_ty.name),
+      TyKind::Ref(_, ty, Mutability::Not) => write!(f, "{}", rep(ty)),
+      TyKind::Ref(_, ty, Mutability::Mut) => write!(f, "~Mut<{}>", rep(ty)),
+      TyKind::Tuple(generic_args) => write!(f, "~Tup{}", rep(generic_args)),
+      TyKind::Param(param_ty) => write!(f, "%{}", param_ty.name),
       _ => panic!("unsupported type {}", ty),
     }
   }
 }
 
-impl Display for Rep<&Substs<'_>> {
+impl Display for Rep<&GenericArgs<'_>> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
-    let substs = self.unrep;
-    if has_any_type(substs) {
+    let generic_args = self.unrep;
+    if has_any_type(generic_args) {
       write!(f, "<")?;
       let mut sep = "";
-      for ty in substs.types() {
-        write!(f, "{}{}", sep, safe_ty(ty))?;
+      for ty in generic_args.types() {
+        write!(f, "{}{}", sep, safe_ty(Ty::new(ty)))?;
         sep = "-";
       }
       write!(f, ">")?;
@@ -173,27 +175,28 @@ impl Display for Rep<&Substs<'_>> {
 
 struct RepVrt<'tcx> {
   adt_def: &'tcx AdtDef,
-  vrt_idx: VrtIdx,
-  vrt_def: &'tcx VrtDef,
+  variant_index: VariantIdx,
+  variant_def: &'tcx VariantDef,
   tcx: TyCtxt<'tcx>,
 }
 fn rep_vrt<'tcx>(
-  adt_def: &'tcx AdtDef, vrt_idx: VrtIdx, vrt_def: &'tcx VrtDef, tcx: TyCtxt<'tcx>,
+  adt_def: &'tcx AdtDef, variant_index: VariantIdx, variant_def: &'tcx VariantDef,
+  tcx: TyCtxt<'tcx>,
 ) -> impl Display + 'tcx {
-  RepVrt { adt_def, vrt_idx, vrt_def, tcx }
+  RepVrt { adt_def, variant_index, variant_def, tcx }
 }
 impl Display for RepVrt<'_> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
-    let RepVrt { adt_def, vrt_idx, vrt_def, tcx } = *self;
-    let fld_defs = &vrt_def.fields;
+    let RepVrt { adt_def, variant_index, variant_def, tcx } = *self;
+    let fld_defs = &variant_def.fields;
     if fld_defs.is_empty() {
-      write!(f, "{}", rep_adt_builder_name(adt_def, vrt_idx))
+      write!(f, "{}", rep_adt_builder_name(adt_def, variant_index))
     } else {
-      write!(f, "({}", rep_adt_builder_name(adt_def, vrt_idx))?;
-      let substs = Substs::identity_for_item(tcx, vrt_def.def_id);
-      for (fld_idx, fld_def) in enumerate_fld_defs(fld_defs) {
-        let ty = fld_def.ty(tcx, substs);
-        write!(f, " ({} {})", rep_adt_selector_name(adt_def, vrt_idx, fld_idx), rep(ty))?;
+      write!(f, "({}", rep_adt_builder_name(adt_def, variant_index))?;
+      let generic_args = GenericArgs::identity_for_item(tcx, variant_def.def_id);
+      for (field_index, fld_def) in enumerate_fld_defs(fld_defs) {
+        let ty = fld_def.ty(tcx, generic_args);
+        write!(f, " ({} {})", rep_adt_selector_name(adt_def, variant_index, field_index), rep(ty))?;
       }
       write!(f, ")")?;
       Ok(())
@@ -223,28 +226,30 @@ impl Display for RepAdt<'_> {
       sep = " ";
     }
     write!(f, ") (")?;
-    for (vrt_idx, vrt_def) in adt_def.variants.iter_enumerated() {
-      write!(f, "\n  {}", rep_vrt(adt_def, vrt_idx, vrt_def, tcx))?;
+    for (variant_index, variant_def) in adt_def.variants.iter_enumerated() {
+      write!(f, "\n  {}", rep_vrt(adt_def, variant_index, variant_def, tcx))?;
     }
     writeln!(f, "))))")
   }
 }
 
 struct RepTup<'tcx> {
-  substs: &'tcx Substs<'tcx>,
+  generic_args: &'tcx GenericArgs<'tcx>,
 }
-fn rep_tup<'tcx>(substs: &'tcx Substs<'tcx>) -> impl Display + 'tcx { RepTup { substs } }
+fn rep_tup<'tcx>(generic_args: &'tcx GenericArgs<'tcx>) -> impl Display + 'tcx {
+  RepTup { generic_args }
+}
 impl Display for RepTup<'_> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
-    let RepTup { substs } = self;
-    write!(f, "(declare-datatypes ((~Tup{} 0)) ((par () (", rep(substs))?;
-    let types = substs.types().collect::<Vec<_>>();
+    let RepTup { generic_args } = self;
+    write!(f, "(declare-datatypes ((~Tup{} 0)) ((par () (", rep(generic_args))?;
+    let types = generic_args.types().collect::<Vec<_>>();
     if types.is_empty() {
-      write!(f, "~tup{}", rep(substs))?;
+      write!(f, "~tup{}", rep(generic_args))?;
     } else {
-      write!(f, "(~tup{}", rep(substs))?;
+      write!(f, "(~tup{}", rep(generic_args))?;
       for (i, ty) in types.iter().enumerate() {
-        write!(f, " (~at{}/{} {})", i, rep(substs), rep(ty))?;
+        write!(f, " (~at{}/{} {})", i, rep(generic_args), rep(ty))?;
       }
       write!(f, ")")?;
     }
@@ -284,8 +289,8 @@ impl Display for Rep<Var> {
       Var::CallResult(bb) => write!(f, "_@.{}", bb.index()),
       Var::Rand(bb) => write!(f, "_?.{}", bb.index()),
       Var::MutRet(bb, i) => write!(f, "_*.{}_{}", bb.index(), i),
-      Var::Split(bb, vrt_idx, fld_idx) => {
-        write!(f, "_$.{}_{}/{}", bb.index(), vrt_idx.index(), fld_idx.index())
+      Var::Split(bb, variant_index, field_index) => {
+        write!(f, "_$.{}_{}/{}", bb.index(), variant_index.index(), field_index.index())
       }
       Var::Nonce(None) => unreachable!("nonce should have an index for rep"),
       Var::Nonce(Some(i)) => write!(f, "_%.{}", i),
@@ -297,8 +302,8 @@ impl Display for Rep<&Path<'_>> {
     let path = self.unrep;
     match path {
       Path::Var(var, _) => write!(f, "{}", rep(var)),
-      Path::Proj(base_ty, vrt_idx, fld_idx, box path) => {
-        write!(f, "({} {})", rep_selector_name(base_ty, *vrt_idx, *fld_idx), rep(path))
+      Path::Proj(base_ty, variant_index, field_index, box path) => {
+        write!(f, "({} {})", rep_selector_name(*base_ty, *variant_index, *field_index), rep(path))
       }
     }
   }
@@ -346,11 +351,11 @@ impl Display for Rep<&Expr<'_>> {
         };
         write!(f, "({} {})", name, rep(expr))
       }
-      Expr::Aggr(ty, vrt_idx, flds) => {
+      Expr::Aggregate(ty, variant_index, flds) => {
         if flds.is_empty() {
-          write!(f, "{}", rep_builder(ty, *vrt_idx))
+          write!(f, "{}", rep_builder(*ty, *variant_index))
         } else {
-          write!(f, "({}", rep_builder(ty, *vrt_idx))?;
+          write!(f, "({}", rep_builder(*ty, *variant_index))?;
           for fld in flds.iter() {
             write!(f, " {}", rep(fld))?;
           }
@@ -365,9 +370,7 @@ struct RepApply<'a, 'tcx> {
   fun_name: &'a str,
   args: &'a [Expr<'tcx>],
 }
-fn rep_apply<'a, 'tcx>(
-  fun_name: &'a str, args: &'a [Expr<'tcx>],
-) -> impl Display + Cap<'tcx> + 'a {
+fn rep_apply<'a, 'tcx>(fun_name: &'a str, args: &'a [Expr<'tcx>]) -> impl Display + Cap<'tcx> + 'a {
   RepApply { fun_name, args }
 }
 impl Display for RepApply<'_, '_> {
@@ -391,7 +394,7 @@ impl Display for Rep<&Cond<'_>> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let cond = self.unrep;
     match cond {
-      Cond::Drop { ty, arg } => write!(f, "({} {})", rep_drop_name(ty), rep(arg)),
+      Cond::Drop { ty, arg } => write!(f, "({} {})", rep_drop_name(*ty), rep(arg)),
       Cond::Eq { tgt, src } => write!(f, "(= {} {})", rep(tgt), rep(src)),
       Cond::Neq { tgt, srcs } => {
         write!(f, "(distinct {}", rep(tgt))?;
@@ -400,7 +403,7 @@ impl Display for Rep<&Cond<'_>> {
         }
         write!(f, ")")
       }
-      Cond::Call { fun_ty, args } => write!(f, "{}", rep_apply(&rep_fun_name(fun_ty), args)),
+      Cond::Call { fun_ty, args } => write!(f, "{}", rep_apply(&rep_fun_name(*fun_ty), args)),
     }
   }
 }
@@ -543,14 +546,14 @@ impl Display for RepSummary<'_, '_> {
       writeln!(f)?;
     }
     for (_, ty) in mut_asks.iter() {
-      write!(f, "{}", rep_mut(ty))?;
+      write!(f, "{}", rep_mut(*ty))?;
     }
     // tuples
     if !tup_asks.is_empty() {
       writeln!(f)?;
     }
-    for (_, substs) in tup_asks.iter() {
-      write!(f, "{}", rep_tup(substs))?;
+    for (_, generic_args) in tup_asks.iter() {
+      write!(f, "{}", rep_tup(generic_args))?;
     }
     // drop definitions
     if !drop_defs.is_empty() {
