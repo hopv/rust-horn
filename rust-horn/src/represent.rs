@@ -1,13 +1,13 @@
 use std::fmt::{Display, Formatter, Result as FResult};
 
 use crate::analyze::data::{BinOp, Cond, Const, End, Expr, Path, UnOp, Var};
-use crate::analyze::{FunDef, FunDefRef, PivotDef, Rule, Summary};
+use crate::analyze::{FunDef, FunDefRef, Pivot, PivotDef, Rule, Summary};
 use crate::prettify::pr_name;
 use crate::types::{
-  AdtDef, BasicBlock, DefId, FieldIdx, GenericArgs, Mutability, Ty, TyCtxt, TyKind, VariantDef,
+  adt_is_box, AdtDef, DefId, FieldIdx, GenericArgs, Mutability, Ty, TyCtxt, TyKind, VariantDef,
   VariantIdx,
 };
-use crate::util::{enumerate_fld_defs, has_any_type, only_ty, Cap, FLD0, FLD1, VRT0};
+use crate::util::{enumerate_fld_defs, has_any_type, Cap, FLD0, FLD1, VRT0};
 
 /* basic */
 
@@ -41,8 +41,8 @@ fn safe_ty(ty: Ty) -> String {
 pub fn rep_fun_name(fun_ty: Ty) -> String {
   format!("{}{}", rep_name(fun_ty.fun_of_fun_ty()), rep(fun_ty.substs_of_fun_ty()))
 }
-fn rep_fun_name_pivot(fun_name: &str, pivot: Option<BasicBlock>) -> String {
-  if let Some(bb) = pivot {
+fn rep_fun_name_pivot(fun_name: &str, pivot: Pivot) -> String {
+  if let Pivot::Switch(bb) = pivot {
     format!("{}.{}", fun_name, bb.index())
   } else {
     fun_name.to_string()
@@ -140,8 +140,8 @@ impl Display for Rep<rustc_middle::ty::Ty<'_>> {
       TyKind::Int(_) | TyKind::Uint(_) => write!(f, "Int"),
       TyKind::Float(_) => write!(f, "Real"),
       TyKind::Adt(adt_def, generic_args) => {
-        if adt_def.is_box() {
-          write!(f, "{}", rep(only_ty(generic_args)))
+        if let Some(ty) = adt_is_box(adt_def, generic_args) {
+          write!(f, "{}", rep(ty))
         } else {
           write!(f, "{}", rep_adt_ty(adt_def, generic_args))
         }
@@ -292,8 +292,7 @@ impl Display for Rep<Var> {
       Var::Split(bb, variant_index, field_index) => {
         write!(f, "_$.{}_{}/{}", bb.index(), variant_index.index(), field_index.index())
       }
-      Var::Nonce(None) => unreachable!("nonce should have an index for rep"),
-      Var::Nonce(Some(i)) => write!(f, "_%.{}", i),
+      Var::Nonce => write!(f, "_%.nonce"),
     }
   }
 }
@@ -419,8 +418,8 @@ impl Display for RepEnd<'_, '_> {
   fn fmt(&self, f: &mut Formatter) -> FResult {
     let RepEnd { fun_name, end } = self;
     match end {
-      End::Pivot { pivot, args } => {
-        write!(f, "{}", rep_apply(&rep_fun_name_pivot(fun_name, Some(*pivot)), args))
+      End::Pivot { next_switch: pivot, args } => {
+        write!(f, "{}", rep_apply(&rep_fun_name_pivot(fun_name, Pivot::Switch(*pivot)), args))
       }
       End::Return { res } => {
         if fun_name == &"%main" {
@@ -490,7 +489,7 @@ impl Display for RepFunDef<'_, '_> {
       writeln!(f)?;
     }
     for (pivot, PivotDef { rules, .. }) in fun_def.iter() {
-      if let Some(bb) = pivot {
+      if let Pivot::Switch(bb) = pivot {
         writeln!(f, "; {} bb{}", fun_name, bb.index())?;
       } else {
         writeln!(f, "; {}", fun_name)?;

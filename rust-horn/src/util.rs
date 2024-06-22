@@ -1,9 +1,7 @@
-use std::cmp::Ord;
-
 use crate::types::{
   BasicBlock, BasicBlockData, BasicBlockDatas, ConstKind, ConstValue, DefId, FieldDef, FieldIdx,
-  GenericArgsRef, Local, Map, MirBody, ParamEnv, Scalar, Set, Terminator, Ty, TyConst, TyCtxt,
-  TyKind, VariantIdx,
+  GenericArgsRef, Local, MirBody, ParamEnv, Scalar, Terminator, Ty, TyConst, TyCtxt, TyKind,
+  VariantIdx,
 };
 
 pub const BB0: BasicBlock = BasicBlock::from_u32(0);
@@ -54,12 +52,8 @@ pub fn get_tmnt<'a, 'tcx>(bbd: &'a BasicBlockData<'tcx>) -> &'a Terminator<'tcx>
   bbd.terminator.as_ref().unwrap()
 }
 
-pub fn has_any_type(generic_args: GenericArgsRef<'_>) -> bool { generic_args.types().any(|_| true) }
-
-pub fn only_ty(generic_args: GenericArgsRef<'_>) -> Ty<'_> {
-  let tys = generic_args.types().collect::<Vec<_>>();
-  assert!(tys.len() == 2 && format!("{:?}", tys[1]) == "std::alloc::Global");
-  Ty::new(tys[0])
+pub fn has_any_type(generic_args: GenericArgsRef<'_>) -> bool {
+  generic_args.types().next().is_some()
 }
 
 impl<'tcx> Ty<'tcx> {
@@ -77,15 +71,4 @@ impl<'tcx> Ty<'tcx> {
       _ => panic!("unexpected type {} for a function type", self.ty),
     }
   }
-}
-
-pub fn sort_set<T: Ord>(set: Set<T>) -> Vec<T> {
-  let mut vec = set.into_iter().collect::<Vec<_>>();
-  vec.sort_unstable();
-  vec
-}
-pub fn sort_map<K: Ord, V>(map: Map<K, V>) -> Vec<(K, V)> {
-  let mut vec = map.into_iter().collect::<Vec<_>>();
-  vec.sort_unstable_by(|(k1, _), (k2, _)| k1.cmp(k2));
-  vec
 }
