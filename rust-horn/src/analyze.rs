@@ -174,69 +174,9 @@ fn get_prerule<'tcx>(
             return Prerule { init_env, conds, end: End::Panic };
         }
         for (stmt_index, stmt) in basic[me].statements.iter().enumerate() {
-            match &stmt.kind {
-                StatementKind::Assign(box (Place { local, .. }, _))
-                    if basic.ghosts.contains(local) => {}
-                StatementKind::Assign(box (_, Rvalue::Discriminant(_))) => {
-                    assert!(stmt_index == basic[me].statements.len() - 1);
-                    let tmnt = get_tmnt(&basic[me]);
-                    match &tmnt.kind {
-                        TerminatorKind::SwitchInt { .. } => {}
-                        _ => panic!("unexpected terminator {:?} for taking discriminant", tmnt),
-                    }
-                }
-                StatementKind::Assign(box (place, Rvalue::Use(Operand::Copy(place2))))
-                    if place2.get_ty(mir_access).is_mutable_ptr() =>
-                {
-                    let expr2 = seize_place(place2, &mut env, mir_access);
-                    let var = Var::MutRet(me, stmt_index);
-                    let ty_body = match &place2.get_ty(mir_access).kind() {
-                        TyKind::Ref(_, ty_body, Mutability::Mut) => ty_body,
-                        _ => unreachable!(),
-                    };
-                    let ty_body = Ty::new(ty_body);
-                    match expr2 {
-                        Expr::Path(path) => {
-                            let ty = place2.get_ty(mir_access);
-                            let cur = Expr::Path(path.get_proj(ty, VRT0, FLD0));
-                            let ret = Expr::Path(path.get_proj(ty, VRT0, FLD1));
-                            *expr2 =
-                                Expr::Aggregate(ty, VRT0, vec![Expr::from_var(var, ty_body), ret]);
-                            let new_expr =
-                                Expr::Aggregate(ty, VRT0, vec![cur, Expr::from_var(var, ty_body)]);
-                            assign_to_place(place, new_expr, &mut env, &mut conds, mir_access);
-                        }
-                        Expr::Aggregate(ty, VRT0, flds) => {
-                            assert!(flds.len() == 2);
-                            let mut expr_buf = Expr::from_var(var, ty_body);
-                            swap(&mut flds[FLD0.index()], &mut expr_buf);
-                            let new_expr = Expr::Aggregate(
-                                *ty,
-                                VRT0,
-                                vec![expr_buf, Expr::from_var(var, ty_body)],
-                            );
-                            assign_to_place(place, new_expr, &mut env, &mut conds, mir_access);
-                        }
-                        _ => panic!("unexpected expression {:?} for a mutable reference", expr2),
-                    }
-                }
-                StatementKind::Assign(box (place, rvalue)) => {
-                    let expr = read_rvalue(rvalue, &mut env, mir_access, me, stmt_index);
-                    assign_to_place(place, expr, &mut env, &mut conds, mir_access);
-                }
-                StatementKind::SetDiscriminant { place, variant_index } => {
-                    set_tag(place, *variant_index, &mut env, mir_access);
-                }
-                StatementKind::StorageLive(_)
-                | StatementKind::AscribeUserType(_, _)
-                | StatementKind::Nop => {}
-                StatementKind::StorageDead(local) => {
-                    if let Some(expr) = env.remove(local) {
-                        drop_expr(local.get_ty(mir_access), &expr, &mut conds, mir_access);
-                    }
-                }
-                _ => panic!("unsupported statement {:?}", stmt),
-            }
+            gather_conds_from_statement(
+                stmt, basic, stmt_index, me, mir_access, &mut env, &mut conds,
+            );
         }
         let tmnt = get_tmnt(&basic[me]);
         match &tmnt.kind {
@@ -292,6 +232,75 @@ fn get_prerule<'tcx>(
             }
             _ => panic!("unexpected terminator {:?}", tmnt),
         }
+    }
+}
+
+fn gather_conds_from_statement<'tcx>(
+    stmt: &Statement<'tcx>,
+    basic: Basic,
+    stmt_index: usize,
+    me: BasicBlock,
+    mir_access: MirAccess<'tcx>,
+    env: &mut Map<Local, Expr<'tcx>>,
+    conds: &mut Vec<Cond<'tcx>>,
+) {
+    match &stmt.kind {
+        StatementKind::Assign(box (Place { local, .. }, _)) if basic.ghosts.contains(local) => {}
+        StatementKind::Assign(box (_, Rvalue::Discriminant(_))) => {
+            assert!(stmt_index == basic[me].statements.len() - 1);
+            let tmnt = get_tmnt(&basic[me]);
+            match &tmnt.kind {
+                TerminatorKind::SwitchInt { .. } => {}
+                _ => panic!("unexpected terminator {:?} for taking discriminant", tmnt),
+            }
+        }
+        StatementKind::Assign(box (place, Rvalue::Use(Operand::Copy(place2))))
+            if place2.get_ty(mir_access).is_mutable_ptr() =>
+        {
+            let expr2 = seize_place(place2, env, mir_access);
+            let var = Var::MutRet(me, stmt_index);
+            let ty_body = match &place2.get_ty(mir_access).kind() {
+                TyKind::Ref(_, ty_body, Mutability::Mut) => ty_body,
+                _ => unreachable!(),
+            };
+            let ty_body = Ty::new(ty_body);
+            match expr2 {
+                Expr::Path(path) => {
+                    let ty = place2.get_ty(mir_access);
+                    let cur = Expr::Path(path.get_proj(ty, VRT0, FLD0));
+                    let ret = Expr::Path(path.get_proj(ty, VRT0, FLD1));
+                    *expr2 = Expr::Aggregate(ty, VRT0, vec![Expr::from_var(var, ty_body), ret]);
+                    let new_expr =
+                        Expr::Aggregate(ty, VRT0, vec![cur, Expr::from_var(var, ty_body)]);
+                    assign_to_place(place, new_expr, env, conds, mir_access);
+                }
+                Expr::Aggregate(ty, VRT0, flds) => {
+                    assert!(flds.len() == 2);
+                    let mut expr_buf = Expr::from_var(var, ty_body);
+                    swap(&mut flds[FLD0.index()], &mut expr_buf);
+                    let new_expr =
+                        Expr::Aggregate(*ty, VRT0, vec![expr_buf, Expr::from_var(var, ty_body)]);
+                    assign_to_place(place, new_expr, env, conds, mir_access);
+                }
+                _ => panic!("unexpected expression {:?} for a mutable reference", expr2),
+            }
+        }
+        StatementKind::Assign(box (place, rvalue)) => {
+            let expr = read_rvalue(rvalue, env, mir_access, me, stmt_index);
+            assign_to_place(place, expr, env, conds, mir_access);
+        }
+        StatementKind::SetDiscriminant { place, variant_index } => {
+            set_tag(place, *variant_index, env, mir_access);
+        }
+        StatementKind::StorageLive(_)
+        | StatementKind::AscribeUserType(_, _)
+        | StatementKind::Nop => {}
+        StatementKind::StorageDead(local) => {
+            if let Some(expr) = env.remove(local) {
+                drop_expr(local.get_ty(mir_access), &expr, conds, mir_access);
+            }
+        }
+        _ => panic!("unsupported statement {:?}", stmt),
     }
 }
 
