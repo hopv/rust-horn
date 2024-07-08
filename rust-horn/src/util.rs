@@ -59,8 +59,7 @@ pub fn has_any_type(generic_args: GenericArgsRef<'_>) -> bool {
 impl<'tcx> Ty<'tcx> {
   pub fn fun_of_fun_ty(self) -> DefId {
     match &self.kind() {
-      TyKind::FnDef(fun, _) => *fun,
-      TyKind::Closure(fun, _) => *fun,
+      TyKind::FnDef(fun, _) | TyKind::Closure(fun, _) => *fun,
       _ => panic!("unexpected type {} for a function type", self.ty),
     }
   }

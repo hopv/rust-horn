@@ -99,8 +99,7 @@ pub enum Path<'tcx> {
 impl<'tcx> Path<'tcx> {
   fn ty(&self) -> Ty<'tcx> {
     match self {
-      Path::Var(_, ty) => *ty,
-      Path::Proj(ty, _, _, _) => *ty,
+      Path::Var(_, ty) | Path::Proj(ty, _, _, _) => *ty,
     }
   }
   pub fn get_proj(&self, ty: Ty<'tcx>, variant_index: VariantIdx, field_index: FieldIdx) -> Self {
@@ -215,7 +214,7 @@ impl<'tcx> Expr<'tcx> {
 }
 
 impl Ty<'_> {
-  pub fn ty_body(&self) -> Self {
+  pub fn ty_body(self) -> Self {
     match self.kind() {
       TyKind::Ref(_, ty, Mutability::Not) => return Ty::new(ty).ty_body(),
       TyKind::Adt(adt_def, adt_substs) => {
@@ -225,7 +224,7 @@ impl Ty<'_> {
       }
       _ => (),
     };
-    *self
+    self
   }
 }
 
@@ -280,7 +279,7 @@ impl<'tcx> Site<'tcx> {
           TyKind::Ref(_, _, Mutability::Not) => {}
           TyKind::Adt(adt_def, _) if adt_def.is_box() => {}
           TyKind::Ref(_, _, Mutability::Mut) => {
-            projs.push(Proj { variant_index: VRT0, field_index: FLD0, base_ty })
+            projs.push(Proj { variant_index: VRT0, field_index: FLD0, base_ty });
           }
           _ => panic!("unexpected type {} for dereference", base_ty),
         },
@@ -294,7 +293,7 @@ impl<'tcx> Site<'tcx> {
                 && field_index.index() < adt_def.variants[variant_index].fields.len()
             ),
             TyKind::Tuple(generic_args) => {
-              assert!(variant_index == VRT0 && field_index.index() < generic_args.types().count())
+              assert!(variant_index == VRT0 && field_index.index() < generic_args.types().count());
             }
             _ => panic!("unexpected type {} for taking a field", base_ty),
           };
@@ -316,7 +315,7 @@ pub fn read_place<'tcx>(
     None => Expr::nonce(place.get_ty(mir_access)),
     Some(expr) => expr.clone(),
   };
-  for &proj in projs.iter() {
+  for &proj in &projs {
     let Proj { base_ty, variant_index, field_index } = proj;
     expr = match expr {
       Expr::Path(path) => Expr::Path(path.get_proj(base_ty, variant_index, field_index)),
@@ -348,7 +347,7 @@ pub fn seize_place<'a, 'tcx>(
 ) -> &'a mut Expr<'tcx> {
   let Site { local, projs } = Site::from_place(place, mir_access);
   let mut expr = env.entry(local).or_insert_with(|| Expr::nonce(place.get_ty(mir_access)));
-  for &elem in projs.iter() {
+  for &elem in &projs {
     let Proj { base_ty, variant_index, field_index } = elem;
     expr = match expr {
       Expr::Path(path) => {
@@ -651,7 +650,7 @@ fn traverse_ty<'tcx>(
       tup_asks.insert(rep(generic_args).to_string(), generic_args);
       for ty in generic_args.types() {
         let ty = Ty::new(ty);
-        traverse_ty(ty, mir_access, adt_asks, tup_asks, mut_asks)
+        traverse_ty(ty, mir_access, adt_asks, tup_asks, mut_asks);
       }
     }
     _ => panic!("unsupported type {}", ty),

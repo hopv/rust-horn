@@ -72,10 +72,10 @@ fn rep_builder(base_ty: Ty, variant_index: VariantIdx) -> String {
     }
     TyKind::Adt(adt_def, generic_args) => {
       let name = rep_adt_builder_name(adt_def, variant_index);
-      if !has_any_type(generic_args) {
-        name
-      } else {
+      if has_any_type(generic_args) {
         format!("(as {} {})", name, rep(base_ty))
+      } else {
+        name
       }
     }
     TyKind::Tuple(generic_args) => {
@@ -221,7 +221,7 @@ impl Display for RepAdt<'_> {
       .collect::<Vec<_>>();
     write!(f, "(declare-datatypes (({} {})) ((par (", rep_adt_name(adt_def), params.len())?;
     let mut sep = "";
-    for param in params.iter() {
+    for param in &params {
       write!(f, "{}%{}", sep, param)?;
       sep = " ";
     }
@@ -496,14 +496,14 @@ impl Display for RepFunDef<'_, '_> {
       }
       for Rule { vars, args, conds, end } in rules.iter() {
         write!(f, "(assert (forall (")?;
-        if !vars.is_empty() {
+        if vars.is_empty() {
+          write!(f, "(_% Int)")?; // dummy
+        } else {
           let mut sep = "";
           for (var, ty) in vars.iter() {
             write!(f, "{}({} {})", sep, rep(var), rep(ty))?;
             sep = " ";
           }
-        } else {
-          write!(f, "(_% Int)")?; // dummy
         }
         write!(f, ") (=>\n  (and")?;
         for cond in conds.iter() {

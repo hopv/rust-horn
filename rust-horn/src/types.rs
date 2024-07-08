@@ -136,7 +136,7 @@ pub struct Set<T> {
 impl<T0: Eq + Hash> Extend<T0> for Set<T0> {
   #[inline]
   fn extend<I: IntoIterator<Item = T0>>(&mut self, iter: I) {
-    <HashSet<T0> as Extend<T0>>::extend(&mut self.inner, iter)
+    <HashSet<T0> as Extend<T0>>::extend(&mut self.inner, iter);
   }
 }
 
@@ -175,7 +175,7 @@ impl<T: Ord + Hash> Set<T> {
 
   pub fn retain<F>(&mut self, f: F)
   where F: FnMut(&T) -> bool {
-    self.inner.retain(f)
+    self.inner.retain(f);
   }
 }
 

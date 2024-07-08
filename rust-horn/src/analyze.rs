@@ -102,7 +102,7 @@ impl<'a, 'tcx> Data<'a, 'tcx> {
           }) => (*place, DiscriminantKind::Tag),
           _ => match discr {
             Operand::Copy(place) | Operand::Move(place) => (*place, DiscriminantKind::Value),
-            _ => panic!("unexpected operand {:?} for a discriminant", discr),
+            Operand::Constant(..) => panic!("unexpected operand {:?} for a discriminant", discr),
           },
         }
       }
@@ -233,10 +233,10 @@ fn get_prerule<'tcx>(
       TerminatorKind::Return => {
         let mut res: Option<Expr> = None;
         for (local, expr) in env {
-          if local != _0 {
-            drop_expr(local.get_ty(mir_access), &expr, &mut conds, mir_access);
-          } else {
+          if local == _0 {
             res = Some(expr);
+          } else {
+            drop_expr(local.get_ty(mir_access), &expr, &mut conds, mir_access);
           }
         }
         return Prerule { init_env, conds, end: End::Return { res } };
@@ -335,7 +335,7 @@ fn analyze_pivot<'tcx>(
             }
             TyKind::Int(_) | TyKind::Uint(_) => {
               let mut neq_srcs = vec![];
-              for (val, tgt) in main_targets.iter() {
+              for (val, tgt) in &main_targets {
                 let mut env = env.clone();
                 let val_expr = Expr::Const(Const::Int(*val as i64));
                 *seize_place(&discr_place, &mut env, mir_access) = val_expr.clone();
@@ -355,7 +355,7 @@ fn analyze_pivot<'tcx>(
               for ((variant_index, VariantDef { fields, .. }), (val, tgt)) in
                 variants.iter_enumerated().zip(main_targets.iter())
               {
-                assert!(*val == variant_index.as_u32() as u128);
+                assert!(*val == u128::from(variant_index.as_u32()));
                 let mut env = env.clone();
                 let args = fields
                   .iter()

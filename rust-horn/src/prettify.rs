@@ -183,7 +183,7 @@ impl Display for Pr<&Place<'_>> {
           write!(f, "[{}{}]", sign, offset)?;
         }
         ProjectionElem::Subslice { from, to, from_end } => {
-          write!(f, "[{}:-{}{}]", from, to, if from_end { " rev" } else { "" })?
+          write!(f, "[{}:-{}{}]", from, to, if from_end { " rev" } else { "" })?;
         }
         ProjectionElem::Downcast(_, variant_index) => write!(f, "<{}>", pr(variant_index))?,
       }
@@ -270,8 +270,8 @@ impl Display for Pr<MirBinOp> {
       MirBinOp::Le => write!(f, "<="),
       MirBinOp::Ne => write!(f, "!="),
       MirBinOp::Ge => write!(f, ">="),
-      MirBinOp::Gt => write!(f, "<"),
-      _ => panic!("unsupported binary operator {:?}", bin_op),
+      MirBinOp::Gt => write!(f, ">"),
+      MirBinOp::Offset => panic!("unsupported binary operator {:?}", bin_op),
     }
   }
 }
@@ -490,7 +490,7 @@ impl Display for PrMir<'_> {
     // visit basic blocks
     for (bb, bbd) in enumerate_bbds(mir.basic_blocks()) {
       writeln!(f, "  [{}]", pr(bb))?;
-      for stmt in bbd.statements.iter() {
+      for stmt in &bbd.statements {
         writeln!(f, "  {}", pr(stmt))?;
       }
       writeln!(f, "  {}\n", pr_tmnt(get_tmnt(bbd), mir, tcx))?;
@@ -548,7 +548,7 @@ impl Display for PrMirDot<'_> {
         pr(bb),
         pr(bb)
       )?;
-      for stmt in bbd.statements.iter() {
+      for stmt in &bbd.statements {
         writeln!(f, r#"      <tr><td align="left">{}</td></tr>"#, html_esc(pr(stmt)))?;
       }
       let tmnt = get_tmnt(bbd);
@@ -595,7 +595,7 @@ impl Display for PrMirDot<'_> {
       writeln!(f, "    </table>>\n  ];\n")?;
     }
     // jumps and postlude
-    for (bb, bb2, label) in jumps.iter() {
+    for (bb, bb2, label) in &jumps {
       write!(f, "  {} -> {}", pr(bb), pr(bb2))?;
       if !label.is_empty() {
         write!(f, r##" [taillabel = "{}", fontcolor = "#ef8cff"]"##, label)?;

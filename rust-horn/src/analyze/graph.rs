@@ -138,14 +138,12 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
       for stmt in &basic[me].statements {
         match &stmt.kind {
           StatementKind::Assign(box (Place { local, .. }, _)) if basic.ghosts.contains(local) => {}
-          StatementKind::Assign(box (_, Rvalue::Discriminant(_))) => {}
-          StatementKind::Assign(box (Place { local, .. }, _)) => {
+          StatementKind::Assign(box (_, Rvalue::Discriminant(_)))
+          | StatementKind::StorageLive(_) => {}
+          StatementKind::Assign(box (Place { local, .. }, _))
+          | StatementKind::SetDiscriminant { place: box Place { local, .. }, .. } => {
             ins.insert(*local);
           }
-          StatementKind::SetDiscriminant { place: box Place { local, .. }, .. } => {
-            ins.insert(*local);
-          }
-          StatementKind::StorageLive(_) => {}
           StatementKind::StorageDead(local) => {
             ins.remove(local);
           }
@@ -163,7 +161,7 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
 
         TerminatorKind::SwitchInt { discr, .. } => match discr {
           Operand::Copy(place) | Operand::Move(place) => discr_local = Some(place.local),
-          _ => panic!("unexpected discriminant {:?}", discr),
+          Operand::Constant(..) => panic!("unexpected discriminant {:?}", discr),
         },
         TerminatorKind::Call { destination, .. } => {
           if let Some((Place { local, .. }, _)) = destination {
@@ -179,7 +177,7 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
     let mut ins_map = Map::<BasicBlock, Set<Local>>::new();
 
     let mut init_ins: Set<Local> = Set::new();
-    for i in 1..n_init_ins + 1 {
+    for i in 1..=n_init_ins {
       init_ins.insert(Local::from(i));
     }
     dfs(BB0, &init_ins, None, self, &mut ins_map);
