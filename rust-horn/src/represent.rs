@@ -293,16 +293,19 @@ impl Display for Rep<Var> {
     fn fmt(&self, f: &mut Formatter) -> FResult {
         let var = self.unrep;
         match var {
-            Var::Input(local) => write!(f, "_{}", local.index()),
+            Var::Input { local } => write!(f, "_{}", local.index()),
             Var::SelfResult => write!(f, "_@"),
             Var::SelfPanic => write!(f, "_!"),
-            Var::CallResult(bb) => write!(f, "_@.{}", bb.index()),
-            Var::Rand(bb) => write!(f, "_?.{}", bb.index()),
-            Var::MutRet(bb, i) => write!(f, "_*.{}_{}", bb.index(), i),
+            Var::CallResult { caller: bb } => write!(f, "_@.{}", bb.index()),
+            Var::Rand { caller: bb } => write!(f, "_?.{}", bb.index()),
+            Var::MutRet { location: bb, stmt_index: i } => write!(f, "_*.{}_{}", bb.index(), i),
             Var::Split(bb, variant_index, field_index) => {
                 write!(f, "_$.{}_{}/{}", bb.index(), variant_index.index(), field_index.index())
             }
-            Var::Nonce => write!(f, "_%.nonce"),
+            Var::Uninit => {
+                // variable names must be unique, but this situation should not happen thanks to the type system
+                write!(f, "_%.nonce")
+            }
         }
     }
 }

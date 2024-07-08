@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::mem::swap;
 
 use crate::prettify::pr_fun_name;
 use crate::represent::rep_fun_name;
@@ -59,7 +58,9 @@ pub struct PivotDef<'tcx> {
     pub param_tys: Vec<Ty<'tcx>>,
     pub rules: Vec<Rule<'tcx>>,
 }
-/// A unit corresponding to predicates to be generated
+/// A unit corresponding to predicates to be generated.
+///
+/// We treat the CFG as a full n-ary tree that branches only at `SwitchInt`s, and call these edges `Pivot`s.
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Pivot {
     Entry,
@@ -141,7 +142,7 @@ fn pivot_up<'tcx>(
     let Data { mir_access, .. } = data;
     let mut args = Vec::<Expr<'tcx>>::new();
     for local in data.get_locals(Pivot::Switch(pivot)).clone() {
-        args.push(env.remove(&local).unwrap_or_else(|| Expr::nonce(local.get_ty(mir_access))));
+        args.push(env.remove(&local).unwrap_or_else(|| Expr::uninit(local.get_ty(mir_access))));
     }
     for (local, expr) in env {
         drop_expr(local.get_ty(mir_access), &expr, &mut conds, mir_access);
@@ -157,36 +158,36 @@ fn pivot_up<'tcx>(
 }
 fn get_prerule<'tcx>(
     is_main: bool,
-    init_me: BasicBlock,
+    init_bb: BasicBlock,
     init_env: Env<'tcx>,
     data: Data<'_, 'tcx>,
     fun_asks: &mut Map<String, Ty<'tcx>>,
 ) -> Prerule<'tcx> {
-    let mut me = init_me;
+    let mut bb = init_bb;
     let mut conds = Vec::<Cond<'tcx>>::new();
     let mut env = init_env.clone();
     let Data { basic, mir_access, .. } = data;
     loop {
-        if let TerminatorKind::Call { destination: None, .. } = &get_tmnt(&basic[me]).kind {
+        if let TerminatorKind::Call { destination: None, .. } = &get_tmnt(&basic[bb]).kind {
             for (local, expr) in env {
                 drop_expr(local.get_ty(mir_access), &expr, &mut conds, mir_access);
             }
             return Prerule { init_env, conds, end: End::Panic };
         }
-        for (stmt_index, stmt) in basic[me].statements.iter().enumerate() {
+        for (stmt_index, stmt) in basic[bb].statements.iter().enumerate() {
             gather_conds_from_statement(
-                stmt, basic, stmt_index, me, mir_access, &mut env, &mut conds,
+                stmt, basic, stmt_index, bb, mir_access, &mut env, &mut conds,
             );
         }
-        let tmnt = get_tmnt(&basic[me]);
+        let tmnt = get_tmnt(&basic[bb]);
         match &tmnt.kind {
-            TerminatorKind::Goto { target } if *target == me => {
+            TerminatorKind::Goto { target } if *target == bb => {
                 return Prerule { init_env, conds, end: End::NeverReturn };
             }
             TerminatorKind::Goto { target }
             | TerminatorKind::Drop { target, .. }
             | TerminatorKind::Assert { target, .. } => {
-                me = *target;
+                bb = *target;
                 continue;
             }
             TerminatorKind::Return => {
@@ -201,11 +202,11 @@ fn get_prerule<'tcx>(
                 return Prerule { init_env, conds, end: End::Return { res } };
             }
             TerminatorKind::SwitchInt { targets, .. } => {
-                if basic.is_ghost_switching(me) {
-                    me = targets.all_targets()[0];
+                if basic.is_ghost_switching(bb) {
+                    bb = targets.all_targets()[0];
                     continue;
                 }
-                return pivot_up(init_env, is_main, me, conds, env, data);
+                return pivot_up(init_env, is_main, bb, conds, env, data);
             }
             TerminatorKind::Call { func, args, destination: Some((place, target)), .. } => {
                 let fun_ty = func.get_ty(mir_access);
@@ -218,7 +219,7 @@ fn get_prerule<'tcx>(
                         did: fun,
                         fun_name,
                         args,
-                        caller: me,
+                        caller: bb,
                         res_place: place,
                         res_ty,
                     },
@@ -227,7 +228,7 @@ fn get_prerule<'tcx>(
                     &mut conds,
                     fun_asks,
                 );
-                me = *target;
+                bb = *target;
                 continue;
             }
             _ => panic!("unexpected terminator {:?}", tmnt),
@@ -239,7 +240,7 @@ fn gather_conds_from_statement<'tcx>(
     stmt: &Statement<'tcx>,
     basic: Basic,
     stmt_index: usize,
-    me: BasicBlock,
+    bb: BasicBlock,
     mir_access: MirAccess<'tcx>,
     env: &mut Map<Local, Expr<'tcx>>,
     conds: &mut Vec<Cond<'tcx>>,
@@ -247,8 +248,8 @@ fn gather_conds_from_statement<'tcx>(
     match &stmt.kind {
         StatementKind::Assign(box (Place { local, .. }, _)) if basic.ghosts.contains(local) => {}
         StatementKind::Assign(box (_, Rvalue::Discriminant(_))) => {
-            assert!(stmt_index == basic[me].statements.len() - 1);
-            let tmnt = get_tmnt(&basic[me]);
+            assert!(stmt_index == basic[bb].statements.len() - 1);
+            let tmnt = get_tmnt(&basic[bb]);
             match &tmnt.kind {
                 TerminatorKind::SwitchInt { .. } => {}
                 _ => panic!("unexpected terminator {:?} for taking discriminant", tmnt),
@@ -258,7 +259,7 @@ fn gather_conds_from_statement<'tcx>(
             if place2.get_ty(mir_access).is_mutable_ptr() =>
         {
             let expr2 = seize_place(place2, env, mir_access);
-            let var = Var::MutRet(me, stmt_index);
+            let var = Var::MutRet { location: bb, stmt_index };
             let ty_body = match &place2.get_ty(mir_access).kind() {
                 TyKind::Ref(_, ty_body, Mutability::Mut) => ty_body,
                 _ => unreachable!(),
@@ -276,17 +277,16 @@ fn gather_conds_from_statement<'tcx>(
                 }
                 Expr::Aggregate(ty, VRT0, flds) => {
                     assert!(flds.len() == 2);
-                    let mut expr_buf = Expr::from_var(var, ty_body);
-                    swap(&mut flds[FLD0.index()], &mut expr_buf);
-                    let new_expr =
-                        Expr::Aggregate(*ty, VRT0, vec![expr_buf, Expr::from_var(var, ty_body)]);
+                    let new_expr = Expr::from_var(var, ty_body);
+                    let old_expr = std::mem::replace(&mut flds[FLD0.index()], new_expr.clone());
+                    let new_expr = Expr::Aggregate(*ty, VRT0, vec![old_expr, new_expr]);
                     assign_to_place(place, new_expr, env, conds, mir_access);
                 }
                 _ => panic!("unexpected expression {:?} for a mutable reference", expr2),
             }
         }
         StatementKind::Assign(box (place, rvalue)) => {
-            let expr = read_rvalue(rvalue, env, mir_access, me, stmt_index);
+            let expr = read_rvalue(rvalue, env, mir_access, bb, stmt_index);
             assign_to_place(place, expr, env, conds, mir_access);
         }
         StatementKind::SetDiscriminant { place, variant_index } => {
@@ -334,7 +334,7 @@ fn gather_conds_from_fun<'tcx>(
     } else if fun_name == "<rand>" {
         assign_to_place(
             res_place,
-            Expr::from_var(Var::Rand(caller), res_ty),
+            Expr::from_var(Var::Rand { caller }, res_ty),
             env,
             conds,
             mir_access,
@@ -351,7 +351,7 @@ fn gather_conds_from_fun<'tcx>(
         fun_asks.insert(rep_fun_name(ty), ty);
         let mut args: Vec<_> = args.iter().map(|arg| read_opd(arg, env, mir_access)).collect();
         if !res_ty.is_unit() {
-            let res = Expr::from_var(Var::CallResult(caller), res_ty);
+            let res = Expr::from_var(Var::CallResult { caller }, res_ty);
             assign_to_place(res_place, res.clone(), env, conds, mir_access);
             args.push(res.clone());
         }
@@ -373,15 +373,18 @@ fn analyze_pivot<'tcx>(
         .get_locals(pivot)
         .clone()
         .into_iter()
-        .map(|local| (local, Expr::Path(Path::Var(Var::Input(local), local.get_ty(mir_access)))))
+        .map(|local| (local, Expr::Path(Path::Var(Var::Input { local }, local.get_ty(mir_access)))))
         .collect::<HashMap<_, _>>();
     let env = Env::from_inner(env);
-    if let Pivot::Switch(me) = pivot {
-        let tmnt = get_tmnt(&basic[me]);
-        match &tmnt.kind {
-            TerminatorKind::SwitchInt { targets, .. } => {
-                assert!(!basic.is_ghost_switching(me));
-                let (discr_place, discr_kind) = data.place_discriminant_kind(me);
+    match pivot {
+        Pivot::Entry => {
+            prerules.push(get_prerule(is_main, BB0, env.clone(), data, fun_asks));
+        }
+        Pivot::Switch(bb) => {
+            let tmnt = get_tmnt(&basic[bb]);
+            if let TerminatorKind::SwitchInt { targets, .. } = &tmnt.kind {
+                assert!(!basic.is_ghost_switching(bb));
+                let (discr_place, discr_kind) = data.place_discriminant_kind(bb);
                 let discr_ty = discr_place.get_ty(mir_access);
                 let main_targets = targets.iter().collect::<Vec<_>>();
                 let rest_target = targets.otherwise();
@@ -427,7 +430,7 @@ fn analyze_pivot<'tcx>(
                                     .map(|(field_index, fld_def): (usize, &FieldDef)| {
                                         Expr::from_var(
                                             Var::Split(
-                                                me,
+                                                bb,
                                                 variant_index,
                                                 FieldIdx::from(field_index),
                                             ),
@@ -443,11 +446,10 @@ fn analyze_pivot<'tcx>(
                         _ => panic!("unexpected tag branching for a non-adt type {:?}", discr_ty),
                     },
                 }
+            } else {
+                panic!("unexpected terminator {:?} for a pivot", tmnt);
             }
-            _ => panic!("unexpected terminator {:?} for a pivot", tmnt),
         }
-    } else {
-        prerules.push(get_prerule(is_main, BB0, env.clone(), data, fun_asks));
     }
     let rules = prerules
         .into_iter()
@@ -527,8 +529,7 @@ pub fn analyze<'tcx>(tcx: TyCtxt<'tcx>) -> Summary<'tcx> {
     /* added drop functions */
     let mut drop_defs: Map<String, FunDef<'tcx>> = Map::new();
     while !basic_asks.drop_asks.is_empty() {
-        let mut old_drop_asks: Map<String, Ty<'tcx>> = Map::new();
-        swap(&mut basic_asks.drop_asks, &mut old_drop_asks);
+        let mut old_drop_asks: Map<String, Ty<'tcx>> = std::mem::take(&mut basic_asks.drop_asks);
         for (drop_name, ty) in old_drop_asks.drain() {
             drop_defs.entry(drop_name).or_insert_with(|| get_drop_def(ty, tcx, &mut basic_asks));
         }

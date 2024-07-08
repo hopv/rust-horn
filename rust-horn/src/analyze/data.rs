@@ -1,5 +1,3 @@
-use std::mem::swap;
-
 use crate::prettify::{pr, pr_fun_name};
 use crate::represent::{rep, rep_drop_name};
 use crate::types::{
@@ -80,22 +78,39 @@ impl<'tcx> MirAccessCtxExt<'tcx> for FieldDef {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+/// Basically `Var`iables need to be unique.
 pub enum Var {
-    Input(Local),
+    /// Input variable of a basic block, and argument of a predicate.
+    Input {
+        /// Corresponding `Local` in the MIR.
+        local: Local,
+    },
+    /// Result of the function. Called `res` in the paper.
     SelfResult,
+    /// Does the function get `panic!`ked?
     SelfPanic,
-    CallResult(BasicBlock),
-    Rand(BasicBlock),
-    MutRet(BasicBlock, usize),
+    CallResult {
+        /// `BasicBlock` of the `Call` instruction
+        caller: BasicBlock,
+    },
+    Rand {
+        /// `BasicBlock` of the `Call` instruction
+        caller: BasicBlock,
+    },
+    /// Logic variable (prophecy) for a mutable reference.
+    MutRet {
+        location: BasicBlock,
+        stmt_index: usize,
+    },
     Split(BasicBlock, VariantIdx, FieldIdx),
-    /// Uninitialized value
-    Nonce,
+    /// Uninitialized value.
+    Uninit,
 }
 
 #[derive(Debug, Clone)]
 pub enum Path<'tcx> {
     Var(Var, Ty<'tcx>),
-    Proj(Ty<'tcx>, VariantIdx, FieldIdx, Box<Path<'tcx>>),
+    Proj(Ty<'tcx>, VariantIdx, FieldIdx, Box<Self>),
 }
 
 impl<'tcx> Path<'tcx> {
@@ -106,7 +121,7 @@ impl<'tcx> Path<'tcx> {
     }
     pub fn get_proj(&self, ty: Ty<'tcx>, variant_index: VariantIdx, field_index: FieldIdx) -> Self {
         match self {
-            Path::Var(Var::Nonce, _) => self.clone(),
+            Path::Var(Var::Uninit, _) => self.clone(),
             _ => Path::Proj(ty, variant_index, field_index, Box::new(self.clone())),
         }
     }
@@ -198,12 +213,14 @@ pub enum Expr<'tcx> {
     Const(Const),
     BinOp(BinOp, Box<Expr<'tcx>>, Box<Expr<'tcx>>),
     UnOp(UnOp, Box<Expr<'tcx>>),
+    /// Same as `Aggregate` in Rust MIR.
     Aggregate(Ty<'tcx>, VariantIdx, Vec<Expr<'tcx>>),
 }
 
 impl<'tcx> Expr<'tcx> {
     pub fn from_var(var: Var, ty: Ty<'tcx>) -> Self { Expr::Path(Path::Var(var, ty)) }
-    pub fn nonce(ty: Ty<'tcx>) -> Self { Self::from_var(Var::Nonce, ty) }
+    /// Create an uninitialized expression. This is used to represent moved variables, dropped variables, and uninitialized variables.
+    pub fn uninit(ty: Ty<'tcx>) -> Self { Self::from_var(Var::Uninit, ty) }
 
     pub fn from_bin_op(bin_op: BinOp, expr1: Self, expr2: Self) -> Self {
         match bin_op {
@@ -321,7 +338,7 @@ pub fn read_place<'tcx>(
 ) -> Expr<'tcx> {
     let Site { local, projs } = Site::from_place(place, mir_access);
     let mut expr = match env.get(&local) {
-        None => Expr::nonce(place.get_ty(mir_access)),
+        None => Expr::uninit(place.get_ty(mir_access)),
         Some(expr) => expr.clone(),
     };
     for &proj in &projs {
@@ -357,7 +374,7 @@ pub fn seize_place<'a, 'tcx>(
     mir_access: MirAccess<'tcx>,
 ) -> &'a mut Expr<'tcx> {
     let Site { local, projs } = Site::from_place(place, mir_access);
-    let mut expr = env.entry(local).or_insert_with(|| Expr::nonce(place.get_ty(mir_access)));
+    let mut expr = env.entry(local).or_insert_with(|| Expr::uninit(place.get_ty(mir_access)));
     for &elem in &projs {
         let Proj { base_ty, variant_index, field_index } = elem;
         expr = match expr {
@@ -407,9 +424,7 @@ pub fn read_opd<'tcx>(
         Operand::Copy(place) => read_place(place, env, mir_access),
         Operand::Move(place) => {
             let expr = seize_place(place, env, mir_access);
-            let mut res = Expr::nonce(place.get_ty(mir_access));
-            swap(expr, &mut res);
-            res
+            std::mem::replace(expr, Expr::uninit(place.get_ty(mir_access)))
         }
         Operand::Constant(box constant) => {
             Expr::Const(ty_cnst_to_cnst(constant.literal.const_for_ty().unwrap()))
@@ -421,7 +436,7 @@ pub fn read_rvalue<'tcx>(
     rvalue: &Rvalue<'tcx>,
     env: &mut Env<'tcx>,
     mir_access: MirAccess<'tcx>,
-    me: BasicBlock,
+    bb: BasicBlock,
     stmt_index: usize,
 ) -> Expr<'tcx> {
     let ty = rvalue.get_ty(mir_access);
@@ -430,11 +445,11 @@ pub fn read_rvalue<'tcx>(
         Rvalue::Ref(_, BorrowKind::Shared, place) => read_place(place, env, mir_access),
         Rvalue::Ref(_, BorrowKind::Mut { .. }, place) => {
             let expr = seize_place(place, env, mir_access);
-            let var = Var::MutRet(me, stmt_index);
+            let var = Var::MutRet { location: bb, stmt_index };
             let ty2 = place.get_ty(mir_access);
-            let mut expr_buf = Expr::from_var(var, ty2);
-            swap(expr, &mut expr_buf);
-            Expr::Aggregate(ty, VRT0, vec![expr_buf, Expr::from_var(var, ty2)])
+            let mut_ret = Expr::from_var(var, ty2);
+            let mut_cur = std::mem::replace(expr, mut_ret.clone());
+            Expr::Aggregate(ty, VRT0, vec![mut_cur, mut_ret])
         }
         Rvalue::BinaryOp(mir_bin_op, box (opd1, opd2)) => {
             let bin_op = BinOp::from_mir_bin_op(*mir_bin_op, opd1.get_ty(mir_access));
@@ -501,7 +516,7 @@ fn needs_drop<'tcx>(ty: Ty<'tcx>, mir_access: MirAccess<'tcx>, seen: &mut Set<St
     }
 }
 fn drop_path<'tcx>(ty: Ty<'tcx>, path: &Path<'tcx>, conds: &mut Vec<Cond<'tcx>>) {
-    if let Path::Var(Var::Nonce, _) = path {
+    if let Path::Var(Var::Uninit, _) = path {
         return;
     }
     match &ty.kind() {
@@ -561,14 +576,14 @@ pub fn drop_expr<'tcx>(
 
 pub fn assign_to_place<'tcx>(
     place: &Place<'tcx>,
-    mut new_expr: Expr<'tcx>,
+    new_expr: Expr<'tcx>,
     env: &mut Env<'tcx>,
     conds: &mut Vec<Cond<'tcx>>,
     mir_access: MirAccess<'tcx>,
 ) {
     let expr = seize_place(place, env, mir_access);
-    swap(expr, &mut new_expr);
-    drop_expr(place.get_ty(mir_access), &new_expr, conds, mir_access);
+    let old_expr = std::mem::replace(expr, new_expr);
+    drop_expr(place.get_ty(mir_access), &old_expr, conds, mir_access);
 }
 
 #[derive(Debug)]
