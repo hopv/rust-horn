@@ -260,53 +260,6 @@ fn get_prerule<'tcx>(
                 }
                 return Prerule { init_env, conds, end: End::Return { res } };
             }
-            TerminatorKind::Call { func, args, destination: Some((place, target)), .. } => {
-                let fun_ty = func.get_ty(mir_access);
-                let fun = fun_ty.fun_of_fun_ty();
-                let fun_name = pr_fun_name(fun);
-                let res_ty = place.get_ty(mir_access);
-                if let Some(bin_op) = BinOp::try_from_fun(fun) {
-                    assert!(args.len() == 2);
-                    let res = Expr::from_bin_op(
-                        bin_op,
-                        read_opd(&args[0], &mut env, mir_access),
-                        read_opd(&args[1], &mut env, mir_access),
-                    );
-                    assign_to_place(place, res, &mut env, &mut conds, mir_access);
-                } else if let Some(un_op) = UnOp::try_from_fun(fun) {
-                    assert!(args.len() == 1);
-                    let res = Expr::UnOp(un_op, Box::new(read_opd(&args[0], &mut env, mir_access)));
-                    assign_to_place(place, res, &mut env, &mut conds, mir_access);
-                } else if fun_name == "<rand>" {
-                    assign_to_place(
-                        place,
-                        Expr::from_var(Var::Rand(me), res_ty),
-                        &mut env,
-                        &mut conds,
-                        mir_access,
-                    );
-                } else if fun_name == "<swap>" {
-                    assert!(args.len() == 2);
-                    let (x, x_) = read_opd(&args[0], &mut env, mir_access).decompose_mut();
-                    let (y, y_) = read_opd(&args[1], &mut env, mir_access).decompose_mut();
-                    conds.push(Cond::Eq { tgt: y_, src: x });
-                    conds.push(Cond::Eq { tgt: x_, src: y });
-                } else if fun_name == "<free>" {
-                    // do nothing
-                } else {
-                    fun_asks.insert(rep_fun_name(fun_ty), fun_ty);
-                    let mut args: Vec<_> =
-                        args.iter().map(|arg| read_opd(arg, &mut env, mir_access)).collect();
-                    if !res_ty.is_unit() {
-                        let res = Expr::from_var(Var::CallResult(me), res_ty);
-                        assign_to_place(place, res.clone(), &mut env, &mut conds, mir_access);
-                        args.push(res.clone());
-                    }
-                    conds.push(Cond::Call { fun_ty, args });
-                }
-                me = *target;
-                continue;
-            }
             TerminatorKind::SwitchInt { targets, .. } => {
                 if basic.is_ghost_switching(me) {
                     me = targets.all_targets()[0];
@@ -314,8 +267,86 @@ fn get_prerule<'tcx>(
                 }
                 return pivot_up(init_env, is_main, me, conds, env, data);
             }
+            TerminatorKind::Call { func, args, destination: Some((place, target)), .. } => {
+                let fun_ty = func.get_ty(mir_access);
+                let fun = fun_ty.fun_of_fun_ty();
+                let fun_name = pr_fun_name(fun);
+                let res_ty = place.get_ty(mir_access);
+                gather_conds_from_fun(
+                    FnCall {
+                        ty: fun_ty,
+                        did: fun,
+                        fun_name,
+                        args,
+                        caller: me,
+                        res_place: place,
+                        res_ty,
+                    },
+                    mir_access,
+                    &mut env,
+                    &mut conds,
+                    fun_asks,
+                );
+                me = *target;
+                continue;
+            }
             _ => panic!("unexpected terminator {:?}", tmnt),
         }
+    }
+}
+
+struct FnCall<'a, 'tcx> {
+    ty: Ty<'tcx>,
+    did: DefId,
+    fun_name: String,
+    args: &'a [Operand<'tcx>],
+    caller: BasicBlock,
+    res_place: &'a Place<'tcx>,
+    res_ty: Ty<'tcx>,
+}
+
+fn gather_conds_from_fun<'tcx>(
+    FnCall { args, ty, did, fun_name, caller, res_place, res_ty }: FnCall<'_, 'tcx>,
+    mir_access: MirAccess<'tcx>,
+    env: &mut Map<Local, Expr<'tcx>>,
+    conds: &mut Vec<Cond<'tcx>>,
+    fun_asks: &mut Map<String, Ty<'tcx>>,
+) {
+    if let Some(bin_op) = BinOp::try_from_fun(did) {
+        let res = Expr::from_bin_op(
+            bin_op,
+            read_opd(&args[0], env, mir_access),
+            read_opd(&args[1], env, mir_access),
+        );
+        assign_to_place(res_place, res, env, conds, mir_access);
+    } else if let Some(un_op) = UnOp::try_from_fun(did) {
+        let res = Expr::UnOp(un_op, Box::new(read_opd(&args[0], env, mir_access)));
+        assign_to_place(res_place, res, env, conds, mir_access);
+    } else if fun_name == "<rand>" {
+        assign_to_place(
+            res_place,
+            Expr::from_var(Var::Rand(caller), res_ty),
+            env,
+            conds,
+            mir_access,
+        );
+    } else if fun_name == "<swap>" {
+        assert!(args.len() == 2);
+        let (x, x_) = read_opd(&args[0], env, mir_access).decompose_mut();
+        let (y, y_) = read_opd(&args[1], env, mir_access).decompose_mut();
+        conds.push(Cond::Eq { tgt: y_, src: x });
+        conds.push(Cond::Eq { tgt: x_, src: y });
+    } else if fun_name == "<free>" {
+        // do nothing
+    } else {
+        fun_asks.insert(rep_fun_name(ty), ty);
+        let mut args: Vec<_> = args.iter().map(|arg| read_opd(arg, env, mir_access)).collect();
+        if !res_ty.is_unit() {
+            let res = Expr::from_var(Var::CallResult(caller), res_ty);
+            assign_to_place(res_place, res.clone(), env, conds, mir_access);
+            args.push(res.clone());
+        }
+        conds.push(Cond::Call { fun_ty: ty, args });
     }
 }
 
