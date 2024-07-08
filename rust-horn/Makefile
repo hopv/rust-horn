@@ -13,7 +13,7 @@ try:
 		name=$${file%.rs}; \
 		cargo run --release \
 			"$$name.rs" -o "$$name.smt2" \
-			-L $(RUST_LIB_PATH); \
+			-- -L $(RUST_LIB_PATH); \
 	done
 
 clean:

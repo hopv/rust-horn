@@ -68,9 +68,11 @@ fn main() {
       "--no-mir" => opts.mir = false,
       "--mir-dot" => opts.mir_dot = true,
       "--no-mir-dot" => opts.mir_dot = false,
+      "--" => break,
       _ => args.push(arg),
     };
   }
+  args.extend(args_iter);
   RunCompiler::new(&args, &mut MyCallbacks { opts }).run().unwrap();
 }
 
