@@ -1,13 +1,13 @@
 use std::fmt::{Display, Formatter, Result as FResult};
 
-use crate::analyze::data::{BinOp, Cond, Const, End, Expr, Path, UnOp, Var};
+use crate::analyze::data::{BinOp, Cond, Const, End, Expr, Path, Proj, UnOp, Var};
 use crate::analyze::{FunDef, FunDefRef, Pivot, PivotDef, Rule, Summary};
 use crate::prettify::pr_name;
 use crate::types::{
     adt_is_box, AdtDef, DefId, FieldIdx, GenericArgs, Mutability, Ty, TyCtxt, TyKind, VariantDef,
     VariantIdx,
 };
-use crate::util::{enumerate_fld_defs, has_any_type, Cap, FLD0, FLD1, VRT0};
+use crate::util::{has_any_type, Cap, FLD0, FLD1, VRT0};
 
 /* basic */
 
@@ -199,7 +199,9 @@ impl Display for RepVrt<'_> {
         } else {
             write!(f, "({}", rep_adt_builder_name(adt_def, variant_index))?;
             let generic_args = GenericArgs::identity_for_item(tcx, variant_def.def_id);
-            for (field_index, fld_def) in enumerate_fld_defs(fld_defs) {
+            for (field_index, fld_def) in
+                fld_defs.iter().enumerate().map(|(i, fld_def)| (FieldIdx::from(i), fld_def))
+            {
                 let ty = fld_def.ty(tcx, generic_args);
                 write!(
                     f,
@@ -314,7 +316,10 @@ impl Display for Rep<&Path<'_>> {
         let path = self.unrep;
         match path {
             Path::Var(var, _) => write!(f, "{}", rep(var)),
-            Path::Proj(base_ty, variant_index, field_index, box path) => {
+            Path::Proj {
+                projection: Proj { base_ty, variant_index, field_index },
+                body: box path,
+            } => {
                 write!(
                     f,
                     "({} {})",
@@ -368,12 +373,12 @@ impl Display for Rep<&Expr<'_>> {
                 };
                 write!(f, "({} {})", name, rep(expr))
             }
-            Expr::Aggregate(ty, variant_index, flds) => {
-                if flds.is_empty() {
+            Expr::Aggregate { ty, variant_index, fields } => {
+                if fields.is_empty() {
                     write!(f, "{}", rep_builder(*ty, *variant_index))
                 } else {
                     write!(f, "({}", rep_builder(*ty, *variant_index))?;
-                    for fld in flds.iter() {
+                    for fld in fields.iter() {
                         write!(f, " {}", rep(fld))?;
                     }
                     write!(f, ")")

@@ -7,16 +7,15 @@ use crate::types::{
     Mutability, Operand, Place, Rvalue, Set, Statement, StatementKind, TerminatorKind, Ty, TyCtxt,
     TyKind, VariantDef,
 };
-use crate::util::{get_tmnt, BB0, FLD0, FLD1, VRT0, _0};
+use crate::util::{get_terminator, BB0, VRT0, _0};
 
 pub mod graph;
 use graph::{get_ghosts, Basic};
 
 pub mod data;
 use data::{
-    assign_to_place, drop_expr, read_opd, read_place, read_rvalue, seize_place, set_tag,
-    traverse_prerule, BasicAsks, BinOp, Cond, Const, End, Env, Expr, MirAccess, MirAccessCtxExt,
-    MirAccessExt, Path, UnOp, Var,
+    set_tag, AssignExt, BasicAsks, BinOp, Cond, Const, DropExt, End, Env, Expr, GetTypeExt,
+    MirAccess, MirAccessCtxExt, Path, ReadExprCtxExt, ReadExprExt, ReadExprMutExt, UnOp, Var,
 };
 
 #[derive(Debug)]
@@ -35,11 +34,12 @@ pub struct Rule<'tcx> {
 
 impl<'tcx> Rule<'tcx> {
     fn from_prerule(
-        Prerule { init_env, mut conds, mut end }: Prerule<'tcx>,
+        Prerule { init_env, conds, end }: Prerule<'tcx>,
         mir_access: MirAccess<'tcx>,
         is_main: bool,
         basic_asks: &mut BasicAsks<'tcx>,
     ) -> Self {
+        use data::GatherVars;
         let mut args = init_env.into_iter().map(|(_, expr)| expr).collect::<Vec<_>>();
         let res_ty = _0.get_ty(mir_access);
         if !res_ty.is_unit() {
@@ -48,7 +48,11 @@ impl<'tcx> Rule<'tcx> {
         if is_main {
             args.push(Expr::from_var(Var::SelfPanic, mir_access.get_bool()));
         }
-        let vars = traverse_prerule(&mut args, &mut conds, &mut end, mir_access, basic_asks);
+        let mut vars: Map<Var, Ty> = Map::new();
+        args.gather_vars(mir_access, basic_asks, &mut vars);
+        conds.gather_vars(mir_access, basic_asks, &mut vars);
+        end.gather_vars(mir_access, basic_asks, &mut vars);
+        let vars = basic_asks.update_by_vars(vars, mir_access);
         Rule { vars, args, conds, end }
     }
 }
@@ -96,7 +100,7 @@ impl<'a, 'tcx> Data<'a, 'tcx> {
     fn place_discriminant_kind(self, pivot: BasicBlock) -> (Place<'tcx>, DiscriminantKind) {
         let Data { basic, .. } = self;
         let bbd = &basic[pivot];
-        match &get_tmnt(bbd).kind {
+        match &get_terminator(bbd).kind {
             TerminatorKind::SwitchInt { discr, .. } if !basic.is_ghost_switching(pivot) => {
                 match bbd.statements.last() {
                     Some(Statement {
@@ -145,7 +149,7 @@ fn pivot_up<'tcx>(
         args.push(env.remove(&local).unwrap_or_else(|| Expr::uninit(local.get_ty(mir_access))));
     }
     for (local, expr) in env {
-        drop_expr(local.get_ty(mir_access), &expr, &mut conds, mir_access);
+        expr.do_drop(local.get_ty(mir_access), mir_access, &mut conds);
     }
     let res_ty = _0.get_ty(mir_access);
     if !res_ty.is_unit() {
@@ -168,9 +172,9 @@ fn get_prerule<'tcx>(
     let mut env = init_env.clone();
     let Data { basic, mir_access, .. } = data;
     loop {
-        if let TerminatorKind::Call { destination: None, .. } = &get_tmnt(&basic[bb]).kind {
+        if let TerminatorKind::Call { destination: None, .. } = &get_terminator(&basic[bb]).kind {
             for (local, expr) in env {
-                drop_expr(local.get_ty(mir_access), &expr, &mut conds, mir_access);
+                expr.do_drop(local.get_ty(mir_access), mir_access, &mut conds);
             }
             return Prerule { init_env, conds, end: End::Panic };
         }
@@ -179,8 +183,8 @@ fn get_prerule<'tcx>(
                 stmt, basic, stmt_index, bb, mir_access, &mut env, &mut conds,
             );
         }
-        let tmnt = get_tmnt(&basic[bb]);
-        match &tmnt.kind {
+        let terminator = get_terminator(&basic[bb]);
+        match &terminator.kind {
             TerminatorKind::Goto { target } if *target == bb => {
                 return Prerule { init_env, conds, end: End::NeverReturn };
             }
@@ -191,13 +195,9 @@ fn get_prerule<'tcx>(
                 continue;
             }
             TerminatorKind::Return => {
-                let mut res: Option<Expr> = None;
+                let res = env.remove(&_0);
                 for (local, expr) in env {
-                    if local == _0 {
-                        res = Some(expr);
-                    } else {
-                        drop_expr(local.get_ty(mir_access), &expr, &mut conds, mir_access);
-                    }
+                    expr.do_drop(local.get_ty(mir_access), mir_access, &mut conds);
                 }
                 return Prerule { init_env, conds, end: End::Return { res } };
             }
@@ -231,7 +231,7 @@ fn get_prerule<'tcx>(
                 bb = *target;
                 continue;
             }
-            _ => panic!("unexpected terminator {:?}", tmnt),
+            _ => panic!("unexpected terminator {:?}", terminator),
         }
     }
 }
@@ -249,16 +249,16 @@ fn gather_conds_from_statement<'tcx>(
         StatementKind::Assign(box (Place { local, .. }, _)) if basic.ghosts.contains(local) => {}
         StatementKind::Assign(box (_, Rvalue::Discriminant(_))) => {
             assert!(stmt_index == basic[bb].statements.len() - 1);
-            let tmnt = get_tmnt(&basic[bb]);
-            match &tmnt.kind {
+            let terminator = get_terminator(&basic[bb]);
+            match &terminator.kind {
                 TerminatorKind::SwitchInt { .. } => {}
-                _ => panic!("unexpected terminator {:?} for taking discriminant", tmnt),
+                _ => panic!("unexpected terminator {:?} for taking discriminant", terminator),
             }
         }
         StatementKind::Assign(box (place, Rvalue::Use(Operand::Copy(place2))))
             if place2.get_ty(mir_access).is_mutable_ptr() =>
         {
-            let expr2 = seize_place(place2, env, mir_access);
+            let expr2 = place2.get_mut_expr(env, mir_access);
             let var = Var::MutRet { location: bb, stmt_index };
             let ty_body = match &place2.get_ty(mir_access).kind() {
                 TyKind::Ref(_, ty_body, Mutability::Mut) => ty_body,
@@ -268,26 +268,25 @@ fn gather_conds_from_statement<'tcx>(
             match expr2 {
                 Expr::Path(path) => {
                     let ty = place2.get_ty(mir_access);
-                    let cur = Expr::Path(path.get_proj(ty, VRT0, FLD0));
-                    let ret = Expr::Path(path.get_proj(ty, VRT0, FLD1));
-                    *expr2 = Expr::Aggregate(ty, VRT0, vec![Expr::from_var(var, ty_body), ret]);
-                    let new_expr =
-                        Expr::Aggregate(ty, VRT0, vec![cur, Expr::from_var(var, ty_body)]);
-                    assign_to_place(place, new_expr, env, conds, mir_access);
+                    let (cur, ret) = Expr::decompose_mut_path(path);
+                    *expr2 = Expr::pair(ty, Expr::from_var(var, ty_body), ret);
+                    let new_expr = Expr::pair(ty, cur, Expr::from_var(var, ty_body));
+                    place.assign(new_expr, env, conds, mir_access);
                 }
-                Expr::Aggregate(ty, VRT0, flds) => {
-                    assert!(flds.len() == 2);
+                Expr::Aggregate { ty, variant_index: VRT0, fields } => {
+                    assert!(fields.len() == 2);
+                    let ty = *ty;
                     let new_expr = Expr::from_var(var, ty_body);
-                    let old_expr = std::mem::replace(&mut flds[FLD0.index()], new_expr.clone());
-                    let new_expr = Expr::Aggregate(*ty, VRT0, vec![old_expr, new_expr]);
-                    assign_to_place(place, new_expr, env, conds, mir_access);
+                    let old_expr = std::mem::replace(&mut fields[0], new_expr.clone());
+                    let new_expr = Expr::pair(ty, old_expr, new_expr);
+                    place.assign(new_expr, env, conds, mir_access);
                 }
                 _ => panic!("unexpected expression {:?} for a mutable reference", expr2),
             }
         }
         StatementKind::Assign(box (place, rvalue)) => {
-            let expr = read_rvalue(rvalue, env, mir_access, bb, stmt_index);
-            assign_to_place(place, expr, env, conds, mir_access);
+            let expr = rvalue.get_expr_at((bb, stmt_index), env, mir_access);
+            place.assign(expr, env, conds, mir_access);
         }
         StatementKind::SetDiscriminant { place, variant_index } => {
             set_tag(place, *variant_index, env, mir_access);
@@ -297,7 +296,7 @@ fn gather_conds_from_statement<'tcx>(
         | StatementKind::Nop => {}
         StatementKind::StorageDead(local) => {
             if let Some(expr) = env.remove(local) {
-                drop_expr(local.get_ty(mir_access), &expr, conds, mir_access);
+                expr.do_drop(local.get_ty(mir_access), mir_access, conds);
             }
         }
         _ => panic!("unsupported statement {:?}", stmt),
@@ -324,35 +323,30 @@ fn gather_conds_from_fun<'tcx>(
     if let Some(bin_op) = BinOp::try_from_fun(did) {
         let res = Expr::from_bin_op(
             bin_op,
-            read_opd(&args[0], env, mir_access),
-            read_opd(&args[1], env, mir_access),
+            args[0].get_expr(env, mir_access),
+            args[1].get_expr(env, mir_access),
         );
-        assign_to_place(res_place, res, env, conds, mir_access);
+        res_place.assign(res, env, conds, mir_access);
     } else if let Some(un_op) = UnOp::try_from_fun(did) {
-        let res = Expr::UnOp(un_op, Box::new(read_opd(&args[0], env, mir_access)));
-        assign_to_place(res_place, res, env, conds, mir_access);
+        let res = Expr::UnOp(un_op, Box::new(args[0].get_expr(env, mir_access)));
+        res_place.assign(res, env, conds, mir_access);
     } else if fun_name == "<rand>" {
-        assign_to_place(
-            res_place,
-            Expr::from_var(Var::Rand { caller }, res_ty),
-            env,
-            conds,
-            mir_access,
-        );
+        let res = Expr::from_var(Var::Rand { caller }, res_ty);
+        res_place.assign(res, env, conds, mir_access);
     } else if fun_name == "<swap>" {
         assert!(args.len() == 2);
-        let (x, x_) = read_opd(&args[0], env, mir_access).decompose_mut();
-        let (y, y_) = read_opd(&args[1], env, mir_access).decompose_mut();
+        let (x, x_) = args[0].get_expr(env, mir_access).decompose_mut();
+        let (y, y_) = args[1].get_expr(env, mir_access).decompose_mut();
         conds.push(Cond::Eq { tgt: y_, src: x });
         conds.push(Cond::Eq { tgt: x_, src: y });
     } else if fun_name == "<free>" {
         // do nothing
     } else {
         fun_asks.insert(rep_fun_name(ty), ty);
-        let mut args: Vec<_> = args.iter().map(|arg| read_opd(arg, env, mir_access)).collect();
+        let mut args: Vec<_> = args.iter().map(|arg| arg.get_expr(env, mir_access)).collect();
         if !res_ty.is_unit() {
             let res = Expr::from_var(Var::CallResult { caller }, res_ty);
-            assign_to_place(res_place, res.clone(), env, conds, mir_access);
+            res_place.assign(res.clone(), env, conds, mir_access);
             args.push(res.clone());
         }
         conds.push(Cond::Call { fun_ty: ty, args });
@@ -375,14 +369,14 @@ fn analyze_pivot<'tcx>(
         .into_iter()
         .map(|local| (local, Expr::Path(Path::Var(Var::Input { local }, local.get_ty(mir_access)))))
         .collect::<HashMap<_, _>>();
-    let env = Env::from_inner(env);
+    let mut env = Env::from_inner(env);
     match pivot {
         Pivot::Entry => {
             prerules.push(get_prerule(is_main, BB0, env.clone(), data, fun_asks));
         }
         Pivot::Switch(bb) => {
-            let tmnt = get_tmnt(&basic[bb]);
-            if let TerminatorKind::SwitchInt { targets, .. } = &tmnt.kind {
+            let terminator = get_terminator(&basic[bb]);
+            if let TerminatorKind::SwitchInt { targets, .. } = &terminator.kind {
                 assert!(!basic.is_ghost_switching(bb));
                 let (discr_place, discr_kind) = data.place_discriminant_kind(bb);
                 let discr_ty = discr_place.get_ty(mir_access);
@@ -394,7 +388,7 @@ fn analyze_pivot<'tcx>(
                             assert!(main_targets.len() == 1 && main_targets[0].0 == 0);
                             for (b, tgt) in [(false, &main_targets[0].1), (true, &rest_target)] {
                                 let mut env = env.clone();
-                                *seize_place(&discr_place, &mut env, mir_access) =
+                                *discr_place.get_mut_expr(&mut env, mir_access) =
                                     Expr::Const(Const::Bool(b));
                                 prerules.push(get_prerule(is_main, *tgt, env, data, fun_asks));
                             }
@@ -404,11 +398,11 @@ fn analyze_pivot<'tcx>(
                             for (val, tgt) in &main_targets {
                                 let mut env = env.clone();
                                 let val_expr = Expr::Const(Const::Int(*val as i64));
-                                *seize_place(&discr_place, &mut env, mir_access) = val_expr.clone();
+                                *discr_place.get_mut_expr(&mut env, mir_access) = val_expr.clone();
                                 prerules.push(get_prerule(is_main, *tgt, env, data, fun_asks));
                                 neq_srcs.push(val_expr);
                             }
-                            let neq_tgt = read_place(&discr_place, &env, mir_access);
+                            let neq_tgt = discr_place.get_expr(&mut env, mir_access);
                             let mut prerule =
                                 get_prerule(is_main, rest_target, env, data, fun_asks);
                             prerule.conds.push(Cond::Neq { tgt: neq_tgt, srcs: neq_srcs });
@@ -438,8 +432,8 @@ fn analyze_pivot<'tcx>(
                                         )
                                     })
                                     .collect::<Vec<_>>();
-                                *seize_place(&discr_place, &mut env, mir_access) =
-                                    Expr::Aggregate(discr_ty, variant_index, args);
+                                *discr_place.get_mut_expr(&mut env, mir_access) =
+                                    Expr::Aggregate { ty: discr_ty, variant_index, fields: args };
                                 prerules.push(get_prerule(is_main, *tgt, env, data, fun_asks));
                             }
                         }
@@ -447,7 +441,7 @@ fn analyze_pivot<'tcx>(
                     },
                 }
             } else {
-                panic!("unexpected terminator {:?} for a pivot", tmnt);
+                panic!("unexpected terminator {:?} for a pivot", terminator);
             }
         }
     }
@@ -479,7 +473,7 @@ fn analyze_fun<'tcx>(
     {
         fun_def.insert(pivot, analyze_pivot(is_main, pivot, data, basic_asks));
     }
-    fun_def.into_inner_vec()
+    fun_def.into_sorted_vec()
 }
 
 pub struct Summary<'tcx> {
@@ -518,7 +512,7 @@ pub fn analyze<'tcx>(tcx: TyCtxt<'tcx>) -> Summary<'tcx> {
     }
     /* analyze required functions */
     loop {
-        let fun_asks = std::mem::take(&mut basic_asks.fun_asks).into_inner_vec();
+        let fun_asks = std::mem::take(&mut basic_asks.fun_asks).into_sorted_vec();
         if fun_asks.is_empty() {
             break;
         }
@@ -538,10 +532,10 @@ pub fn analyze<'tcx>(tcx: TyCtxt<'tcx>) -> Summary<'tcx> {
     let BasicAsks { fun_asks, drop_asks, adt_asks, tup_asks, mut_asks } = basic_asks;
     assert!(fun_asks.is_empty() && drop_asks.is_empty());
     Summary {
-        fun_defs: fun_defs.into_inner_vec(),
-        drop_defs: drop_defs.into_inner_vec(),
-        adt_asks: adt_asks.into_inner_vec(),
-        tup_asks: tup_asks.into_inner_vec(),
-        mut_asks: mut_asks.into_inner_vec(),
+        fun_defs: fun_defs.into_sorted_vec(),
+        drop_defs: drop_defs.into_sorted_vec(),
+        adt_asks: adt_asks.into_sorted_vec(),
+        tup_asks: tup_asks.into_sorted_vec(),
+        mut_asks: mut_asks.into_sorted_vec(),
     }
 }

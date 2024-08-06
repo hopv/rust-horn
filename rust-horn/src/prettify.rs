@@ -3,11 +3,11 @@ use std::str::pattern::Pattern;
 
 use crate::types::{
     with_tcx, AdtDef, AggregateKind, BasicBlock, BorrowKind, ClosureKind, DefId, FieldIdx, FnSig,
-    GenericArgs, Local, LocalDecl, MirBinOp, MirBody, MirUnOp, Mutability, NullOp, Operand, Place,
-    ProjectionElem, Rvalue, Statement, StatementKind, Terminator, TerminatorKind, Ty, TyConst,
-    TyCtxt, TyKind, VariantIdx,
+    GenericArgs, Local, LocalDecl, MirBinOp, MirBody, MirUnOp, Mutability, NullOp, Operand,
+    ParamEnv, Place, ProjectionElem, Rvalue, Statement, StatementKind, Terminator, TerminatorKind,
+    Ty, TyConst, TyCtxt, TyKind, VariantIdx,
 };
-use crate::util::{bits_to_cnst, enumerate_bbds, get_tmnt};
+use crate::util::{enumerate_bbds, get_terminator};
 
 pub fn pr_name(def_id: DefId) -> String {
     with_tcx(|tcx| tcx.def_path_str(def_id)).replace("{{closure}}", "{clsr}")
@@ -225,7 +225,7 @@ impl<'tcx> Display for Pr<&TyConst<'tcx>> {
 }
 
 fn pr_bits<'tcx>(ty: Ty<'tcx>, bits: u128, tcx: TyCtxt<'tcx>) -> impl Display + 'tcx {
-    pr(bits_to_cnst(ty, bits, tcx))
+    pr(TyConst::from_bits(tcx, bits, ParamEnv::empty().and(ty.ty)))
 }
 
 impl Display for Pr<&Operand<'_>> {
@@ -340,21 +340,21 @@ impl Display for Pr<&Statement<'_>> {
 }
 
 struct PrTerminatorShort<'tcx> {
-    tmnt: &'tcx Terminator<'tcx>,
+    terminator: &'tcx Terminator<'tcx>,
     mir: &'tcx MirBody<'tcx>,
     tcx: TyCtxt<'tcx>,
 }
-fn pr_tmnt_short<'tcx>(
-    tmnt: &'tcx Terminator<'tcx>,
+fn pr_terminator_short<'tcx>(
+    terminator: &'tcx Terminator<'tcx>,
     mir: &'tcx MirBody<'tcx>,
     tcx: TyCtxt<'tcx>,
 ) -> impl Display + 'tcx {
-    PrTerminatorShort { tmnt, mir, tcx }
+    PrTerminatorShort { terminator, mir, tcx }
 }
 impl Display for PrTerminatorShort<'_> {
     fn fmt(&self, f: &mut Formatter) -> FResult {
-        let PrTerminatorShort { tmnt, mir, tcx } = *self;
-        match &tmnt.kind {
+        let PrTerminatorShort { terminator, mir, tcx } = *self;
+        match &terminator.kind {
             TerminatorKind::Goto { .. } => Ok(()),
             TerminatorKind::SwitchInt { discr, .. } => write!(f, "? {}", pr(discr)),
             TerminatorKind::Unreachable => write!(f, "panic"),
@@ -378,27 +378,27 @@ impl Display for PrTerminatorShort<'_> {
             TerminatorKind::Assert { cond, expected, .. } => {
                 write!(f, "assert!({} == {})", pr(cond), expected)
             }
-            _ => panic!("unsupported terminator {:?}", tmnt),
+            _ => panic!("unsupported terminator {:?}", terminator),
         }
     }
 }
 struct PrTerminator<'tcx> {
-    tmnt: &'tcx Terminator<'tcx>,
+    terminator: &'tcx Terminator<'tcx>,
     mir: &'tcx MirBody<'tcx>,
     tcx: TyCtxt<'tcx>,
 }
-fn pr_tmnt<'tcx>(
-    tmnt: &'tcx Terminator<'tcx>,
+fn pr_terminator<'tcx>(
+    terminator: &'tcx Terminator<'tcx>,
     mir: &'tcx MirBody<'tcx>,
     tcx: TyCtxt<'tcx>,
 ) -> impl Display + 'tcx {
-    PrTerminator { tmnt, mir, tcx }
+    PrTerminator { terminator, mir, tcx }
 }
 impl Display for PrTerminator<'_> {
     fn fmt(&self, f: &mut Formatter) -> FResult {
-        let PrTerminator { tmnt, mir, tcx } = *self;
-        write!(f, "{}", pr_tmnt_short(tmnt, mir, tcx))?;
-        match &tmnt.kind {
+        let PrTerminator { terminator, mir, tcx } = *self;
+        write!(f, "{}", pr_terminator_short(terminator, mir, tcx))?;
+        match &terminator.kind {
             TerminatorKind::Goto { target } => {
                 write!(f, "goto {}", pr(target))?;
             }
@@ -420,7 +420,7 @@ impl Display for PrTerminator<'_> {
                 }
             }
             _ => {
-                panic!("unsupported terminator {:?}", tmnt);
+                panic!("unsupported terminator {:?}", terminator);
             }
         }
         Ok(())
@@ -501,7 +501,7 @@ impl Display for PrMir<'_> {
             for stmt in &bbd.statements {
                 writeln!(f, "  {}", pr(stmt))?;
             }
-            writeln!(f, "  {}\n", pr_tmnt(get_tmnt(bbd), mir, tcx))?;
+            writeln!(f, "  {}\n", pr_terminator(get_terminator(bbd), mir, tcx))?;
         }
         writeln!(f, "}}")
     }
@@ -565,8 +565,8 @@ impl Display for PrMirDot<'_> {
             for stmt in &bbd.statements {
                 writeln!(f, r#"      <tr><td align="left">{}</td></tr>"#, html_esc(pr(stmt)))?;
             }
-            let tmnt = get_tmnt(bbd);
-            match &tmnt.kind {
+            let terminator = get_terminator(bbd);
+            match &terminator.kind {
                 TerminatorKind::Goto { .. } => {}
                 TerminatorKind::SwitchInt { .. }
                 | TerminatorKind::Unreachable
@@ -574,7 +574,7 @@ impl Display for PrMirDot<'_> {
                 | TerminatorKind::Return
                 | TerminatorKind::Call { .. }
                 | TerminatorKind::Drop { .. } => {
-                    let bgcolor = if let TerminatorKind::SwitchInt { .. } = &tmnt.kind {
+                    let bgcolor = if let TerminatorKind::SwitchInt { .. } = &terminator.kind {
                         "#f8ccff"
                     } else {
                         "#d1ffeb"
@@ -583,12 +583,12 @@ impl Display for PrMirDot<'_> {
                         f,
                         r#"      <tr><td align="left" bgcolor="{}">{}</td></tr>"#,
                         bgcolor,
-                        html_esc(pr_tmnt_short(tmnt, mir, tcx))
+                        html_esc(pr_terminator_short(terminator, mir, tcx))
                     )?;
                 }
-                _ => panic!("unsupported terminator {:?}", tmnt),
+                _ => panic!("unsupported terminator {:?}", terminator),
             }
-            match &tmnt.kind {
+            match &terminator.kind {
                 TerminatorKind::Goto { target }
                 | TerminatorKind::Drop { target, .. }
                 | TerminatorKind::Assert { target, .. } => {
@@ -607,7 +607,7 @@ impl Display for PrMirDot<'_> {
                         jumps.push((bb, *target, String::new()));
                     }
                 }
-                _ => panic!("unsupported terminator {:?}", tmnt),
+                _ => panic!("unsupported terminator {:?}", terminator),
             }
             writeln!(f, "    </table>>\n  ];\n")?;
         }

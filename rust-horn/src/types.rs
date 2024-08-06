@@ -72,6 +72,10 @@ pub struct Map<K, V> {
     inner: HashMap<K, V>,
 }
 
+impl<K: Ord, V> Map<K, V> {
+    pub fn into_sorted_vec(self) -> Vec<(K, V)> { sort_map(self.inner) }
+}
+
 impl<K, V> Default for Map<K, V> {
     fn default() -> Self { Self { inner: HashMap::new() } }
 }
@@ -90,7 +94,7 @@ impl<K: Ord, V> IntoIterator for Map<K, V> {
 
     type IntoIter = <Vec<(K, V)> as IntoIterator>::IntoIter;
 
-    fn into_iter(self) -> Self::IntoIter { self.into_inner_vec().into_iter() }
+    fn into_iter(self) -> Self::IntoIter { self.into_sorted_vec().into_iter() }
 }
 
 impl<K: Ord + Hash, V> Map<K, V> {
@@ -124,14 +128,14 @@ impl<K: Ord + Hash, V> Map<K, V> {
     pub fn drain(&mut self) -> std::collections::hash_map::Drain<'_, K, V> { self.inner.drain() }
 }
 
-impl<K: Ord, V> Map<K, V> {
-    pub fn into_inner_vec(self) -> Vec<(K, V)> { sort_map(self.inner) }
-}
-
 #[derive(Debug, Clone)]
 /// sorted set when iterated
 pub struct Set<T> {
     inner: HashSet<T>,
+}
+
+impl<T: Ord> Set<T> {
+    pub fn into_sorted_vec(self) -> Vec<T> { sort_set(self.inner) }
 }
 
 impl<T0: Eq + Hash> Extend<T0> for Set<T0> {
@@ -146,7 +150,7 @@ impl<T: Ord> IntoIterator for Set<T> {
 
     type IntoIter = <Vec<T> as IntoIterator>::IntoIter;
 
-    fn into_iter(self) -> Self::IntoIter { self.into_inner_vec().into_iter() }
+    fn into_iter(self) -> Self::IntoIter { self.into_sorted_vec().into_iter() }
 }
 
 impl<T: Ord + Hash> Set<T> {
@@ -178,8 +182,4 @@ impl<T: Ord + Hash> Set<T> {
     where F: FnMut(&T) -> bool {
         self.inner.retain(f);
     }
-}
-
-impl<T: Ord> Set<T> {
-    pub fn into_inner_vec(self) -> Vec<T> { sort_set(self.inner) }
 }

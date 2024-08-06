@@ -1,7 +1,6 @@
 use crate::types::{
-    BasicBlock, BasicBlockData, BasicBlockDatas, ConstKind, ConstValue, DefId, FieldDef, FieldIdx,
-    GenericArgsRef, Local, MirBody, ParamEnv, Scalar, Terminator, Ty, TyConst, TyCtxt, TyKind,
-    VariantIdx,
+    BasicBlock, BasicBlockData, BasicBlockDatas, DefId, FieldIdx, GenericArgsRef, Local, MirBody,
+    Terminator, Ty, TyCtxt, TyKind, VariantIdx,
 };
 
 pub const BB0: BasicBlock = BasicBlock::from_u32(0);
@@ -36,17 +35,7 @@ pub fn enumerate_mirs<'tcx>(tcx: TyCtxt<'tcx>) -> impl Iterator<Item = (DefId, &
         })
 }
 
-pub fn enumerate_fld_defs(fld_defs: &[FieldDef]) -> impl Iterator<Item = (FieldIdx, &FieldDef)> {
-    fld_defs.iter().enumerate().map(|(i, fld_def)| (FieldIdx::from(i), fld_def))
-}
-
-pub fn bits_to_cnst<'tcx>(ty: Ty<'tcx>, bits: u128, tcx: TyCtxt<'tcx>) -> &'tcx TyConst<'tcx> {
-    let size = tcx.layout_of(ParamEnv::empty().and(ty.ty)).unwrap().size;
-    let val = ConstKind::Value(ConstValue::Scalar(Scalar::from_uint(bits, size)));
-    tcx.mk_const(TyConst { ty: ty.ty, val })
-}
-
-pub fn get_tmnt<'a, 'tcx>(bbd: &'a BasicBlockData<'tcx>) -> &'a Terminator<'tcx> {
+pub fn get_terminator<'a, 'tcx>(bbd: &'a BasicBlockData<'tcx>) -> &'a Terminator<'tcx> {
     bbd.terminator.as_ref().unwrap()
 }
 

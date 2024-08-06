@@ -4,7 +4,7 @@ use crate::types::{
     BasicBlock, BasicBlockData, BasicBlockDatas, Local, Map, Operand, Place, Rvalue, Set,
     StatementKind, TerminatorKind, TyKind,
 };
-use crate::util::{enumerate_bbds, get_tmnt, BB0};
+use crate::util::{enumerate_bbds, get_terminator, BB0};
 
 pub fn get_ghosts(bbd0: &BasicBlockData, n_args: usize) -> Set<Local> {
     let mut ghosts: Set<Local> = Set::new();
@@ -45,7 +45,7 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
             targets,
             discr: Operand::Copy(Place { local, .. }),
             ..
-        } = &get_tmnt(&self[bb]).kind
+        } = &get_terminator(&self[bb]).kind
         {
             if self.ghosts.contains(local) {
                 assert!(targets.all_targets().len() == 2);
@@ -56,15 +56,15 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
     }
     pub fn is_panicking(self, bb: BasicBlock) -> bool {
         matches!(
-            &get_tmnt(&self[bb]).kind,
+            &get_terminator(&self[bb]).kind,
             TerminatorKind::Call { destination: None, .. }
                 | TerminatorKind::Abort
                 | TerminatorKind::Unreachable
         )
     }
     pub fn get_targets(self, bb: BasicBlock) -> Vec<BasicBlock> {
-        let tmnt = get_tmnt(&self[bb]);
-        match &tmnt.kind {
+        let terminator = get_terminator(&self[bb]);
+        match &terminator.kind {
             TerminatorKind::Goto { target }
             | TerminatorKind::Drop { target, .. }
             | TerminatorKind::Assert { target, .. } => {
@@ -82,15 +82,15 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
                 }
             }
             TerminatorKind::Call { destination: Some((_, target)), .. } => vec![*target],
-            _ => panic!("unsupported terminator {:?}", tmnt),
+            _ => panic!("unsupported terminator {:?}", terminator),
         }
     }
 
     pub fn get_switches(self) -> Vec<BasicBlock> {
         let mut switches = Vec::<BasicBlock>::new();
         for (bb, bbd) in enumerate_bbds(self.bbds) {
-            let tmnt = get_tmnt(bbd);
-            match &tmnt.kind {
+            let terminator = get_terminator(bbd);
+            match &terminator.kind {
                 TerminatorKind::Goto { .. }
                 | TerminatorKind::Drop { .. }
                 | TerminatorKind::Assert { .. }
@@ -100,7 +100,7 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
                 TerminatorKind::SwitchInt { .. } => {
                     switches.push(bb);
                 }
-                _ => panic!("unsupported terminator {:?}", tmnt),
+                _ => panic!("unsupported terminator {:?}", terminator),
             }
         }
         switches.sort_unstable();
@@ -157,9 +157,9 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
                     _ => panic!("unsupported statement {:?}", stmt),
                 }
             }
-            let tmnt = get_tmnt(&basic[me]);
+            let terminator = get_terminator(&basic[me]);
             let mut discr_local = None::<Local>;
-            match &tmnt.kind {
+            match &terminator.kind {
                 TerminatorKind::Goto { .. }
                 | TerminatorKind::Return
                 | TerminatorKind::Drop { .. }
@@ -175,7 +175,7 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
                         ins.insert(*local);
                     }
                 }
-                _ => panic!("unsupported terminator {:?}", tmnt),
+                _ => panic!("unsupported terminator {:?}", terminator),
             }
             for him in basic.get_targets(me) {
                 dfs(him, &ins, discr_local, basic, ins_map);
