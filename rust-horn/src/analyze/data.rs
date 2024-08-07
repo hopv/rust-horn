@@ -1,9 +1,9 @@
-use crate::prettify::{pr, pr_fun_name};
+use crate::prettify::pr_fun_name;
 use crate::represent::{rep, rep_drop_name};
 use crate::types::{
-    adt_is_box, BasicBlock, BorrowKind, DefId, FieldDef, FieldIdx, GenericArgsRef, Local, Map,
-    MirBinOp, MirBody, MirUnOp, Mutability, Operand, Place, ProjectionElem, Rvalue, Set, Subst, Ty,
-    TyConst, TyCtxt, TyKind, VariantIdx,
+    adt_is_box, BasicBlock, BorrowKind, Constant, DefId, FieldDef, FieldIdx, Float32, Float64,
+    FloatTy, GenericArgsRef, Local, Map, MirBinOp, MirBody, MirUnOp, Mutability, Operand, Place,
+    ProjectionElem, Rvalue, Set, Size, Subst, Ty, TyCtxt, TyKind, VariantIdx,
 };
 use crate::util::{FLD0, FLD1, VRT0};
 
@@ -133,9 +133,66 @@ impl<'tcx> Path<'tcx> {
 #[derive(Debug, Copy, Clone)]
 pub enum Const {
     Bool(bool),
-    Int(i64),
-    Real(f64),
+    Int(Int),
+    Decimal(Float),
     Unit,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum Int {
+    Int(i128),
+    Uint(u128),
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum Float {
+    F32(Float32),
+    F64(Float64),
+}
+
+impl Const {
+    pub fn from_mir_constant(c: &Constant, tcx: TyCtxt) -> Self {
+        let ty = c.ty();
+        if ty.is_integral() {
+            let scalar = c.literal.try_to_scalar().unwrap();
+            let bit_width = match ty.kind() {
+                TyKind::Int(int_ty) => int_ty.bit_width(),
+                TyKind::Uint(uint_ty) => uint_ty.bit_width(),
+                _ => unreachable!("typeck should have finished"),
+            };
+            let int = if let Some(bit_width) = bit_width {
+                let sz = Size::from_bits(bit_width);
+                let bits = scalar.to_bits(sz).expect("size mismatch");
+                if ty.is_signed() {
+                    #[allow(clippy::cast_possible_wrap)]
+                    Int::Int(sz.sign_extend(bits) as i128)
+                } else {
+                    Int::Uint(bits)
+                }
+            } else if ty.is_signed() {
+                Int::Int(i128::from(scalar.to_machine_isize(&tcx).unwrap()))
+            } else {
+                Int::Uint(u128::from(scalar.to_machine_usize(&tcx).unwrap()))
+            };
+            Const::Int(int)
+        } else if ty.is_floating_point() {
+            let scalar = c.literal.try_to_scalar().unwrap();
+            let float = match ty.kind() {
+                TyKind::Float(float_ty) => match float_ty {
+                    FloatTy::F32 => Float::F32(scalar.to_f32().unwrap()),
+                    FloatTy::F64 => Float::F64(scalar.to_f64().unwrap()),
+                },
+                _ => unreachable!("typeck should have finished"),
+            };
+            Const::Decimal(float)
+        } else if ty.is_bool() {
+            Const::Bool(c.literal.try_to_scalar().unwrap().to_bool().unwrap())
+        } else if ty.is_unit() {
+            Const::Unit
+        } else {
+            panic!("unexpected type of constant {:?}", ty)
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -434,17 +491,6 @@ impl<'tcx> ReadExprMutExt<'tcx> for Place<'tcx> {
     }
 }
 
-fn ty_cnst_to_cnst(ty_cnst: &TyConst<'_>) -> Const {
-    let buf = pr(ty_cnst).to_string();
-    match &ty_cnst.ty.kind() {
-        TyKind::Int(_) | TyKind::Uint(_) => Const::Int(buf.parse().unwrap()),
-        TyKind::Float(_) => Const::Real(buf.parse().unwrap()),
-        TyKind::Bool => Const::Bool(buf.parse().unwrap()),
-        TyKind::Tuple(generic_args) if generic_args.len() == 0 => Const::Unit,
-        _ => panic!("unexpected type {:?}", ty_cnst.ty),
-    }
-}
-
 impl<'tcx> ReadExprExt<'tcx> for Operand<'tcx> {
     fn get_expr(&self, env: &mut Env<'tcx>, mir_access: MirAccess<'tcx>) -> Expr<'tcx> {
         match self {
@@ -454,7 +500,7 @@ impl<'tcx> ReadExprExt<'tcx> for Operand<'tcx> {
                 std::mem::replace(expr, Expr::uninit(place.get_ty(mir_access)))
             }
             Operand::Constant(box constant) => {
-                Expr::Const(ty_cnst_to_cnst(constant.literal.const_for_ty().unwrap()))
+                Expr::Const(Const::from_mir_constant(constant, mir_access.tcx))
             }
         }
     }

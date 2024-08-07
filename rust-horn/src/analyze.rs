@@ -14,7 +14,7 @@ use graph::{get_ghosts, Basic};
 
 pub mod data;
 use data::{
-    set_tag, AssignExt, BasicAsks, BinOp, Cond, Const, DropExt, End, Env, Expr, GetTypeExt,
+    set_tag, AssignExt, BasicAsks, BinOp, Cond, Const, DropExt, End, Env, Expr, GetTypeExt, Int,
     MirAccess, MirAccessCtxExt, Path, ReadExprCtxExt, ReadExprExt, ReadExprMutExt, UnOp, Var,
 };
 
@@ -397,7 +397,7 @@ fn analyze_pivot<'tcx>(
                             let mut neq_srcs = vec![];
                             for (val, tgt) in &main_targets {
                                 let mut env = env.clone();
-                                let val_expr = Expr::Const(Const::Int(*val as i64));
+                                let val_expr = Expr::Const(Const::Int(Int::Uint(*val)));
                                 *discr_place.get_mut_expr(&mut env, mir_access) = val_expr.clone();
                                 prerules.push(get_prerule(is_main, *tgt, env, data, fun_asks));
                                 neq_srcs.push(val_expr);

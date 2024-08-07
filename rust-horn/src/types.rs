@@ -1,20 +1,21 @@
+pub use rustc_apfloat::ieee::{Double as Float64, Single as Float32};
 pub use rustc_hir::{def_id::DefId, Mutability};
 pub use rustc_index::vec::IndexVec;
 pub use rustc_middle::mir::{
     interpret::{ConstValue, Scalar},
     AggregateKind, BasicBlock, BasicBlockData, BinOp as MirBinOp, Body as MirBody, BorrowKind,
-    Field as FieldIdx, Local, LocalDecl, NullOp, Operand, Place, ProjectionElem, Rvalue, Statement,
-    StatementKind, Terminator, TerminatorKind, UnOp as MirUnOp,
+    Constant, Field as FieldIdx, Local, LocalDecl, NullOp, Operand, Place, ProjectionElem, Rvalue,
+    Statement, StatementKind, Terminator, TerminatorKind, UnOp as MirUnOp,
 };
 pub use rustc_middle::ty::{
     subst::{InternalSubsts as GenericArgs, Subst, SubstsRef as GenericArgsRef},
     tls::with as with_tcx,
-    AdtDef, ClosureKind, Const as TyConst, ConstKind, FieldDef, FnSig, ParamEnv, TyCtxt, TyKind,
-    VariantDef,
+    AdtDef, ClosureKind, Const as TyConst, ConstKind, FieldDef, FloatTy, FnSig, ParamEnv,
+    ScalarInt, TyCtxt, TyKind, VariantDef,
 };
 pub use rustc_session::config::EntryFnType;
 pub type BasicBlockDatas<'tcx> = IndexVec<BasicBlock, BasicBlockData<'tcx>>;
-pub use rustc_target::abi::VariantIdx;
+pub use rustc_target::abi::{Size, VariantIdx};
 
 use std::{
     collections::{HashMap, HashSet},

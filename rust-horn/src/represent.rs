@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter, Result as FResult};
 
-use crate::analyze::data::{BinOp, Cond, Const, End, Expr, Path, Proj, UnOp, Var};
+use crate::analyze::data::{BinOp, Cond, Const, End, Expr, Float, Int, Path, Proj, UnOp, Var};
 use crate::analyze::{FunDef, FunDefRef, Pivot, PivotDef, Rule, Summary};
 use crate::prettify::pr_name;
 use crate::types::{
@@ -334,9 +334,11 @@ impl Display for Rep<Const> {
     fn fmt(&self, f: &mut Formatter) -> FResult {
         let cnst = self.unrep;
         match cnst {
-            Const::Bool(b) => write!(f, "{}", b),
-            Const::Int(n) => write!(f, "{}", n),
-            Const::Real(a) => write!(f, "{}", a),
+            Const::Bool(b) => write!(f, "{b}"),
+            Const::Int(Int::Int(int)) => write!(f, "{int}"),
+            Const::Int(Int::Uint(uint)) => write!(f, "{uint}"),
+            Const::Decimal(Float::F32(f32)) => write!(f, "{f32}"),
+            Const::Decimal(Float::F64(f64)) => write!(f, "{f64}"),
             Const::Unit => write!(f, "~tup0"),
         }
     }
