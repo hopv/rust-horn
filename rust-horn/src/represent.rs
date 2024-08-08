@@ -1,38 +1,33 @@
-use rustc_hir::{def_id::DefId, Mutability};
-use rustc_middle::mir::{BasicBlock as BB, Field as FldIdx};
-use rustc_middle::ty::{
-  subst::InternalSubsts as Substs, AdtDef, Ty, TyCtxt, TyKind as TyK, VariantDef as VrtDef,
-};
-use rustc_target::abi::VariantIdx as VrtIdx;
-
 use std::fmt::{Display, Formatter, Result as FResult};
 
-use crate::analyze::data::{BinOp, Cond, Const, End, Expr, Path, UnOp, Var};
-use crate::analyze::{FunDef, FunDefRef, PivotDef, Rule, Summary};
+use crate::analyze::data::{BinOp, Cond, Const, End, Expr, Float, Int, Path, Proj, UnOp, Var};
+use crate::analyze::{FunDef, FunDefRef, Pivot, PivotDef, Rule, Summary};
 use crate::prettify::pr_name;
-use crate::util::{
-  enumerate_fld_defs, fun_of_fun_ty, has_any_type, only_ty, substs_of_fun_ty, Cap, FLD0, FLD1, VRT0,
+use crate::types::{
+    adt_is_box, AdtDef, DefId, FieldIdx, GenericArgs, Mutability, Ty, TyCtxt, TyKind, VariantDef,
+    VariantIdx,
 };
+use crate::util::{has_any_type, Cap, FLD0, FLD1, VRT0};
 
 /* basic */
 
 pub struct Rep<T> {
-  unrep: T,
+    unrep: T,
 }
 pub fn rep<T>(x: T) -> Rep<T> { Rep { unrep: x } }
 impl<T> Display for Rep<&T>
 where
-  T: Copy,
-  Rep<T>: Display,
+    T: Copy,
+    Rep<T>: Display,
 {
-  fn fmt(&self, f: &mut Formatter) -> FResult { write!(f, "{}", rep(*self.unrep)) }
+    fn fmt(&self, f: &mut Formatter) -> FResult { write!(f, "{}", rep(*self.unrep)) }
 }
 impl<T> Display for Rep<&mut T>
 where
-  T: Copy,
-  Rep<T>: Display,
+    T: Copy,
+    Rep<T>: Display,
 {
-  fn fmt(&self, f: &mut Formatter) -> FResult { write!(f, "{}", rep(*self.unrep)) }
+    fn fmt(&self, f: &mut Formatter) -> FResult { write!(f, "{}", rep(*self.unrep)) }
 }
 
 /* name */
@@ -40,226 +35,248 @@ where
 fn rep_name(def_id: DefId) -> String { format!("%{}", pr_name(def_id).replace("::", "/")) }
 
 fn safe_ty(ty: Ty) -> String {
-  rep(ty).to_string().replace(' ', ".").replace('(', "").replace(')', "")
+    rep(ty).to_string().replace(' ', ".").replace('(', "").replace(')', "")
 }
 
 pub fn rep_fun_name(fun_ty: Ty) -> String {
-  format!("{}{}", rep_name(fun_of_fun_ty(fun_ty)), rep(substs_of_fun_ty(fun_ty)))
+    format!("{}{}", rep_name(fun_ty.fun_of_fun_ty()), rep(fun_ty.substs_of_fun_ty()))
 }
-fn rep_fun_name_pivot(fun_name: &str, pivot: Option<BB>) -> String {
-  if let Some(bb) = pivot {
-    format!("{}.{}", fun_name, bb.index())
-  } else {
-    fun_name.to_string()
-  }
+fn rep_fun_name_pivot(fun_name: &str, pivot: Pivot) -> String {
+    if let Pivot::Switch(bb) = pivot {
+        format!("{}.{}", fun_name, bb.index())
+    } else {
+        fun_name.to_string()
+    }
 }
 pub fn rep_drop_name(ty: Ty) -> String { format!("drop<{}>", safe_ty(ty)) }
 
 fn rep_adt_name(adt_def: &AdtDef) -> String {
-  assert!(!adt_def.is_box());
-  rep_name(adt_def.did)
+    assert!(!adt_def.is_box());
+    rep_name(adt_def.did)
 }
-fn rep_adt_builder_name(adt_def: &AdtDef, vrt_idx: VrtIdx) -> String {
-  assert!(!adt_def.is_box());
-  format!("{}-{}", rep_adt_name(adt_def), vrt_idx.index())
+fn rep_adt_builder_name(adt_def: &AdtDef, variant_index: VariantIdx) -> String {
+    assert!(!adt_def.is_box());
+    format!("{}-{}", rep_adt_name(adt_def), variant_index.index())
 }
-fn rep_adt_selector_name(adt_def: &AdtDef, vrt_idx: VrtIdx, fld_idx: FldIdx) -> String {
-  assert!(!adt_def.is_box());
-  format!("{}-{}.{}", rep_adt_name(adt_def), vrt_idx.index(), fld_idx.index())
+fn rep_adt_selector_name(
+    adt_def: &AdtDef,
+    variant_index: VariantIdx,
+    field_index: FieldIdx,
+) -> String {
+    assert!(!adt_def.is_box());
+    format!("{}-{}.{}", rep_adt_name(adt_def), variant_index.index(), field_index.index())
 }
-fn rep_builder(base_ty: Ty, vrt_idx: VrtIdx) -> String {
-  match &base_ty.kind() {
-    TyK::Ref(_, ty, Mutability::Mut) => {
-      assert!(vrt_idx == VRT0);
-      format!("~mut<{}>", rep(ty))
+fn rep_builder(base_ty: Ty, variant_index: VariantIdx) -> String {
+    match &base_ty.kind() {
+        TyKind::Ref(_, ty, Mutability::Mut) => {
+            assert!(variant_index == VRT0);
+            format!("~mut<{}>", rep(ty))
+        }
+        TyKind::Adt(adt_def, generic_args) => {
+            let name = rep_adt_builder_name(adt_def, variant_index);
+            if has_any_type(generic_args) {
+                format!("(as {} {})", name, rep(base_ty))
+            } else {
+                name
+            }
+        }
+        TyKind::Tuple(generic_args) => {
+            assert!(variant_index == VRT0);
+            format!("~tup{}", rep(generic_args))
+        }
+        _ => panic!("unexpected type {} for projection", base_ty),
     }
-    TyK::Adt(adt_def, substs) => {
-      let name = rep_adt_builder_name(adt_def, vrt_idx);
-      if !has_any_type(substs) {
-        name
-      } else {
-        format!("(as {} {})", name, rep(base_ty))
-      }
-    }
-    TyK::Tuple(substs) => {
-      assert!(vrt_idx == VRT0);
-      format!("~tup{}", rep(substs))
-    }
-    _ => panic!("unexpected type {} for projection", base_ty),
-  }
 }
-fn rep_selector_name(base_ty: Ty, vrt_idx: VrtIdx, fld_idx: FldIdx) -> String {
-  match &base_ty.kind() {
-    TyK::Ref(_, ty, Mutability::Mut) => {
-      assert!(vrt_idx == VRT0);
-      match fld_idx {
-        FLD0 => format!("~cur<{}>", rep(ty)),
-        FLD1 => format!("~ret<{}>", rep(ty)),
-        _ => panic!("unexpected field {} for a mutable reference", fld_idx.index()),
-      }
+fn rep_selector_name(base_ty: Ty, variant_index: VariantIdx, field_index: FieldIdx) -> String {
+    match &base_ty.kind() {
+        TyKind::Ref(_, ty, Mutability::Mut) => {
+            assert!(variant_index == VRT0);
+            match field_index {
+                FLD0 => format!("~cur<{}>", rep(ty)),
+                FLD1 => format!("~ret<{}>", rep(ty)),
+                _ => panic!("unexpected field {} for a mutable reference", field_index.index()),
+            }
+        }
+        TyKind::Adt(adt_def, _) => rep_adt_selector_name(adt_def, variant_index, field_index),
+        TyKind::Tuple(generic_args) => {
+            assert!(variant_index == VRT0);
+            format!("~at{}/{}", field_index.index(), rep(generic_args))
+        }
+        _ => panic!("unexpected type {} for projection", base_ty),
     }
-    TyK::Adt(adt_def, _) => rep_adt_selector_name(adt_def, vrt_idx, fld_idx),
-    TyK::Tuple(substs) => {
-      assert!(vrt_idx == VRT0);
-      format!("~at{}/{}", fld_idx.index(), rep(substs))
-    }
-    _ => panic!("unexpected type {} for projection", base_ty),
-  }
 }
 
 /* type */
 
 struct RepAdtTy<'tcx> {
-  adt_def: &'tcx AdtDef,
-  substs: &'tcx Substs<'tcx>,
+    adt_def: &'tcx AdtDef,
+    generic_args: &'tcx GenericArgs<'tcx>,
 }
-fn rep_adt_ty<'tcx>(adt_def: &'tcx AdtDef, substs: &'tcx Substs<'tcx>) -> impl Display + 'tcx {
-  RepAdtTy { adt_def, substs }
+fn rep_adt_ty<'tcx>(
+    adt_def: &'tcx AdtDef,
+    generic_args: &'tcx GenericArgs<'tcx>,
+) -> impl Display + 'tcx {
+    RepAdtTy { adt_def, generic_args }
 }
 impl Display for RepAdtTy<'_> {
-  fn fmt(&self, f: &mut Formatter) -> FResult {
-    let RepAdtTy { adt_def, substs } = *self;
-    if has_any_type(substs) {
-      write!(f, "({}", rep_adt_name(adt_def))?;
-      for ty in substs.types() {
-        write!(f, " {}", rep(ty))?;
-      }
-      write!(f, ")")
-    } else {
-      write!(f, "{}", rep_adt_name(adt_def))
+    fn fmt(&self, f: &mut Formatter) -> FResult {
+        let RepAdtTy { adt_def, generic_args } = *self;
+        if has_any_type(generic_args) {
+            write!(f, "({}", rep_adt_name(adt_def))?;
+            for ty in generic_args.types() {
+                write!(f, " {}", rep(ty))?;
+            }
+            write!(f, ")")
+        } else {
+            write!(f, "{}", rep_adt_name(adt_def))
+        }
     }
-  }
 }
 impl Display for Rep<Ty<'_>> {
-  fn fmt(&self, f: &mut Formatter) -> FResult {
-    let ty = self.unrep;
-    match &ty.kind() {
-      TyK::Bool => write!(f, "Bool"),
-      TyK::Int(_) | TyK::Uint(_) => write!(f, "Int"),
-      TyK::Float(_) => write!(f, "Real"),
-      TyK::Adt(adt_def, substs) => {
-        if adt_def.is_box() {
-          write!(f, "{}", rep(only_ty(substs)))
-        } else {
-          write!(f, "{}", rep_adt_ty(adt_def, substs))
+    fn fmt(&self, f: &mut Formatter<'_>) -> FResult { rep(self.unrep.ty).fmt(f) }
+}
+impl Display for Rep<rustc_middle::ty::Ty<'_>> {
+    fn fmt(&self, f: &mut Formatter) -> FResult {
+        let ty = self.unrep;
+        match &ty.kind() {
+            TyKind::Bool => write!(f, "Bool"),
+            TyKind::Int(_) | TyKind::Uint(_) => write!(f, "Int"),
+            TyKind::Float(_) => write!(f, "Real"),
+            TyKind::Adt(adt_def, generic_args) => {
+                if let Some(ty) = adt_is_box(adt_def, generic_args) {
+                    write!(f, "{}", rep(ty))
+                } else {
+                    write!(f, "{}", rep_adt_ty(adt_def, generic_args))
+                }
+            }
+            TyKind::Ref(_, ty, Mutability::Not) => write!(f, "{}", rep(ty)),
+            TyKind::Ref(_, ty, Mutability::Mut) => write!(f, "~Mut<{}>", rep(ty)),
+            TyKind::Tuple(generic_args) => write!(f, "~Tup{}", rep(generic_args)),
+            TyKind::Param(param_ty) => write!(f, "%{}", param_ty.name),
+            _ => panic!("unsupported type {}", ty),
         }
-      }
-      TyK::Ref(_, ty, Mutability::Not) => write!(f, "{}", rep(ty)),
-      TyK::Ref(_, ty, Mutability::Mut) => write!(f, "~Mut<{}>", rep(ty)),
-      TyK::Tuple(substs) => write!(f, "~Tup{}", rep(substs)),
-      TyK::Param(param_ty) => write!(f, "%{}", param_ty.name),
-      _ => panic!("unsupported type {}", ty),
     }
-  }
 }
 
-impl Display for Rep<&Substs<'_>> {
-  fn fmt(&self, f: &mut Formatter) -> FResult {
-    let substs = self.unrep;
-    if has_any_type(substs) {
-      write!(f, "<")?;
-      let mut sep = "";
-      for ty in substs.types() {
-        write!(f, "{}{}", sep, safe_ty(ty))?;
-        sep = "-";
-      }
-      write!(f, ">")?;
+impl Display for Rep<&GenericArgs<'_>> {
+    fn fmt(&self, f: &mut Formatter) -> FResult {
+        let generic_args = self.unrep;
+        if has_any_type(generic_args) {
+            write!(f, "<")?;
+            let mut sep = "";
+            for ty in generic_args.types() {
+                write!(f, "{}{}", sep, safe_ty(Ty::new(ty)))?;
+                sep = "-";
+            }
+            write!(f, ">")?;
+        }
+        Ok(())
     }
-    Ok(())
-  }
 }
 
 /* adt definition */
 
 struct RepVrt<'tcx> {
-  adt_def: &'tcx AdtDef,
-  vrt_idx: VrtIdx,
-  vrt_def: &'tcx VrtDef,
-  tcx: TyCtxt<'tcx>,
+    adt_def: &'tcx AdtDef,
+    variant_index: VariantIdx,
+    variant_def: &'tcx VariantDef,
+    tcx: TyCtxt<'tcx>,
 }
 fn rep_vrt<'tcx>(
-  adt_def: &'tcx AdtDef, vrt_idx: VrtIdx, vrt_def: &'tcx VrtDef, tcx: TyCtxt<'tcx>,
+    adt_def: &'tcx AdtDef,
+    variant_index: VariantIdx,
+    variant_def: &'tcx VariantDef,
+    tcx: TyCtxt<'tcx>,
 ) -> impl Display + 'tcx {
-  RepVrt { adt_def, vrt_idx, vrt_def, tcx }
+    RepVrt { adt_def, variant_index, variant_def, tcx }
 }
 impl Display for RepVrt<'_> {
-  fn fmt(&self, f: &mut Formatter) -> FResult {
-    let RepVrt { adt_def, vrt_idx, vrt_def, tcx } = *self;
-    let fld_defs = &vrt_def.fields;
-    if fld_defs.is_empty() {
-      write!(f, "{}", rep_adt_builder_name(adt_def, vrt_idx))
-    } else {
-      write!(f, "({}", rep_adt_builder_name(adt_def, vrt_idx))?;
-      let substs = Substs::identity_for_item(tcx, vrt_def.def_id);
-      for (fld_idx, fld_def) in enumerate_fld_defs(fld_defs) {
-        let ty = fld_def.ty(tcx, substs);
-        write!(f, " ({} {})", rep_adt_selector_name(adt_def, vrt_idx, fld_idx), rep(ty))?;
-      }
-      write!(f, ")")?;
-      Ok(())
+    fn fmt(&self, f: &mut Formatter) -> FResult {
+        let RepVrt { adt_def, variant_index, variant_def, tcx } = *self;
+        let fld_defs = &variant_def.fields;
+        if fld_defs.is_empty() {
+            write!(f, "{}", rep_adt_builder_name(adt_def, variant_index))
+        } else {
+            write!(f, "({}", rep_adt_builder_name(adt_def, variant_index))?;
+            let generic_args = GenericArgs::identity_for_item(tcx, variant_def.def_id);
+            for (field_index, fld_def) in
+                fld_defs.iter().enumerate().map(|(i, fld_def)| (FieldIdx::from(i), fld_def))
+            {
+                let ty = fld_def.ty(tcx, generic_args);
+                write!(
+                    f,
+                    " ({} {})",
+                    rep_adt_selector_name(adt_def, variant_index, field_index),
+                    rep(ty)
+                )?;
+            }
+            write!(f, ")")?;
+            Ok(())
+        }
     }
-  }
 }
 struct RepAdt<'tcx> {
-  adt_def: &'tcx AdtDef,
-  tcx: TyCtxt<'tcx>,
+    adt_def: &'tcx AdtDef,
+    tcx: TyCtxt<'tcx>,
 }
 fn rep_adt<'tcx>(adt_def: &'tcx AdtDef, tcx: TyCtxt<'tcx>) -> impl Display + 'tcx {
-  RepAdt { adt_def, tcx }
+    RepAdt { adt_def, tcx }
 }
 impl Display for RepAdt<'_> {
-  fn fmt(&self, f: &mut Formatter) -> FResult {
-    let RepAdt { adt_def, tcx } = *self;
-    let params = tcx
-      .generics_of(adt_def.did)
-      .params
-      .iter()
-      .map(|param_def| param_def.name)
-      .collect::<Vec<_>>();
-    write!(f, "(declare-datatypes (({} {})) ((par (", rep_adt_name(adt_def), params.len())?;
-    let mut sep = "";
-    for param in params.iter() {
-      write!(f, "{}%{}", sep, param)?;
-      sep = " ";
+    fn fmt(&self, f: &mut Formatter) -> FResult {
+        let RepAdt { adt_def, tcx } = *self;
+        let params = tcx
+            .generics_of(adt_def.did)
+            .params
+            .iter()
+            .map(|param_def| param_def.name)
+            .collect::<Vec<_>>();
+        write!(f, "(declare-datatypes (({} {})) ((par (", rep_adt_name(adt_def), params.len())?;
+        let mut sep = "";
+        for param in &params {
+            write!(f, "{}%{}", sep, param)?;
+            sep = " ";
+        }
+        write!(f, ") (")?;
+        for (variant_index, variant_def) in adt_def.variants.iter_enumerated() {
+            write!(f, "\n  {}", rep_vrt(adt_def, variant_index, variant_def, tcx))?;
+        }
+        writeln!(f, "))))")
     }
-    write!(f, ") (")?;
-    for (vrt_idx, vrt_def) in adt_def.variants.iter_enumerated() {
-      write!(f, "\n  {}", rep_vrt(adt_def, vrt_idx, vrt_def, tcx))?;
-    }
-    writeln!(f, "))))")
-  }
 }
 
 struct RepTup<'tcx> {
-  substs: &'tcx Substs<'tcx>,
+    generic_args: &'tcx GenericArgs<'tcx>,
 }
-fn rep_tup<'tcx>(substs: &'tcx Substs<'tcx>) -> impl Display + 'tcx { RepTup { substs } }
+fn rep_tup<'tcx>(generic_args: &'tcx GenericArgs<'tcx>) -> impl Display + 'tcx {
+    RepTup { generic_args }
+}
 impl Display for RepTup<'_> {
-  fn fmt(&self, f: &mut Formatter) -> FResult {
-    let RepTup { substs } = self;
-    write!(f, "(declare-datatypes ((~Tup{} 0)) ((par () (", rep(substs))?;
-    let types = substs.types().collect::<Vec<_>>();
-    if types.is_empty() {
-      write!(f, "~tup{}", rep(substs))?;
-    } else {
-      write!(f, "(~tup{}", rep(substs))?;
-      for (i, ty) in types.iter().enumerate() {
-        write!(f, " (~at{}/{} {})", i, rep(substs), rep(ty))?;
-      }
-      write!(f, ")")?;
+    fn fmt(&self, f: &mut Formatter) -> FResult {
+        let RepTup { generic_args } = self;
+        write!(f, "(declare-datatypes ((~Tup{} 0)) ((par () (", rep(generic_args))?;
+        let types = generic_args.types().collect::<Vec<_>>();
+        if types.is_empty() {
+            write!(f, "~tup{}", rep(generic_args))?;
+        } else {
+            write!(f, "(~tup{}", rep(generic_args))?;
+            for (i, ty) in types.iter().enumerate() {
+                write!(f, " (~at{}/{} {})", i, rep(generic_args), rep(ty))?;
+            }
+            write!(f, ")")?;
+        }
+        writeln!(f, "))))")
     }
-    writeln!(f, "))))")
-  }
 }
 
 struct RepMut<'tcx> {
-  ty: Ty<'tcx>,
+    ty: Ty<'tcx>,
 }
 fn rep_mut(ty: Ty<'_>) -> impl Display + '_ { RepMut { ty } }
 impl Display for RepMut<'_> {
-  fn fmt(&self, f: &mut Formatter) -> FResult {
-    let RepMut { ty } = self;
-    writeln!(
+    fn fmt(&self, f: &mut Formatter) -> FResult {
+        let RepMut { ty } = self;
+        writeln!(
       f,
       "(declare-datatypes ((~Mut<{}> 0)) ((par () ((~mut<{}> (~cur<{}> {}) (~ret<{}> {}))))))",
       rep(ty),
@@ -269,312 +286,331 @@ impl Display for RepMut<'_> {
       rep(ty),
       rep(ty)
     )
-  }
+    }
 }
 
 /* expression */
 
 impl Display for Rep<Var> {
-  fn fmt(&self, f: &mut Formatter) -> FResult {
-    let var = self.unrep;
-    match var {
-      Var::Input(local) => write!(f, "_{}", local.index()),
-      Var::SelfResult => write!(f, "_@"),
-      Var::SelfPanic => write!(f, "_!"),
-      Var::CallResult(bb) => write!(f, "_@.{}", bb.index()),
-      Var::Rand(bb) => write!(f, "_?.{}", bb.index()),
-      Var::MutRet(bb, i) => write!(f, "_*.{}_{}", bb.index(), i),
-      Var::Split(bb, vrt_idx, fld_idx) => {
-        write!(f, "_$.{}_{}/{}", bb.index(), vrt_idx.index(), fld_idx.index())
-      }
-      Var::Nonce(None) => unreachable!("nonce should have an index for rep"),
-      Var::Nonce(Some(i)) => write!(f, "_%.{}", i),
+    fn fmt(&self, f: &mut Formatter) -> FResult {
+        let var = self.unrep;
+        match var {
+            Var::Input { local } => write!(f, "_{}", local.index()),
+            Var::SelfResult => write!(f, "_@"),
+            Var::SelfPanic => write!(f, "_!"),
+            Var::CallResult { caller: bb } => write!(f, "_@.{}", bb.index()),
+            Var::Rand { caller: bb } => write!(f, "_?.{}", bb.index()),
+            Var::MutRet { location: bb, stmt_index: i } => write!(f, "_*.{}_{}", bb.index(), i),
+            Var::Split(bb, variant_index, field_index) => {
+                write!(f, "_$.{}_{}/{}", bb.index(), variant_index.index(), field_index.index())
+            }
+            Var::Uninit => {
+                // variable names must be unique, but this situation should not happen thanks to the type system
+                write!(f, "_%.nonce")
+            }
+        }
     }
-  }
 }
 impl Display for Rep<&Path<'_>> {
-  fn fmt(&self, f: &mut Formatter) -> FResult {
-    let path = self.unrep;
-    match path {
-      Path::Var(var, _) => write!(f, "{}", rep(var)),
-      Path::Proj(base_ty, vrt_idx, fld_idx, box path) => {
-        write!(f, "({} {})", rep_selector_name(base_ty, *vrt_idx, *fld_idx), rep(path))
-      }
+    fn fmt(&self, f: &mut Formatter) -> FResult {
+        let path = self.unrep;
+        match path {
+            Path::Var(var, _) => write!(f, "{}", rep(var)),
+            Path::Proj {
+                projection: Proj { base_ty, variant_index, field_index },
+                body: box path,
+            } => {
+                write!(
+                    f,
+                    "({} {})",
+                    rep_selector_name(*base_ty, *variant_index, *field_index),
+                    rep(path)
+                )
+            }
+        }
     }
-  }
 }
 impl Display for Rep<Const> {
-  fn fmt(&self, f: &mut Formatter) -> FResult {
-    let cnst = self.unrep;
-    match cnst {
-      Const::Bool(b) => write!(f, "{}", b),
-      Const::Int(n) => write!(f, "{}", n),
-      Const::Real(a) => write!(f, "{}", a),
-      Const::Unit => write!(f, "~tup0"),
+    fn fmt(&self, f: &mut Formatter) -> FResult {
+        let cnst = self.unrep;
+        match cnst {
+            Const::Bool(b) => write!(f, "{b}"),
+            Const::Int(Int::Int(int)) => write!(f, "{int}"),
+            Const::Int(Int::Uint(uint)) => write!(f, "{uint}"),
+            Const::Decimal(Float::F32(f32)) => write!(f, "{f32}"),
+            Const::Decimal(Float::F64(f64)) => write!(f, "{f64}"),
+            Const::Unit => write!(f, "~tup0"),
+        }
     }
-  }
 }
 impl Display for Rep<&Expr<'_>> {
-  fn fmt(&self, f: &mut Formatter) -> FResult {
-    let expr = self.unrep;
-    match expr {
-      Expr::Path(path) => write!(f, "{}", rep(path)),
-      Expr::Const(cnst) => write!(f, "{}", rep(cnst)),
-      Expr::BinOp(bin_op, box expr1, box expr2) => {
-        let name = match bin_op {
-          BinOp::Add => "+",
-          BinOp::Sub => "-",
-          BinOp::Mul => "*",
-          BinOp::DivInt => "div",
-          BinOp::Mod => "mod",
-          BinOp::DivReal => "/",
-          BinOp::And => "and",
-          BinOp::Eq => "=",
-          BinOp::Lt => "<",
-          BinOp::Le => "<=",
-          BinOp::Ne => panic!(),
-          BinOp::Ge => ">=",
-          BinOp::Gt => ">",
-        };
-        write!(f, "({} {} {})", name, rep(expr1), rep(expr2))
-      }
-      Expr::UnOp(un_op, box expr) => {
-        let name = match un_op {
-          UnOp::Neg => "-",
-          UnOp::Not => "not",
-          UnOp::Abs => "abs",
-        };
-        write!(f, "({} {})", name, rep(expr))
-      }
-      Expr::Aggr(ty, vrt_idx, flds) => {
-        if flds.is_empty() {
-          write!(f, "{}", rep_builder(ty, *vrt_idx))
-        } else {
-          write!(f, "({}", rep_builder(ty, *vrt_idx))?;
-          for fld in flds.iter() {
-            write!(f, " {}", rep(fld))?;
-          }
-          write!(f, ")")
+    fn fmt(&self, f: &mut Formatter) -> FResult {
+        let expr = self.unrep;
+        match expr {
+            Expr::Path(path) => write!(f, "{}", rep(path)),
+            Expr::Const(cnst) => write!(f, "{}", rep(cnst)),
+            Expr::BinOp(bin_op, box expr1, box expr2) => {
+                let name = match bin_op {
+                    BinOp::Add => "+",
+                    BinOp::Sub => "-",
+                    BinOp::Mul => "*",
+                    BinOp::DivInt => "div",
+                    BinOp::Mod => "mod",
+                    BinOp::DivReal => "/",
+                    BinOp::And => "and",
+                    BinOp::Eq => "=",
+                    BinOp::Lt => "<",
+                    BinOp::Le => "<=",
+                    BinOp::Ne => panic!(),
+                    BinOp::Ge => ">=",
+                    BinOp::Gt => ">",
+                };
+                write!(f, "({} {} {})", name, rep(expr1), rep(expr2))
+            }
+            Expr::UnOp(un_op, box expr) => {
+                let name = match un_op {
+                    UnOp::Neg => "-",
+                    UnOp::Not => "not",
+                    UnOp::Abs => "abs",
+                };
+                write!(f, "({} {})", name, rep(expr))
+            }
+            Expr::Aggregate { ty, variant_index, fields } => {
+                if fields.is_empty() {
+                    write!(f, "{}", rep_builder(*ty, *variant_index))
+                } else {
+                    write!(f, "({}", rep_builder(*ty, *variant_index))?;
+                    for fld in fields.iter() {
+                        write!(f, " {}", rep(fld))?;
+                    }
+                    write!(f, ")")
+                }
+            }
         }
-      }
     }
-  }
 }
 
 struct RepApply<'a, 'tcx> {
-  fun_name: &'a str,
-  args: &'a [Expr<'tcx>],
+    fun_name: &'a str,
+    args: &'a [Expr<'tcx>],
 }
-fn rep_apply<'a, 'tcx>(
-  fun_name: &'a str, args: &'a [Expr<'tcx>],
-) -> impl Display + Cap<'tcx> + 'a {
-  RepApply { fun_name, args }
+fn rep_apply<'a, 'tcx>(fun_name: &'a str, args: &'a [Expr<'tcx>]) -> impl Display + Cap<'tcx> + 'a {
+    RepApply { fun_name, args }
 }
 impl Display for RepApply<'_, '_> {
-  fn fmt(&self, f: &mut Formatter) -> FResult {
-    let RepApply { fun_name, args } = *self;
-    if args.is_empty() {
-      write!(f, "{}", fun_name)
-    } else {
-      write!(f, "({}", fun_name)?;
-      for arg in args.iter() {
-        write!(f, " {}", rep(arg))?;
-      }
-      write!(f, ")")
+    fn fmt(&self, f: &mut Formatter) -> FResult {
+        let RepApply { fun_name, args } = *self;
+        if args.is_empty() {
+            write!(f, "{}", fun_name)
+        } else {
+            write!(f, "({}", fun_name)?;
+            for arg in args.iter() {
+                write!(f, " {}", rep(arg))?;
+            }
+            write!(f, ")")
+        }
     }
-  }
 }
 
 /* tree */
 
 impl Display for Rep<&Cond<'_>> {
-  fn fmt(&self, f: &mut Formatter) -> FResult {
-    let cond = self.unrep;
-    match cond {
-      Cond::Drop { ty, arg } => write!(f, "({} {})", rep_drop_name(ty), rep(arg)),
-      Cond::Eq { tgt, src } => write!(f, "(= {} {})", rep(tgt), rep(src)),
-      Cond::Neq { tgt, srcs } => {
-        write!(f, "(distinct {}", rep(tgt))?;
-        for src in srcs {
-          write!(f, " {}", rep(src))?;
+    fn fmt(&self, f: &mut Formatter) -> FResult {
+        let cond = self.unrep;
+        match cond {
+            Cond::Drop { ty, arg } => write!(f, "({} {})", rep_drop_name(*ty), rep(arg)),
+            Cond::Eq { tgt, src } => write!(f, "(= {} {})", rep(tgt), rep(src)),
+            Cond::Neq { tgt, srcs } => {
+                write!(f, "(distinct {}", rep(tgt))?;
+                for src in srcs {
+                    write!(f, " {}", rep(src))?;
+                }
+                write!(f, ")")
+            }
+            Cond::Call { fun_ty, args } => write!(f, "{}", rep_apply(&rep_fun_name(*fun_ty), args)),
         }
-        write!(f, ")")
-      }
-      Cond::Call { fun_ty, args } => write!(f, "{}", rep_apply(&rep_fun_name(fun_ty), args)),
     }
-  }
 }
 
 struct RepEnd<'a, 'tcx> {
-  fun_name: &'a str,
-  end: &'a End<'tcx>,
+    fun_name: &'a str,
+    end: &'a End<'tcx>,
 }
 fn rep_end<'a, 'tcx: 'a>(fun_name: &'a str, end: &'a End<'tcx>) -> impl Display + Cap<'tcx> + 'a {
-  RepEnd { fun_name, end }
+    RepEnd { fun_name, end }
 }
 impl Display for RepEnd<'_, '_> {
-  fn fmt(&self, f: &mut Formatter) -> FResult {
-    let RepEnd { fun_name, end } = self;
-    match end {
-      End::Pivot { pivot, args } => {
-        write!(f, "{}", rep_apply(&rep_fun_name_pivot(fun_name, Some(*pivot)), args))
-      }
-      End::Return { res } => {
-        if fun_name == &"%main" {
-          write!(f, "(= _! false)")
-        } else if let Some(expr) = res {
-          let r = format!("{}", rep(expr));
-          if r == "~tup0" {
-            write!(f, "true")
-          } else {
-            write!(f, "(= _@ {})", r)
-          }
-        } else {
-          write!(f, "true")
+    fn fmt(&self, f: &mut Formatter) -> FResult {
+        let RepEnd { fun_name, end } = self;
+        match end {
+            End::Pivot { next_switch: pivot, args } => {
+                write!(
+                    f,
+                    "{}",
+                    rep_apply(&rep_fun_name_pivot(fun_name, Pivot::Switch(*pivot)), args)
+                )
+            }
+            End::Return { res } => {
+                if fun_name == &"%main" {
+                    write!(f, "(= _! false)")
+                } else if let Some(expr) = res {
+                    let r = format!("{}", rep(expr));
+                    if r == "~tup0" {
+                        write!(f, "true")
+                    } else {
+                        write!(f, "(= _@ {})", r)
+                    }
+                } else {
+                    write!(f, "true")
+                }
+            }
+            End::Panic => {
+                assert!(fun_name == &"%main");
+                write!(f, "(= _! true)")
+            }
+            End::NeverReturn => write!(f, "false"),
         }
-      }
-      End::Panic => {
-        assert!(fun_name == &"%main");
-        write!(f, "(= _! true)")
-      }
-      End::NeverReturn => write!(f, "false"),
     }
-  }
 }
 
 /* function signature */
 
 struct RepFunSig<'a, 'tcx> {
-  fun_name: &'a str,
-  fun_def: FunDefRef<'a, 'tcx>,
+    fun_name: &'a str,
+    fun_def: FunDefRef<'a, 'tcx>,
 }
 fn rep_fun_sig<'a, 'tcx: 'a>(
-  fun_name: &'a str, fun_def: FunDefRef<'a, 'tcx>,
+    fun_name: &'a str,
+    fun_def: FunDefRef<'a, 'tcx>,
 ) -> impl Display + Cap<'tcx> + 'a {
-  RepFunSig { fun_name, fun_def }
+    RepFunSig { fun_name, fun_def }
 }
 impl Display for RepFunSig<'_, '_> {
-  fn fmt(&self, f: &mut Formatter) -> FResult {
-    let RepFunSig { fun_name, fun_def } = self;
-    for (pivot, PivotDef { param_tys, .. }) in fun_def.iter() {
-      write!(f, "(declare-fun {} (", rep_fun_name_pivot(fun_name, *pivot))?;
-      let mut sep = "";
-      for param_ty in param_tys.iter() {
-        write!(f, "{}{}", sep, rep(param_ty))?;
-        sep = " ";
-      }
-      writeln!(f, ") Bool)")?;
+    fn fmt(&self, f: &mut Formatter) -> FResult {
+        let RepFunSig { fun_name, fun_def } = self;
+        for (pivot, PivotDef { param_tys, .. }) in fun_def.iter() {
+            write!(f, "(declare-fun {} (", rep_fun_name_pivot(fun_name, *pivot))?;
+            let mut sep = "";
+            for param_ty in param_tys.iter() {
+                write!(f, "{}{}", sep, rep(param_ty))?;
+                sep = " ";
+            }
+            writeln!(f, ") Bool)")?;
+        }
+        Ok(())
     }
-    Ok(())
-  }
 }
 
 /* function definition */
 
 struct RepFunDef<'a, 'tcx> {
-  fun_name: &'a str,
-  fun_def: &'a FunDef<'tcx>,
+    fun_name: &'a str,
+    fun_def: &'a FunDef<'tcx>,
 }
 fn rep_fun_def<'a, 'tcx: 'a>(
-  fun_name: &'a str, fun_def: &'a FunDef<'tcx>,
+    fun_name: &'a str,
+    fun_def: &'a FunDef<'tcx>,
 ) -> impl Display + Cap<'tcx> + 'a {
-  RepFunDef { fun_name, fun_def }
+    RepFunDef { fun_name, fun_def }
 }
 impl Display for RepFunDef<'_, '_> {
-  fn fmt(&self, f: &mut Formatter) -> FResult {
-    let RepFunDef { fun_name, fun_def } = self;
-    if !fun_def.is_empty() {
-      writeln!(f)?;
-    }
-    for (pivot, PivotDef { rules, .. }) in fun_def.iter() {
-      if let Some(bb) = pivot {
-        writeln!(f, "; {} bb{}", fun_name, bb.index())?;
-      } else {
-        writeln!(f, "; {}", fun_name)?;
-      }
-      for Rule { vars, args, conds, end } in rules.iter() {
-        write!(f, "(assert (forall (")?;
-        if !vars.is_empty() {
-          let mut sep = "";
-          for (var, ty) in vars.iter() {
-            write!(f, "{}({} {})", sep, rep(var), rep(ty))?;
-            sep = " ";
-          }
-        } else {
-          write!(f, "(_% Int)")?; // dummy
+    fn fmt(&self, f: &mut Formatter) -> FResult {
+        let RepFunDef { fun_name, fun_def } = self;
+        if !fun_def.is_empty() {
+            writeln!(f)?;
         }
-        write!(f, ") (=>\n  (and")?;
-        for cond in conds.iter() {
-          write!(f, " {}", rep(cond))?;
+        for (pivot, PivotDef { rules, .. }) in fun_def.iter() {
+            if let Pivot::Switch(bb) = pivot {
+                writeln!(f, "; {} bb{}", fun_name, bb.index())?;
+            } else {
+                writeln!(f, "; {}", fun_name)?;
+            }
+            for Rule { vars, args, conds, end } in rules.iter() {
+                write!(f, "(assert (forall (")?;
+                if vars.is_empty() {
+                    write!(f, "(_% Int)")?; // dummy
+                } else {
+                    let mut sep = "";
+                    for (var, ty) in vars.iter() {
+                        write!(f, "{}({} {})", sep, rep(var), rep(ty))?;
+                        sep = " ";
+                    }
+                }
+                write!(f, ") (=>\n  (and")?;
+                for cond in conds.iter() {
+                    write!(f, " {}", rep(cond))?;
+                }
+                writeln!(f, " {})", rep_end(fun_name, end))?;
+                writeln!(f, "  {})))", rep_apply(&rep_fun_name_pivot(fun_name, *pivot), args))?;
+            }
         }
-        writeln!(f, " {})", rep_end(fun_name, end))?;
-        writeln!(f, "  {})))", rep_apply(&rep_fun_name_pivot(fun_name, *pivot), args))?;
-      }
+        Ok(())
     }
-    Ok(())
-  }
 }
 
 /* summary */
 
 struct RepSummary<'a, 'tcx> {
-  summary: &'a Summary<'tcx>,
-  tcx: TyCtxt<'tcx>,
+    summary: &'a Summary<'tcx>,
+    tcx: TyCtxt<'tcx>,
 }
 pub fn rep_summary<'a, 'tcx: 'a>(
-  summary: &'a Summary<'tcx>, tcx: TyCtxt<'tcx>,
+    summary: &'a Summary<'tcx>,
+    tcx: TyCtxt<'tcx>,
 ) -> impl Display + Cap<'tcx> + 'a {
-  RepSummary { summary, tcx }
+    RepSummary { summary, tcx }
 }
 impl Display for RepSummary<'_, '_> {
-  fn fmt(&self, f: &mut Formatter) -> FResult {
-    let RepSummary { summary: Summary { fun_defs, drop_defs, adt_asks, tup_asks, mut_asks }, tcx } =
-      self;
-    writeln!(f, "(set-logic HORN)")?;
-    // adt definitions
-    if !adt_asks.is_empty() {
-      writeln!(f)?;
+    fn fmt(&self, f: &mut Formatter) -> FResult {
+        let RepSummary {
+            summary: Summary { fun_defs, drop_defs, adt_asks, tup_asks, mut_asks },
+            tcx,
+        } = self;
+        writeln!(f, "(set-logic HORN)")?;
+        // adt definitions
+        if !adt_asks.is_empty() {
+            writeln!(f)?;
+        }
+        for &adt_id in adt_asks.iter() {
+            write!(f, "{}", rep_adt(tcx.adt_def(adt_id), *tcx))?;
+        }
+        // muts
+        if !mut_asks.is_empty() {
+            writeln!(f)?;
+        }
+        for (_, ty) in mut_asks.iter() {
+            write!(f, "{}", rep_mut(*ty))?;
+        }
+        // tuples
+        if !tup_asks.is_empty() {
+            writeln!(f)?;
+        }
+        for (_, generic_args) in tup_asks.iter() {
+            write!(f, "{}", rep_tup(generic_args))?;
+        }
+        // drop definitions
+        if !drop_defs.is_empty() {
+            writeln!(f)?;
+        }
+        for (drop_name, drop_def) in drop_defs.iter() {
+            write!(f, "{}", rep_fun_sig(drop_name, drop_def))?;
+        }
+        for (drop_name, drop_def) in drop_defs.iter() {
+            write!(f, "{}", rep_fun_def(drop_name, drop_def))?;
+        }
+        // functions
+        if !fun_defs.is_empty() {
+            writeln!(f)?;
+        }
+        for (fun_name, fun_def) in fun_defs.iter() {
+            write!(f, "{}", rep_fun_sig(fun_name, fun_def))?;
+        }
+        for (fun_name, fun_def) in fun_defs.iter() {
+            write!(f, "{}", rep_fun_def(fun_name, fun_def))?;
+        }
+        // the verification condition
+        writeln!(f, "\n(assert (forall ((_% Int)) (=> (%main true) false)))")?;
+        writeln!(f, "(check-sat)")?;
+        Ok(())
     }
-    for &adt_id in adt_asks.iter() {
-      write!(f, "{}", rep_adt(tcx.adt_def(adt_id), *tcx))?;
-    }
-    // muts
-    if !mut_asks.is_empty() {
-      writeln!(f)?;
-    }
-    for (_, ty) in mut_asks.iter() {
-      write!(f, "{}", rep_mut(ty))?;
-    }
-    // tuples
-    if !tup_asks.is_empty() {
-      writeln!(f)?;
-    }
-    for (_, substs) in tup_asks.iter() {
-      write!(f, "{}", rep_tup(substs))?;
-    }
-    // drop definitions
-    if !drop_defs.is_empty() {
-      writeln!(f)?;
-    }
-    for (drop_name, drop_def) in drop_defs.iter() {
-      write!(f, "{}", rep_fun_sig(drop_name, drop_def))?;
-    }
-    for (drop_name, drop_def) in drop_defs.iter() {
-      write!(f, "{}", rep_fun_def(drop_name, drop_def))?;
-    }
-    // functions
-    if !fun_defs.is_empty() {
-      writeln!(f)?;
-    }
-    for (fun_name, fun_def) in fun_defs.iter() {
-      write!(f, "{}", rep_fun_sig(fun_name, fun_def))?;
-    }
-    for (fun_name, fun_def) in fun_defs.iter() {
-      write!(f, "{}", rep_fun_def(fun_name, fun_def))?;
-    }
-    // the verification condition
-    writeln!(f, "\n(assert (forall ((_% Int)) (=> (%main true) false)))")?;
-    writeln!(f, "(check-sat)")?;
-    Ok(())
-  }
 }
