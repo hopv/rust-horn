@@ -255,33 +255,26 @@ fn gather_conds_from_statement<'tcx>(
                 _ => panic!("unexpected terminator {:?} for taking discriminant", terminator),
             }
         }
-        StatementKind::Assign(box (place, Rvalue::Use(Operand::Copy(place2))))
-            if place2.get_ty(mir_access).is_mutable_ptr() =>
+        StatementKind::Assign(box (place, Rvalue::Use(Operand::Copy(mutbor))))
+            if mutbor.get_ty(mir_access).is_mutable_ptr() =>
         {
-            let expr2 = place2.get_mut_expr(env, mir_access);
-            let var = Var::MutRet { location: bb, stmt_index };
-            let ty_body = match &place2.get_ty(mir_access).kind() {
+            let expr = mutbor.get_mut_expr(env, mir_access);
+            let ty_body = match mutbor.get_ty(mir_access).kind() {
                 TyKind::Ref(_, ty_body, Mutability::Mut) => ty_body,
                 _ => unreachable!(),
             };
             let ty_body = Ty::new(ty_body);
-            match expr2 {
-                Expr::Path(path) => {
-                    let ty = place2.get_ty(mir_access);
-                    let (cur, ret) = Expr::decompose_mut_path(path);
-                    *expr2 = Expr::pair(ty, Expr::from_var(var, ty_body), ret);
-                    let new_expr = Expr::pair(ty, cur, Expr::from_var(var, ty_body));
-                    place.assign(new_expr, env, conds, mir_access);
-                }
+            if let Expr::Path(path) = expr {
+                let ref_ty = mutbor.get_ty(mir_access);
+                *expr = Expr::pair(ref_ty, Expr::decompose_mut_path(path));
+            }
+            match expr {
                 Expr::Aggregate { ty, variant_index: VRT0, fields } => {
                     assert!(fields.len() == 2);
-                    let ty = *ty;
-                    let new_expr = Expr::from_var(var, ty_body);
-                    let old_expr = std::mem::replace(&mut fields[0], new_expr.clone());
-                    let new_expr = Expr::pair(ty, old_expr, new_expr);
+                    let new_expr = fields[0].do_borrow_mut(ty_body, *ty, (bb, stmt_index));
                     place.assign(new_expr, env, conds, mir_access);
                 }
-                _ => panic!("unexpected expression {:?} for a mutable reference", expr2),
+                _ => panic!("unexpected expression {:?} for a mutable reference", expr),
             }
         }
         StatementKind::Assign(box (place, rvalue)) => {

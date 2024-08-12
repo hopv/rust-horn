@@ -296,7 +296,7 @@ impl<'tcx> Expr<'tcx> {
         }
     }
 
-    pub fn pair(ty: Ty<'tcx>, fst: Self, snd: Self) -> Self {
+    pub fn pair(ty: Ty<'tcx>, (fst, snd): (Self, Self)) -> Self {
         Expr::Aggregate { ty, variant_index: VRT0, fields: vec![fst, snd] }
     }
 
@@ -326,11 +326,29 @@ impl<'tcx> Expr<'tcx> {
                 .collect(),
         }
     }
+    #[inline]
     fn as_mut_aggregate_fields(&mut self) -> Option<&mut Vec<Expr<'tcx>>> {
         match self {
             Expr::Aggregate { fields, .. } => Some(fields),
             _ => None,
         }
+    }
+
+    #[inline]
+    pub fn replace(&mut self, other: Self) -> Self { std::mem::replace(self, other) }
+
+    /// Borrow `self` mutably. Returns an `Expr` representing the mutable reference.
+    #[inline]
+    pub fn do_borrow_mut(
+        &mut self,
+        body_ty: Ty<'tcx>,
+        ref_ty: Ty<'tcx>,
+        (location, stmt_index): (BasicBlock, usize),
+    ) -> Expr<'tcx> {
+        let var = Var::MutRet { location, stmt_index };
+        let mut_ret = Expr::from_var(var, body_ty);
+        let mut_cur = self.replace(mut_ret.clone());
+        Expr::pair(ref_ty, (mut_cur, mut_ret))
     }
 }
 
@@ -496,8 +514,7 @@ impl<'tcx> ReadExprExt<'tcx> for Operand<'tcx> {
         match self {
             Operand::Copy(place) => place.get_expr(env, mir_access),
             Operand::Move(place) => {
-                let expr = place.get_mut_expr(env, mir_access);
-                std::mem::replace(expr, Expr::uninit(place.get_ty(mir_access)))
+                place.get_mut_expr(env, mir_access).replace(Expr::uninit(place.get_ty(mir_access)))
             }
             Operand::Constant(box constant) => {
                 Expr::Const(Const::from_mir_constant(constant, mir_access.tcx))
@@ -520,7 +537,7 @@ impl<'tcx> ReadExprCtxExt<'tcx> for Rvalue<'tcx> {
     type Context = (BasicBlock, usize);
     fn get_expr_at(
         &self,
-        (bb, stmt_index): Self::Context,
+        disambiguator: Self::Context,
         env: &mut Env<'tcx>,
         mir_access: MirAccess<'tcx>,
     ) -> Expr<'tcx> {
@@ -528,13 +545,9 @@ impl<'tcx> ReadExprCtxExt<'tcx> for Rvalue<'tcx> {
         match self {
             Rvalue::Use(opd) => opd.get_expr(env, mir_access),
             Rvalue::Ref(_, BorrowKind::Shared, place) => place.get_expr(env, mir_access),
-            Rvalue::Ref(_, BorrowKind::Mut { .. }, place) => {
-                let var = Var::MutRet { location: bb, stmt_index };
-                let ty2 = place.get_ty(mir_access);
-                let mut_ret = Expr::from_var(var, ty2);
-                let mut_cur =
-                    std::mem::replace(place.get_mut_expr(env, mir_access), mut_ret.clone());
-                Expr::pair(ty, mut_cur, mut_ret)
+            Rvalue::Ref(_, BorrowKind::Mut { .. }, referee) => {
+                let body_ty = referee.get_ty(mir_access);
+                referee.get_mut_expr(env, mir_access).do_borrow_mut(body_ty, ty, disambiguator)
             }
             Rvalue::BinaryOp(mir_bin_op, box (opd1, opd2)) => Expr::from_bin_op(
                 BinOp::from_mir_bin_op(*mir_bin_op, opd1.get_ty(mir_access)),
@@ -686,7 +699,7 @@ impl<'tcx> AssignExt<'tcx> for Place<'tcx> {
         mir_access: MirAccess<'tcx>,
     ) {
         let expr = self.get_mut_expr(env, mir_access);
-        let old_expr = std::mem::replace(expr, new_expr);
+        let old_expr = expr.replace(new_expr);
         old_expr.do_drop(self.get_ty(mir_access), mir_access, conds);
     }
 }
