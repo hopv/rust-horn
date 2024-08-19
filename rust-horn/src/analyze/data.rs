@@ -1,9 +1,9 @@
 use crate::prettify::pr_fun_name;
 use crate::represent::{rep, rep_drop_name};
 use crate::types::{
-    adt_is_box, BasicBlock, BorrowKind, Constant, DefId, FieldDef, FieldIdx, Float32, Float64,
-    FloatTy, GenericArgsRef, Local, Map, MirBinOp, MirBody, MirUnOp, Mutability, Operand, Place,
-    ProjectionElem, Rvalue, Set, Size, Subst, Ty, TyCtxt, TyKind, VariantIdx,
+    adt_is_box, BasicBlock, BorrowKind, Constant, ConstantKind, DefId, FieldDef, FieldIdx, Float32,
+    Float64, FloatTy, GenericArgsRef, Local, Map, MirBinOp, MirBody, MirUnOp, Mutability, Operand,
+    ParamEnv, Place, ProjectionElem, Rvalue, Set, Size, Subst, Ty, TyCtxt, TyKind, VariantIdx,
 };
 use crate::util::{FLD0, FLD1, VRT0};
 
@@ -151,10 +151,14 @@ pub enum Float {
 }
 
 impl Const {
-    pub fn from_mir_constant(c: &Constant, tcx: TyCtxt) -> Self {
+    pub fn from_mir_constant<'tcx>(c: &Constant<'tcx>, tcx: TyCtxt<'tcx>) -> Self {
+        let evaluated_const_value = || match c.literal {
+            ConstantKind::Ty(c) => c.val.eval(tcx, ParamEnv::empty()).try_to_value(),
+            ConstantKind::Val(val, _) => Some(val),
+        };
         let ty = c.ty();
         if ty.is_integral() {
-            let scalar = c.literal.try_to_scalar().unwrap();
+            let scalar = evaluated_const_value().unwrap().try_to_scalar().unwrap();
             let bit_width = match ty.kind() {
                 TyKind::Int(int_ty) => int_ty.bit_width(),
                 TyKind::Uint(uint_ty) => uint_ty.bit_width(),
@@ -176,7 +180,7 @@ impl Const {
             };
             Const::Int(int)
         } else if ty.is_floating_point() {
-            let scalar = c.literal.try_to_scalar().unwrap();
+            let scalar = evaluated_const_value().unwrap().try_to_scalar().unwrap();
             let float = match ty.kind() {
                 TyKind::Float(float_ty) => match float_ty {
                     FloatTy::F32 => Float::F32(scalar.to_f32().unwrap()),
@@ -186,7 +190,9 @@ impl Const {
             };
             Const::Decimal(float)
         } else if ty.is_bool() {
-            Const::Bool(c.literal.try_to_scalar().unwrap().to_bool().unwrap())
+            Const::Bool(
+                evaluated_const_value().unwrap().try_to_scalar().unwrap().to_bool().unwrap(),
+            )
         } else if ty.is_unit() {
             Const::Unit
         } else {

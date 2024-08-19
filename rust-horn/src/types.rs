@@ -4,8 +4,8 @@ pub use rustc_index::vec::IndexVec;
 pub use rustc_middle::mir::{
     interpret::{ConstValue, Scalar},
     AggregateKind, BasicBlock, BasicBlockData, BinOp as MirBinOp, Body as MirBody, BorrowKind,
-    Constant, Field as FieldIdx, Local, LocalDecl, NullOp, Operand, Place, ProjectionElem, Rvalue,
-    Statement, StatementKind, Terminator, TerminatorKind, UnOp as MirUnOp,
+    Constant, ConstantKind, Field as FieldIdx, Local, LocalDecl, NullOp, Operand, Place,
+    ProjectionElem, Rvalue, Statement, StatementKind, Terminator, TerminatorKind, UnOp as MirUnOp,
 };
 pub use rustc_middle::ty::{
     subst::{InternalSubsts as GenericArgs, Subst, SubstsRef as GenericArgsRef},
