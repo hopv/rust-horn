@@ -21,7 +21,6 @@ pub fn pr_fun_name(fun: DefId) -> String {
         "std::io::_print" => "<print>".to_string(),
         "std::cmp::PartialEq::eq" => "<eq>".to_string(),
         "std::cmp::PartialEq::ne" => "<ne>".to_string(),
-        "std::ops::Add::add" => "<add>".to_string(),
         _ if "core::num::<impl".is_prefix_of(&name) && ">::abs".is_suffix_of(&name) => {
             "<abs>".to_string()
         }

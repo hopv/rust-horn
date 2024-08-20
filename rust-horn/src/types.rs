@@ -1,5 +1,9 @@
 pub use rustc_apfloat::ieee::{Double as Float64, Single as Float32};
-pub use rustc_hir::{def_id::DefId, Mutability};
+pub use rustc_hir::{
+    def_id::DefId,
+    definitions::{DefPath, DefPathData, DisambiguatedDefPathData},
+    Mutability,
+};
 pub use rustc_index::vec::IndexVec;
 pub use rustc_middle::mir::{
     interpret::{ConstValue, Scalar},
@@ -14,6 +18,7 @@ pub use rustc_middle::ty::{
     ScalarInt, TyCtxt, TyKind, VariantDef,
 };
 pub use rustc_session::config::EntryFnType;
+pub use rustc_span::Symbol;
 pub type BasicBlockDatas<'tcx> = IndexVec<BasicBlock, BasicBlockData<'tcx>>;
 pub use rustc_target::abi::{Size, VariantIdx};
 

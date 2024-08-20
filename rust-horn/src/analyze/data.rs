@@ -202,7 +202,7 @@ impl Const {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BinOp {
     Add,
     Sub,
@@ -253,7 +253,7 @@ impl BinOp {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum UnOp {
     Neg,
     Not,

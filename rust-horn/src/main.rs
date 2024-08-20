@@ -16,6 +16,7 @@ extern crate rustc_target;
 mod util;
 
 mod analyze;
+mod library;
 mod prettify;
 mod represent;
 mod types;

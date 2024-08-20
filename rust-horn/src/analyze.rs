@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::library::intrinsic::{is_intrinsic, IntrinsicKind};
 use crate::prettify::pr_fun_name;
 use crate::represent::rep_fun_name;
 use crate::types::{
@@ -14,8 +15,8 @@ use graph::{get_ghosts, Basic};
 
 pub mod data;
 use data::{
-    set_tag, AssignExt, BasicAsks, BinOp, Cond, Const, DropExt, End, Env, Expr, GetTypeExt, Int,
-    MirAccess, MirAccessCtxExt, Path, ReadExprCtxExt, ReadExprExt, ReadExprMutExt, UnOp, Var,
+    set_tag, AssignExt, BasicAsks, Cond, Const, DropExt, End, Env, Expr, GetTypeExt, Int,
+    MirAccess, MirAccessCtxExt, Path, ReadExprCtxExt, ReadExprExt, ReadExprMutExt, Var,
 };
 
 #[derive(Debug)]
@@ -316,16 +317,21 @@ fn gather_conds_from_fun<'tcx>(
 ) {
     let did = instance.def_id();
     let fun_name = pr_fun_name(did);
-    if let Some(bin_op) = BinOp::try_from_fun(did) {
-        let res = Expr::from_bin_op(
-            bin_op,
-            args[0].get_expr(env, mir_access),
-            args[1].get_expr(env, mir_access),
-        );
-        res_place.assign(res, env, conds, mir_access);
-    } else if let Some(un_op) = UnOp::try_from_fun(did) {
-        let res = Expr::UnOp(un_op, Box::new(args[0].get_expr(env, mir_access)));
-        res_place.assign(res, env, conds, mir_access);
+    if let Some(intrinsic) = is_intrinsic(mir_access.tcx, did) {
+        match intrinsic {
+            IntrinsicKind::BinOp(bin_op) => {
+                let res = Expr::from_bin_op(
+                    bin_op,
+                    args[0].get_expr(env, mir_access),
+                    args[1].get_expr(env, mir_access),
+                );
+                res_place.assign(res, env, conds, mir_access);
+            }
+            IntrinsicKind::UnOp(un_op) => {
+                let res = Expr::UnOp(un_op, Box::new(args[0].get_expr(env, mir_access)));
+                res_place.assign(res, env, conds, mir_access);
+            }
+        }
     } else if fun_name == "<rand>" {
         let res = Expr::from_var(Var::Rand { caller }, res_ty);
         res_place.assign(res, env, conds, mir_access);
