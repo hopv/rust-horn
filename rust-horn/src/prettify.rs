@@ -19,11 +19,6 @@ pub fn pr_fun_name(fun: DefId) -> String {
         "rand" => "<rand>".to_string(),
         "alloc::alloc::box_free" => "<free>".to_string(),
         "std::io::_print" => "<print>".to_string(),
-        "std::cmp::PartialEq::eq" => "<eq>".to_string(),
-        "std::cmp::PartialEq::ne" => "<ne>".to_string(),
-        _ if "core::num::<impl".is_prefix_of(&name) && ">::abs".is_suffix_of(&name) => {
-            "<abs>".to_string()
-        }
         "std::mem::swap" => "<swap>".to_string(),
         "std::rt::begin_panic" => "<panic>".to_string(),
         "std::intrinsics::discriminant_value" => "<tag>".to_string(),

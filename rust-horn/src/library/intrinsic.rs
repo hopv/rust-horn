@@ -14,6 +14,9 @@ pub enum IntrinsicKind {
 thread_local! {
     static INTRINSIC_FILTER_MAP: RefCell<Vec<(IntrinsicKind, DefPathFilter)>> = RefCell::new(vec![
         (IntrinsicKind::BinOp(data::BinOp::Add), DefPathFilter::crate_name("core").at_type_ns("ops").at_type_ns("arith").at_impl().at_value_ns("add").finish()),
+        (IntrinsicKind::BinOp(data::BinOp::Eq), DefPathFilter::crate_name("core").at_type_ns("cmp").at_type_ns("impls").at_impl().at_value_ns("eq").finish()),
+        (IntrinsicKind::BinOp(data::BinOp::Ne), DefPathFilter::crate_name("core").at_type_ns("cmp").at_type_ns("impls").at_impl().at_value_ns("ne").finish()),
+        (IntrinsicKind::UnOp(data::UnOp::Abs), DefPathFilter::crate_name("core").at_type_ns("num").at_impl().at_value_ns("abs").finish()),
     ]);
 }
 

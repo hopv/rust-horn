@@ -1,4 +1,3 @@
-use crate::prettify::pr_fun_name;
 use crate::represent::{rep, rep_drop_name};
 use crate::types::{
     adt_is_box, BasicBlock, BorrowKind, Constant, ConstantKind, DefId, FieldDef, FieldIdx, Float32,
@@ -241,16 +240,6 @@ impl BinOp {
             _ => panic!("unsupported binary operator {:?}", mir_bin_op),
         }
     }
-
-    pub fn try_from_fun(fun: DefId) -> Option<Self> {
-        match pr_fun_name(fun).as_str() {
-            "<eq>" => Some(BinOp::Eq),
-            "<ne>" => Some(BinOp::Ne),
-            "<add>" => Some(BinOp::Add),
-            "<div-int>" => Some(BinOp::DivInt),
-            _ => None,
-        }
-    }
 }
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -264,12 +253,6 @@ impl UnOp {
         match mir_un_op {
             MirUnOp::Not => Self::Not,
             MirUnOp::Neg => Self::Neg,
-        }
-    }
-    pub fn try_from_fun(fun: DefId) -> Option<UnOp> {
-        match pr_fun_name(fun).as_str() {
-            "<abs>" => Some(UnOp::Abs),
-            _ => None,
         }
     }
 }
