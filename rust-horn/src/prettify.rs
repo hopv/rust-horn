@@ -225,7 +225,7 @@ impl<'tcx> Display for Pr<&TyConst<'tcx>> {
 }
 
 fn pr_bits<'tcx>(ty: Ty<'tcx>, bits: u128, tcx: TyCtxt<'tcx>) -> impl Display + 'tcx {
-    pr(TyConst::from_bits(tcx, bits, ParamEnv::empty().and(ty.ty)))
+    pr(TyConst::from_bits(tcx, bits, ParamEnv::reveal_all().and(ty.ty)))
 }
 
 impl Display for Pr<&Operand<'_>> {

@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use crate::prettify::pr_fun_name;
 use crate::represent::rep_fun_name;
 use crate::types::{
-    AdtDef, BasicBlock, DefId, EntryFnType, FieldDef, FieldIdx, GenericArgsRef, Local, Map,
-    Mutability, Operand, Place, Rvalue, Set, Statement, StatementKind, TerminatorKind, Ty, TyCtxt,
-    TyKind, VariantDef,
+    AdtDef, BasicBlock, DefId, EntryFnType, FieldDef, FieldIdx, FunTy, GenericArgsRef, Instance,
+    Local, Map, Mutability, Operand, ParamEnv, Place, Rvalue, Set, Statement, StatementKind,
+    TerminatorKind, Ty, TyCtxt, TyKind, VariantDef,
 };
 use crate::util::{get_terminator, BB0, VRT0, _0};
 
@@ -165,7 +165,7 @@ fn get_prerule<'tcx>(
     init_bb: BasicBlock,
     init_env: Env<'tcx>,
     data: Data<'_, 'tcx>,
-    fun_asks: &mut Map<String, Ty<'tcx>>,
+    fun_asks: &mut Map<String, FunTy<'tcx>>,
 ) -> Prerule<'tcx> {
     let mut bb = init_bb;
     let mut conds = Vec::<Cond<'tcx>>::new();
@@ -209,20 +209,22 @@ fn get_prerule<'tcx>(
                 return pivot_up(init_env, is_main, bb, conds, env, data);
             }
             TerminatorKind::Call { func, args, destination: Some((place, target)), .. } => {
-                let fun_ty = func.get_ty(mir_access);
-                let fun = fun_ty.fun_of_fun_ty();
-                let fun_name = pr_fun_name(fun);
+                let fun_ty @ FunTy { def_id, generic_args_ref } = func
+                    .get_ty(mir_access)
+                    .as_fun_ty()
+                    .expect("unexpected/unsupported type for a function");
                 let res_ty = place.get_ty(mir_access);
+                let instance = Instance::resolve(
+                    mir_access.tcx,
+                    ParamEnv::reveal_all(),
+                    def_id,
+                    generic_args_ref,
+                )
+                .unwrap()
+                .unwrap()
+                .polymorphize(mir_access.tcx);
                 gather_conds_from_fun(
-                    FnCall {
-                        ty: fun_ty,
-                        did: fun,
-                        fun_name,
-                        args,
-                        caller: bb,
-                        res_place: place,
-                        res_ty,
-                    },
+                    FnCall { ty: fun_ty, instance, args, caller: bb, res_place: place, res_ty },
                     mir_access,
                     &mut env,
                     &mut conds,
@@ -297,9 +299,8 @@ fn gather_conds_from_statement<'tcx>(
 }
 
 struct FnCall<'a, 'tcx> {
-    ty: Ty<'tcx>,
-    did: DefId,
-    fun_name: String,
+    ty: FunTy<'tcx>,
+    instance: Instance<'tcx>,
     args: &'a [Operand<'tcx>],
     caller: BasicBlock,
     res_place: &'a Place<'tcx>,
@@ -307,12 +308,14 @@ struct FnCall<'a, 'tcx> {
 }
 
 fn gather_conds_from_fun<'tcx>(
-    FnCall { args, ty, did, fun_name, caller, res_place, res_ty }: FnCall<'_, 'tcx>,
+    FnCall { ty, instance, args, caller, res_place, res_ty }: FnCall<'_, 'tcx>,
     mir_access: MirAccess<'tcx>,
     env: &mut Map<Local, Expr<'tcx>>,
     conds: &mut Vec<Cond<'tcx>>,
-    fun_asks: &mut Map<String, Ty<'tcx>>,
+    fun_asks: &mut Map<String, FunTy<'tcx>>,
 ) {
+    let did = instance.def_id();
+    let fun_name = pr_fun_name(did);
     if let Some(bin_op) = BinOp::try_from_fun(did) {
         let res = Expr::from_bin_op(
             bin_op,
@@ -446,13 +449,13 @@ fn analyze_pivot<'tcx>(
 }
 
 fn analyze_fun<'tcx>(
-    fun_ty: Ty<'tcx>,
+    fun_ty: FunTy<'tcx>,
     tcx: TyCtxt<'tcx>,
     basic_asks: &mut BasicAsks<'tcx>,
 ) -> FunDef<'tcx> {
-    let mir = tcx.optimized_mir(fun_ty.fun_of_fun_ty());
+    let mir = tcx.optimized_mir(fun_ty.def_id);
     let bbds = mir.basic_blocks();
-    let mir_access = MirAccess { mir, generic_args: fun_ty.substs_of_fun_ty(), tcx };
+    let mir_access = MirAccess { mir, generic_args: fun_ty.generic_args_ref, tcx };
     /* preparations */
     let ghosts = get_ghosts(&bbds[BB0], mir.arg_count);
     let basic = Basic { bbds, ghosts: &ghosts };
@@ -497,7 +500,8 @@ pub fn analyze<'tcx>(tcx: TyCtxt<'tcx>) -> Summary<'tcx> {
     /* analyze the main function */
     if let Some((main, EntryFnType::Main)) = tcx.entry_fn(()) {
         let main_ty = tcx.type_of(main);
-        let main_ty = Ty::new(main_ty);
+        let main_ty =
+            Ty::new(main_ty).as_fun_ty().expect("unexpected/unsupported type for a function");
         let main_name = rep_fun_name(main_ty);
         fun_defs.insert(main_name, analyze_fun(main_ty, tcx, &mut basic_asks));
     } else {

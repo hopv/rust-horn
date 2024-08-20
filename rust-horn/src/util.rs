@@ -1,6 +1,6 @@
 use crate::types::{
     BasicBlock, BasicBlockData, BasicBlockDatas, DefId, FieldIdx, GenericArgsRef, Local, MirBody,
-    Terminator, Ty, TyCtxt, TyKind, VariantIdx,
+    Terminator, TyCtxt, VariantIdx,
 };
 
 pub const BB0: BasicBlock = BasicBlock::from_u32(0);
@@ -41,20 +41,4 @@ pub fn get_terminator<'a, 'tcx>(bbd: &'a BasicBlockData<'tcx>) -> &'a Terminator
 
 pub fn has_any_type(generic_args: GenericArgsRef<'_>) -> bool {
     generic_args.types().next().is_some()
-}
-
-impl<'tcx> Ty<'tcx> {
-    pub fn fun_of_fun_ty(self) -> DefId {
-        match &self.kind() {
-            TyKind::FnDef(fun, _) | TyKind::Closure(fun, _) => *fun,
-            _ => panic!("unexpected type {} for a function type", self.ty),
-        }
-    }
-
-    pub fn substs_of_fun_ty(self) -> GenericArgsRef<'tcx> {
-        match &self.kind() {
-            TyKind::FnDef(_, generic_args) | TyKind::Closure(_, generic_args) => generic_args,
-            _ => panic!("unexpected type {} for a function type", self.ty),
-        }
-    }
 }

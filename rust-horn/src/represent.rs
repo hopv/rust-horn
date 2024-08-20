@@ -4,8 +4,8 @@ use crate::analyze::data::{BinOp, Cond, Const, End, Expr, Float, Int, Path, Proj
 use crate::analyze::{FunDef, FunDefRef, Pivot, PivotDef, Rule, Summary};
 use crate::prettify::pr_name;
 use crate::types::{
-    adt_is_box, AdtDef, DefId, FieldIdx, GenericArgs, Mutability, Ty, TyCtxt, TyKind, VariantDef,
-    VariantIdx,
+    adt_is_box, AdtDef, DefId, FieldIdx, FunTy, GenericArgs, Mutability, Ty, TyCtxt, TyKind,
+    VariantDef, VariantIdx,
 };
 use crate::util::{has_any_type, Cap, FLD0, FLD1, VRT0};
 
@@ -38,9 +38,12 @@ fn safe_ty(ty: Ty) -> String {
     rep(ty).to_string().replace(' ', ".").replace('(', "").replace(')', "")
 }
 
-pub fn rep_fun_name(fun_ty: Ty) -> String {
-    format!("{}{}", rep_name(fun_ty.fun_of_fun_ty()), rep(fun_ty.substs_of_fun_ty()))
+pub fn rep_fun_name(fun_ty: FunTy) -> String {
+    // FIXME: def_path_str is not suitable for a trait invocation
+    // which can be determined at compile-time.
+    format!("{}{}", rep_name(fun_ty.def_id), rep(fun_ty.generic_args_ref))
 }
+
 fn rep_fun_name_pivot(fun_name: &str, pivot: Pivot) -> String {
     if let Pivot::Switch(bb) = pivot {
         format!("{}.{}", fun_name, bb.index())

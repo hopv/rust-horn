@@ -2,8 +2,9 @@ use crate::prettify::pr_fun_name;
 use crate::represent::{rep, rep_drop_name};
 use crate::types::{
     adt_is_box, BasicBlock, BorrowKind, Constant, ConstantKind, DefId, FieldDef, FieldIdx, Float32,
-    Float64, FloatTy, GenericArgsRef, Local, Map, MirBinOp, MirBody, MirUnOp, Mutability, Operand,
-    ParamEnv, Place, ProjectionElem, Rvalue, Set, Size, Subst, Ty, TyCtxt, TyKind, VariantIdx,
+    Float64, FloatTy, FunTy, GenericArgsRef, Local, Map, MirBinOp, MirBody, MirUnOp, Mutability,
+    Operand, ParamEnv, Place, ProjectionElem, Rvalue, Set, Size, Subst, Ty, TyCtxt, TyKind,
+    VariantIdx,
 };
 use crate::util::{FLD0, FLD1, VRT0};
 
@@ -153,7 +154,7 @@ pub enum Float {
 impl Const {
     pub fn from_mir_constant<'tcx>(c: &Constant<'tcx>, tcx: TyCtxt<'tcx>) -> Self {
         let evaluated_const_value = || match c.literal {
-            ConstantKind::Ty(c) => c.val.eval(tcx, ParamEnv::empty()).try_to_value(),
+            ConstantKind::Ty(c) => c.val.eval(tcx, ParamEnv::reveal_all()).try_to_value(),
             ConstantKind::Val(val, _) => Some(val),
         };
         let ty = c.ty();
@@ -715,7 +716,7 @@ pub enum Cond<'tcx> {
     Drop { ty: Ty<'tcx>, arg: Expr<'tcx> },
     Eq { tgt: Expr<'tcx>, src: Expr<'tcx> },
     Neq { tgt: Expr<'tcx>, srcs: Vec<Expr<'tcx>> },
-    Call { fun_ty: Ty<'tcx>, args: Vec<Expr<'tcx>> },
+    Call { fun_ty: FunTy<'tcx>, args: Vec<Expr<'tcx>> },
 }
 #[derive(Debug)]
 pub enum End<'tcx> {
@@ -728,7 +729,7 @@ pub enum End<'tcx> {
 #[derive(Debug)]
 /// Ask is a request to define at the beginning of the smt2 to be generated.
 pub struct BasicAsks<'tcx> {
-    pub fun_asks: Map<String, Ty<'tcx>>,
+    pub fun_asks: Map<String, FunTy<'tcx>>,
     pub drop_asks: Map<String, Ty<'tcx>>,
     pub adt_asks: Set<DefId>,
     pub tup_asks: Map<String, GenericArgsRef<'tcx>>,

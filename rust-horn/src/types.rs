@@ -10,7 +10,7 @@ pub use rustc_middle::mir::{
 pub use rustc_middle::ty::{
     subst::{InternalSubsts as GenericArgs, Subst, SubstsRef as GenericArgsRef},
     tls::with as with_tcx,
-    AdtDef, ClosureKind, Const as TyConst, ConstKind, FieldDef, FloatTy, FnSig, ParamEnv,
+    AdtDef, ClosureKind, Const as TyConst, ConstKind, FieldDef, FloatTy, FnSig, Instance, ParamEnv,
     ScalarInt, TyCtxt, TyKind, VariantDef,
 };
 pub use rustc_session::config::EntryFnType;
@@ -182,5 +182,22 @@ impl<T: Ord + Hash> Set<T> {
     pub fn retain<F>(&mut self, f: F)
     where F: FnMut(&T) -> bool {
         self.inner.retain(f);
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct FunTy<'tcx> {
+    pub def_id: DefId,
+    pub generic_args_ref: GenericArgsRef<'tcx>,
+}
+
+impl<'tcx> Ty<'tcx> {
+    pub fn as_fun_ty(self) -> Option<FunTy<'tcx>> {
+        match *self.kind() {
+            TyKind::FnDef(def_id, generic_args) | TyKind::Closure(def_id, generic_args) => {
+                Some(FunTy { def_id, generic_args_ref: generic_args })
+            }
+            _ => None,
+        }
     }
 }
