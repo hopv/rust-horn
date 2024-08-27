@@ -11,7 +11,8 @@ You can try the verifier for the files `sample/*.rs` by `make try`.
 
 ## Supported Features
 
-- [x] Loops and recursions
+- [x] Recursions
+- [ ] Loops
 - [x] Recursive types
 - [ ] Arrays, vectors and slices
 - [ ] Function pointers
