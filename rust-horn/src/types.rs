@@ -1,26 +1,24 @@
-pub use rustc_apfloat::ieee::{Double as Float64, Single as Float32};
+pub use rustc_apfloat::ieee::{
+    Double as Float64, Half as Float16, Quad as Float128, Single as Float32,
+};
 pub use rustc_hir::{
     def_id::DefId,
     definitions::{DefPath, DefPathData, DisambiguatedDefPathData},
     Mutability,
 };
-pub use rustc_index::vec::IndexVec;
 pub use rustc_middle::mir::{
-    interpret::{ConstValue, Scalar},
-    AggregateKind, BasicBlock, BasicBlockData, BinOp as MirBinOp, Body as MirBody, BorrowKind,
-    Constant, ConstantKind, Field as FieldIdx, Local, LocalDecl, NullOp, Operand, Place,
-    ProjectionElem, Rvalue, Statement, StatementKind, Terminator, TerminatorKind, UnOp as MirUnOp,
+    AggregateKind, BasicBlock, BasicBlockData, BasicBlocks, BinOp as MirBinOp, Body as MirBody,
+    BorrowKind, ConstOperand, Local, LocalDecl, NullOp, Operand, Place, ProjectionElem, Rvalue,
+    Statement, StatementKind, Terminator, TerminatorKind, UnOp as MirUnOp,
 };
 pub use rustc_middle::ty::{
-    subst::{InternalSubsts as GenericArgs, Subst, SubstsRef as GenericArgsRef},
-    tls::with as with_tcx,
-    AdtDef, ClosureKind, Const as TyConst, ConstKind, FieldDef, FloatTy, FnSig, Instance, ParamEnv,
-    ScalarInt, TyCtxt, TyKind, VariantDef,
+    tls::with as with_tcx, AdtDef, ClosureKind, Const as TyConst, EarlyBinder, FieldDef, FloatTy,
+    FnSig, FnSigTys, GenericArgs, GenericArgsRef, Instance, ParamEnv, TyCtxt, TyKind, VariantDef,
 };
+pub type Tys<'tcx> = <TyCtxt<'tcx> as rustc_type_ir::Interner>::Tys;
 pub use rustc_session::config::EntryFnType;
-pub use rustc_span::Symbol;
-pub type BasicBlockDatas<'tcx> = IndexVec<BasicBlock, BasicBlockData<'tcx>>;
-pub use rustc_target::abi::{Size, VariantIdx};
+pub use rustc_span::{source_map::Spanned, Symbol, DUMMY_SP};
+pub use rustc_target::abi::{FieldIdx, Size, VariantIdx};
 
 use std::{
     collections::{HashMap, HashSet},
@@ -73,7 +71,6 @@ fn sort_map<K: Ord, V>(map: HashMap<K, V>) -> Vec<(K, V)> {
 }
 
 #[derive(Debug, Clone)]
-/// sorted map when iterated
 pub struct Map<K, V> {
     inner: HashMap<K, V>,
 }
@@ -107,18 +104,18 @@ impl<K: Ord + Hash, V> Map<K, V> {
     pub fn from_inner(inner: HashMap<K, V>) -> Self { Self { inner } }
     pub fn new() -> Self { Self::from_inner(HashMap::<K, V>::new()) }
 
-    pub fn remove<Q: ?Sized>(&mut self, k: &Q) -> Option<V>
+    pub fn remove<Q>(&mut self, k: &Q) -> Option<V>
     where
         K: std::borrow::Borrow<Q>,
-        Q: std::hash::Hash + Eq,
+        Q: std::hash::Hash + Eq + ?Sized,
     {
         self.inner.remove(k)
     }
 
-    pub fn get<Q: ?Sized>(&self, k: &Q) -> Option<&V>
+    pub fn get<Q>(&self, k: &Q) -> Option<&V>
     where
         K: std::borrow::Borrow<Q>,
-        Q: std::hash::Hash + Eq,
+        Q: std::hash::Hash + Eq + ?Sized,
     {
         self.inner.get(k)
     }
@@ -135,23 +132,22 @@ impl<K: Ord + Hash, V> Map<K, V> {
 }
 
 #[derive(Debug, Clone)]
-/// sorted set when iterated
-pub struct Set<T> {
+pub struct OrderedSet<T> {
     inner: HashSet<T>,
 }
 
-impl<T: Ord> Set<T> {
+impl<T: Ord> OrderedSet<T> {
     pub fn into_sorted_vec(self) -> Vec<T> { sort_set(self.inner) }
 }
 
-impl<T0: Eq + Hash> Extend<T0> for Set<T0> {
+impl<T0: Eq + Hash> Extend<T0> for OrderedSet<T0> {
     #[inline]
     fn extend<I: IntoIterator<Item = T0>>(&mut self, iter: I) {
         <HashSet<T0> as Extend<T0>>::extend(&mut self.inner, iter);
     }
 }
 
-impl<T: Ord> IntoIterator for Set<T> {
+impl<T: Ord> IntoIterator for OrderedSet<T> {
     type Item = <Vec<T> as IntoIterator>::Item;
 
     type IntoIter = <Vec<T> as IntoIterator>::IntoIter;
@@ -159,25 +155,25 @@ impl<T: Ord> IntoIterator for Set<T> {
     fn into_iter(self) -> Self::IntoIter { self.into_sorted_vec().into_iter() }
 }
 
-impl<T: Ord + Hash> Set<T> {
+impl<T: Eq + Hash> OrderedSet<T> {
     pub fn new() -> Self { Self { inner: HashSet::<T>::new() } }
 
     pub fn insert(&mut self, value: T) -> bool { self.inner.insert(value) }
 
-    pub fn contains<Q: ?Sized>(&self, value: &Q) -> bool
+    pub fn contains<Q>(&self, value: &Q) -> bool
     where
         T: std::borrow::Borrow<Q>,
-        Q: Hash + Eq,
+        Q: Hash + Eq + ?Sized,
     {
         self.inner.contains(value)
     }
 
     pub fn clear(&mut self) { self.inner.clear() }
 
-    pub fn remove<Q: ?Sized>(&mut self, value: &Q) -> bool
+    pub fn remove<Q>(&mut self, value: &Q) -> bool
     where
         T: std::borrow::Borrow<Q>,
-        Q: Hash + Eq,
+        Q: Hash + Eq + ?Sized,
     {
         self.inner.remove(value)
     }
@@ -187,6 +183,45 @@ impl<T: Ord + Hash> Set<T> {
     pub fn retain<F>(&mut self, f: F)
     where F: FnMut(&T) -> bool {
         self.inner.retain(f);
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Set<T> {
+    dedup: HashSet<T>,
+    container: Vec<T>,
+}
+
+impl<T> Set<T> {
+    pub fn new() -> Self { Self { dedup: HashSet::new(), container: Vec::new() } }
+
+    pub fn into_inner_vec(self) -> Vec<T> { self.container }
+}
+
+impl<T0: Eq + Hash + Copy> Extend<T0> for Set<T0> {
+    #[inline]
+    fn extend<I: IntoIterator<Item = T0>>(&mut self, iter: I) {
+        for item in iter {
+            self.insert(item);
+        }
+    }
+}
+
+impl<T: Ord> IntoIterator for Set<T> {
+    type Item = <Vec<T> as IntoIterator>::Item;
+
+    type IntoIter = <Vec<T> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter { self.into_inner_vec().into_iter() }
+}
+
+impl<T: Eq + Hash + Copy> Set<T> {
+    pub fn insert(&mut self, value: T) -> bool {
+        let b = self.dedup.insert(value);
+        if b {
+            self.container.push(value);
+        }
+        b
     }
 }
 

@@ -1,69 +1,68 @@
-use crate::represent::{rep, rep_drop_name};
+use crate::represent::{rep, rep_drop_name, rep_ty_list};
 use crate::types::{
-    adt_is_box, BasicBlock, BorrowKind, Constant, ConstantKind, DefId, FieldDef, FieldIdx, Float32,
-    Float64, FloatTy, FunTy, GenericArgsRef, Local, Map, MirBinOp, MirBody, MirUnOp, Mutability,
-    Operand, ParamEnv, Place, ProjectionElem, Rvalue, Set, Size, Subst, Ty, TyCtxt, TyKind,
-    VariantIdx,
+    adt_is_box, BasicBlock, BorrowKind, ConstOperand, DefId, EarlyBinder, FieldDef, FieldIdx,
+    Float128, Float16, Float32, Float64, FloatTy, FunTy, GenericArgsRef, Local, Map, MirBinOp,
+    MirBody, MirUnOp, Mutability, Operand, OrderedSet, ParamEnv, Place, ProjectionElem, Rvalue,
+    Set, Size, Ty, TyCtxt, TyKind, Tys, VariantIdx, DUMMY_SP,
 };
 use crate::util::{FLD0, FLD1, VRT0};
 
 #[derive(Copy, Clone)]
-pub struct MirAccess<'tcx> {
-    pub mir: &'tcx MirBody<'tcx>,
+pub struct MirAccess<'steal, 'tcx> {
+    pub mir: &'steal MirBody<'tcx>,
     pub generic_args: GenericArgsRef<'tcx>,
     pub tcx: TyCtxt<'tcx>,
 }
-impl<'tcx> MirAccess<'tcx> {
-    pub fn get_bool(self) -> Ty<'tcx> { Ty::new(self.tcx.mk_ty(TyKind::Bool)) }
+impl<'tcx> MirAccess<'_, 'tcx> {
+    pub fn get_bool(self) -> Ty<'tcx> { Ty::new(self.tcx.mk_ty_from_kind(TyKind::Bool)) }
 }
 
 pub trait GetTypeExt<'tcx> {
-    fn get_ty(&self, mir_access: MirAccess<'tcx>) -> Ty<'tcx>;
+    fn get_ty(&self, mir_access: MirAccess<'_, 'tcx>) -> Ty<'tcx>;
 }
 
 impl<'tcx> GetTypeExt<'tcx> for Local {
-    fn get_ty(&self, mir_access: MirAccess<'tcx>) -> Ty<'tcx> {
+    fn get_ty(&self, mir_access: MirAccess<'_, 'tcx>) -> Ty<'tcx> {
         let local = *self;
         let MirAccess { mir, generic_args, tcx } = mir_access;
-        Ty::new(mir.local_decls[local].ty.subst(tcx, generic_args))
+        Ty::new(EarlyBinder::bind(mir.local_decls[local].ty).instantiate(tcx, generic_args))
     }
 }
 
 impl<'tcx> GetTypeExt<'tcx> for Place<'tcx> {
-    fn get_ty(&self, mir_access: MirAccess<'tcx>) -> Ty<'tcx> {
+    fn get_ty(&self, mir_access: MirAccess<'_, 'tcx>) -> Ty<'tcx> {
         let MirAccess { mir, generic_args, tcx } = mir_access;
-        Ty::new(self.ty(mir, tcx).ty.subst(tcx, generic_args))
+        Ty::new(EarlyBinder::bind(self.ty(mir, tcx).ty).instantiate(tcx, generic_args))
     }
 }
 
 impl<'tcx> GetTypeExt<'tcx> for Operand<'tcx> {
-    fn get_ty(&self, mir_access: MirAccess<'tcx>) -> Ty<'tcx> {
+    fn get_ty(&self, mir_access: MirAccess<'_, 'tcx>) -> Ty<'tcx> {
         let MirAccess { mir, generic_args, tcx } = mir_access;
-        Ty::new(self.ty(mir, tcx).subst(tcx, generic_args))
+        Ty::new(EarlyBinder::bind(self.ty(mir, tcx)).instantiate(tcx, generic_args))
     }
 }
 
 impl<'tcx> GetTypeExt<'tcx> for Rvalue<'tcx> {
-    fn get_ty(&self, mir_access: MirAccess<'tcx>) -> Ty<'tcx> {
+    fn get_ty(&self, mir_access: MirAccess<'_, 'tcx>) -> Ty<'tcx> {
         let MirAccess { mir, generic_args, tcx } = mir_access;
-        Ty::new(self.ty(mir, tcx).subst(tcx, generic_args))
+        Ty::new(EarlyBinder::bind(self.ty(mir, tcx)).instantiate(tcx, generic_args))
     }
 }
 
 pub trait MirAccessCtxExt<'tcx> {
     type Context;
-    fn get_ty_with(&self, mir_access: MirAccess<'tcx>, context: Self::Context) -> Ty<'tcx>;
+    fn get_ty_with(&self, mir_access: MirAccess<'_, 'tcx>, context: Self::Context) -> Ty<'tcx>;
 }
 
 impl<'tcx> MirAccessCtxExt<'tcx> for Place<'tcx> {
     type Context = usize;
 
-    fn get_ty_with(&self, mir_access: MirAccess<'tcx>, i: Self::Context) -> Ty<'tcx> {
+    fn get_ty_with(&self, mir_access: MirAccess<'_, 'tcx>, i: Self::Context) -> Ty<'tcx> {
         let MirAccess { mir, generic_args, tcx } = mir_access;
         Ty::new(
-            Place::ty_from(self.local, &self.projection[0..i], mir, tcx)
-                .ty
-                .subst(tcx, generic_args),
+            EarlyBinder::bind(Place::ty_from(self.local, &self.projection[0..i], mir, tcx).ty)
+                .instantiate(tcx, generic_args),
         )
     }
 }
@@ -71,9 +70,9 @@ impl<'tcx> MirAccessCtxExt<'tcx> for Place<'tcx> {
 impl<'tcx> MirAccessCtxExt<'tcx> for FieldDef {
     type Context = GenericArgsRef<'tcx>;
 
-    fn get_ty_with(&self, mir_access: MirAccess<'tcx>, adt_substs: Self::Context) -> Ty<'tcx> {
+    fn get_ty_with(&self, mir_access: MirAccess<'_, 'tcx>, adt_substs: Self::Context) -> Ty<'tcx> {
         let MirAccess { generic_args, tcx, .. } = mir_access;
-        Ty::new(self.ty(tcx, adt_substs).subst(tcx, generic_args))
+        Ty::new(EarlyBinder::bind(self.ty(tcx, adt_substs)).instantiate(tcx, generic_args))
     }
 }
 
@@ -146,16 +145,15 @@ pub enum Int {
 
 #[derive(Debug, Copy, Clone)]
 pub enum Float {
+    F16(Float16),
     F32(Float32),
     F64(Float64),
+    F128(Float128),
 }
 
 impl Const {
-    pub fn from_mir_constant<'tcx>(c: &Constant<'tcx>, tcx: TyCtxt<'tcx>) -> Self {
-        let evaluated_const_value = || match c.literal {
-            ConstantKind::Ty(c) => c.val.eval(tcx, ParamEnv::reveal_all()).try_to_value(),
-            ConstantKind::Val(val, _) => Some(val),
-        };
+    pub fn from_mir_constant<'tcx>(c: &ConstOperand<'tcx>, tcx: TyCtxt<'tcx>) -> Self {
+        let evaluated_const_value = || c.const_.eval(tcx, ParamEnv::reveal_all(), DUMMY_SP);
         let ty = c.ty();
         if ty.is_integral() {
             let scalar = evaluated_const_value().unwrap().try_to_scalar().unwrap();
@@ -168,23 +166,24 @@ impl Const {
                 let sz = Size::from_bits(bit_width);
                 let bits = scalar.to_bits(sz).expect("size mismatch");
                 if ty.is_signed() {
-                    #[allow(clippy::cast_possible_wrap)]
-                    Int::Int(sz.sign_extend(bits) as i128)
+                    Int::Int(sz.sign_extend(bits))
                 } else {
                     Int::Uint(bits)
                 }
             } else if ty.is_signed() {
-                Int::Int(i128::from(scalar.to_machine_isize(&tcx).unwrap()))
+                Int::Int(i128::from(scalar.to_target_isize(&tcx).unwrap()))
             } else {
-                Int::Uint(u128::from(scalar.to_machine_usize(&tcx).unwrap()))
+                Int::Uint(u128::from(scalar.to_target_usize(&tcx).unwrap()))
             };
             Const::Int(int)
         } else if ty.is_floating_point() {
             let scalar = evaluated_const_value().unwrap().try_to_scalar().unwrap();
             let float = match ty.kind() {
                 TyKind::Float(float_ty) => match float_ty {
+                    FloatTy::F16 => Float::F16(scalar.to_f16().unwrap()),
                     FloatTy::F32 => Float::F32(scalar.to_f32().unwrap()),
                     FloatTy::F64 => Float::F64(scalar.to_f64().unwrap()),
+                    FloatTy::F128 => Float::F128(scalar.to_f128().unwrap()),
                 },
                 _ => unreachable!("typeck should have finished"),
             };
@@ -204,8 +203,11 @@ impl Const {
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum BinOp {
     Add,
+    AddWithOverflow,
     Sub,
+    SubWithOverflow,
     Mul,
+    MulWithOverflow,
     DivInt,
     Mod,
     DivReal,
@@ -221,9 +223,12 @@ pub enum BinOp {
 impl BinOp {
     fn from_mir_bin_op(mir_bin_op: MirBinOp, ty: Ty) -> Self {
         match mir_bin_op {
-            MirBinOp::Add => BinOp::Add,
-            MirBinOp::Sub => BinOp::Sub,
-            MirBinOp::Mul => BinOp::Mul,
+            MirBinOp::Add | MirBinOp::AddUnchecked => BinOp::Add,
+            MirBinOp::AddWithOverflow => BinOp::AddWithOverflow,
+            MirBinOp::Sub | MirBinOp::SubUnchecked => BinOp::Sub,
+            MirBinOp::SubWithOverflow => BinOp::SubWithOverflow,
+            MirBinOp::Mul | MirBinOp::MulUnchecked => BinOp::Mul,
+            MirBinOp::MulWithOverflow => BinOp::MulWithOverflow,
             MirBinOp::Div => match &ty.kind() {
                 TyKind::Int(_) | TyKind::Uint(_) => BinOp::DivInt,
                 TyKind::Float(_) => BinOp::DivReal,
@@ -240,6 +245,9 @@ impl BinOp {
             _ => panic!("unsupported binary operator {:?}", mir_bin_op),
         }
     }
+    pub fn is_overflow_kind(self) -> bool {
+        matches!(self, Self::AddWithOverflow | Self::SubWithOverflow | Self::MulWithOverflow)
+    }
 }
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -253,6 +261,7 @@ impl UnOp {
         match mir_un_op {
             MirUnOp::Not => Self::Not,
             MirUnOp::Neg => Self::Neg,
+            MirUnOp::PtrMetadata => unimplemented!(),
         }
     }
 }
@@ -300,10 +309,10 @@ impl<'tcx> Expr<'tcx> {
                 TyKind::Ref(_, _, Mutability::Mut) => 2,
                 TyKind::Adt(adt_def, _) => {
                     assert!(!adt_def.is_box());
-                    assert!(variant_index.index() < adt_def.variants.len());
-                    adt_def.variants[variant_index].fields.len()
+                    assert!(variant_index.index() < adt_def.variants().len());
+                    adt_def.variants()[variant_index].fields.len()
                 }
-                TyKind::Tuple(generic_args) => generic_args.types().count(),
+                TyKind::Tuple(generic_args) => generic_args.len(),
                 _ => unreachable!("unexpected type {} for projection", base_ty),
             }
         }
@@ -345,7 +354,7 @@ impl<'tcx> Expr<'tcx> {
 impl Ty<'_> {
     pub fn ty_body(self) -> Self {
         match self.kind() {
-            TyKind::Ref(_, ty, Mutability::Not) => return Ty::new(ty).ty_body(),
+            TyKind::Ref(_, ty, Mutability::Not) => return Ty::new(*ty).ty_body(),
             TyKind::Adt(adt_def, adt_substs) => {
                 if let Some(ty) = adt_is_box(adt_def, adt_substs) {
                     return ty.ty_body();
@@ -395,7 +404,7 @@ struct Site<'tcx> {
 }
 
 impl<'tcx> Site<'tcx> {
-    fn from_place(place: &Place<'tcx>, mir_access: MirAccess<'tcx>) -> Self {
+    fn from_place(place: &Place<'tcx>, mir_access: MirAccess<'_, 'tcx>) -> Self {
         let Place { local, projection } = place;
         let mut projs = Vec::<Proj>::new();
         let mut variant_index = VRT0;
@@ -404,7 +413,7 @@ impl<'tcx> Site<'tcx> {
             let base_ty = place.get_ty_with(mir_access, i);
             match &proj {
                 ProjectionElem::Deref => match &base_ty.kind() {
-                    TyKind::Ref(_, _, Mutability::Not) => {}
+                    TyKind::Ref(_, _, Mutability::Not) | TyKind::RawPtr(_, Mutability::Not) => {}
                     TyKind::Adt(adt_def, _) if adt_def.is_box() => {}
                     TyKind::Ref(_, _, Mutability::Mut) => {
                         projs.push(Proj { variant_index: VRT0, field_index: FLD0, base_ty });
@@ -417,14 +426,13 @@ impl<'tcx> Site<'tcx> {
                 ProjectionElem::Field(field_index, _) => {
                     match &base_ty.kind() {
                         TyKind::Adt(adt_def, _) => assert!(
-                            variant_index.index() < adt_def.variants.len()
+                            variant_index.index() < adt_def.variants().len()
                                 && field_index.index()
-                                    < adt_def.variants[variant_index].fields.len()
+                                    < adt_def.variants()[variant_index].fields.len()
                         ),
                         TyKind::Tuple(generic_args) => {
                             assert!(
-                                variant_index == VRT0
-                                    && field_index.index() < generic_args.types().count()
+                                variant_index == VRT0 && field_index.index() < generic_args.len()
                             );
                         }
                         _ => panic!("unexpected type {} for taking a field", base_ty),
@@ -440,11 +448,11 @@ impl<'tcx> Site<'tcx> {
 }
 
 pub trait ReadExprExt<'tcx> {
-    fn get_expr(&self, env: &mut Env<'tcx>, mir_access: MirAccess<'tcx>) -> Expr<'tcx>;
+    fn get_expr(&self, env: &mut Env<'tcx>, mir_access: MirAccess<'_, 'tcx>) -> Expr<'tcx>;
 }
 
 impl<'tcx> ReadExprExt<'tcx> for Place<'tcx> {
-    fn get_expr(&self, env: &mut Env<'tcx>, mir_access: MirAccess<'tcx>) -> Expr<'tcx> {
+    fn get_expr(&self, env: &mut Env<'tcx>, mir_access: MirAccess<'_, 'tcx>) -> Expr<'tcx> {
         let Site { local, projs } = Site::from_place(self, mir_access);
         let mut expr = match env.get(&local) {
             None => Expr::uninit(self.get_ty(mir_access)),
@@ -469,7 +477,7 @@ pub trait ReadExprMutExt<'tcx> {
     fn get_mut_expr<'env>(
         &self,
         env: &'env mut Env<'tcx>,
-        mir_access: MirAccess<'tcx>,
+        mir_access: MirAccess<'_, 'tcx>,
     ) -> &'env mut Expr<'tcx>;
 }
 
@@ -477,11 +485,12 @@ impl<'tcx> ReadExprMutExt<'tcx> for Place<'tcx> {
     fn get_mut_expr<'env>(
         &self,
         env: &'env mut Env<'tcx>,
-        mir_access: MirAccess<'tcx>,
+        mir_access: MirAccess<'_, 'tcx>,
     ) -> &'env mut Expr<'tcx> {
         let Site { local, projs } = Site::from_place(self, mir_access);
         let mut expr = env.entry(local).or_insert_with(|| Expr::uninit(self.get_ty(mir_access)));
         for &proj in &projs {
+            dbg!(&proj);
             let Proj { base_ty, variant_index, field_index } = proj;
             expr = match expr {
                 Expr::Path(path) => {
@@ -500,7 +509,7 @@ impl<'tcx> ReadExprMutExt<'tcx> for Place<'tcx> {
 }
 
 impl<'tcx> ReadExprExt<'tcx> for Operand<'tcx> {
-    fn get_expr(&self, env: &mut Env<'tcx>, mir_access: MirAccess<'tcx>) -> Expr<'tcx> {
+    fn get_expr(&self, env: &mut Env<'tcx>, mir_access: MirAccess<'_, 'tcx>) -> Expr<'tcx> {
         match self {
             Operand::Copy(place) => place.get_expr(env, mir_access),
             Operand::Move(place) => {
@@ -519,7 +528,7 @@ pub trait ReadExprCtxExt<'tcx> {
         &self,
         context: Self::Context,
         env: &mut Env<'tcx>,
-        mir_access: MirAccess<'tcx>,
+        mir_access: MirAccess<'_, 'tcx>,
     ) -> Expr<'tcx>;
 }
 
@@ -529,7 +538,7 @@ impl<'tcx> ReadExprCtxExt<'tcx> for Rvalue<'tcx> {
         &self,
         disambiguator: Self::Context,
         env: &mut Env<'tcx>,
-        mir_access: MirAccess<'tcx>,
+        mir_access: MirAccess<'_, 'tcx>,
     ) -> Expr<'tcx> {
         let ty = self.get_ty(mir_access);
         match self {
@@ -539,11 +548,20 @@ impl<'tcx> ReadExprCtxExt<'tcx> for Rvalue<'tcx> {
                 let body_ty = referee.get_ty(mir_access);
                 referee.get_mut_expr(env, mir_access).do_borrow_mut(body_ty, ty, disambiguator)
             }
-            Rvalue::BinaryOp(mir_bin_op, box (opd1, opd2)) => Expr::from_bin_op(
-                BinOp::from_mir_bin_op(*mir_bin_op, opd1.get_ty(mir_access)),
-                opd1.get_expr(env, mir_access),
-                opd2.get_expr(env, mir_access),
-            ),
+            Rvalue::BinaryOp(mir_bin_op, box (opd1, opd2)) => {
+                let operand_ty = opd1.get_ty(mir_access);
+                let bin_op = BinOp::from_mir_bin_op(*mir_bin_op, operand_ty);
+                let res = Expr::from_bin_op(
+                    bin_op,
+                    opd1.get_expr(env, mir_access),
+                    opd2.get_expr(env, mir_access),
+                );
+                if bin_op.is_overflow_kind() {
+                    Expr::pair(ty, (res, Expr::Const(Const::Bool(false))))
+                } else {
+                    res
+                }
+            }
             Rvalue::UnaryOp(mir_un_op, opd) => Expr::UnOp(
                 UnOp::from_mir_un_op(*mir_un_op),
                 Box::new(opd.get_expr(env, mir_access)),
@@ -557,7 +575,7 @@ pub fn set_tag<'tcx>(
     place: &Place<'tcx>,
     tag: VariantIdx,
     env: &mut Env<'tcx>,
-    mir_access: MirAccess<'tcx>,
+    mir_access: MirAccess<'_, 'tcx>,
 ) {
     let expr = place.get_mut_expr(env, mir_access);
     let base_ty = place.get_ty(mir_access);
@@ -572,9 +590,13 @@ pub fn set_tag<'tcx>(
     }
 }
 
-fn needs_drop<'tcx>(ty: Ty<'tcx>, mir_access: MirAccess<'tcx>) -> bool {
-    fn needs_drop<'tcx>(ty: Ty<'tcx>, mir_access: MirAccess<'tcx>, seen: &mut Set<String>) -> bool {
-        match &ty.kind() {
+fn needs_drop<'tcx>(ty: Ty<'tcx>, mir_access: MirAccess<'_, 'tcx>) -> bool {
+    fn needs_drop<'tcx>(
+        ty: Ty<'tcx>,
+        mir_access: MirAccess<'_, 'tcx>,
+        seen: &mut OrderedSet<String>,
+    ) -> bool {
+        match ty.kind() {
             TyKind::Bool | TyKind::Int(_) | TyKind::Uint(_) | TyKind::Float(_) => false,
             TyKind::Adt(adt_def, adt_substs) => {
                 if let Some(ty) = adt_is_box(adt_def, adt_substs) {
@@ -594,23 +616,30 @@ fn needs_drop<'tcx>(ty: Ty<'tcx>, mir_access: MirAccess<'tcx>) -> bool {
                     }
                 }
             }
-            TyKind::Ref(_, _, mutability) => matches!(mutability, Mutability::Mut),
+            TyKind::Ref(_, _, mutability) | TyKind::RawPtr(_, mutability) => {
+                matches!(mutability, Mutability::Mut)
+            }
             TyKind::Tuple(generic_args) => {
-                generic_args.types().any(|ty| needs_drop(Ty::new(ty), mir_access, seen))
+                generic_args.into_iter().any(|ty| needs_drop(Ty::new(ty), mir_access, seen))
             }
             _ => panic!("unsupported type {}", ty),
         }
     }
 
-    needs_drop(ty, mir_access, &mut Set::new())
+    needs_drop(ty, mir_access, &mut OrderedSet::new())
 }
 
 pub trait DropExt<'tcx> {
-    fn do_drop(&self, of_type: Ty<'tcx>, mir_access: MirAccess<'tcx>, conds: &mut Vec<Cond<'tcx>>);
+    fn do_drop(
+        &self,
+        of_type: Ty<'tcx>,
+        mir_access: MirAccess<'_, 'tcx>,
+        conds: &mut Vec<Cond<'tcx>>,
+    );
 }
 
 impl<'tcx> DropExt<'tcx> for Path<'tcx> {
-    fn do_drop(&self, ty: Ty<'tcx>, _: MirAccess<'tcx>, conds: &mut Vec<Cond<'tcx>>) {
+    fn do_drop(&self, ty: Ty<'tcx>, _: MirAccess<'_, 'tcx>, conds: &mut Vec<Cond<'tcx>>) {
         fn drop_path<'tcx>(ty: Ty<'tcx>, path: &Path<'tcx>, conds: &mut Vec<Cond<'tcx>>) {
             if let Path::Var(Var::Uninit, _) = path {
                 return;
@@ -636,30 +665,30 @@ impl<'tcx> DropExt<'tcx> for Path<'tcx> {
 }
 
 impl<'tcx> DropExt<'tcx> for Expr<'tcx> {
-    fn do_drop(&self, ty: Ty<'tcx>, mir_access: MirAccess<'tcx>, conds: &mut Vec<Cond<'tcx>>) {
+    fn do_drop(&self, ty: Ty<'tcx>, mir_access: MirAccess<'_, 'tcx>, conds: &mut Vec<Cond<'tcx>>) {
         match self {
             Expr::Path(path) => {
                 if needs_drop(ty, mir_access) {
                     path.do_drop(ty, mir_access, conds);
                 }
             }
-            Expr::Aggregate { ty, variant_index, fields } => match &ty.kind() {
+            Expr::Aggregate { ty, variant_index, fields } => match ty.kind() {
                 TyKind::Ref(_, _, Mutability::Mut) => {
                     let (x, x_) = self.clone().decompose_mut();
                     conds.push(Cond::Eq { tgt: x_, src: x });
                 }
                 TyKind::Adt(adt_def, adt_substs) => {
                     assert!(!adt_def.is_box());
-                    assert!(variant_index.index() < adt_def.variants.len());
-                    let fld_defs = &adt_def.variants[*variant_index].fields;
+                    assert!(variant_index.index() < adt_def.variants().len());
+                    let fld_defs = &adt_def.variants()[*variant_index].fields;
                     assert!(fields.len() == fld_defs.len());
                     for (fld_def, fld) in fld_defs.iter().zip(fields) {
                         fld.do_drop(fld_def.get_ty_with(mir_access, adt_substs), mir_access, conds);
                     }
                 }
-                TyKind::Tuple(generic_args) => {
-                    assert!(fields.len() == generic_args.types().count());
-                    for (ty, fld) in generic_args.types().zip(fields) {
+                TyKind::Tuple(types) => {
+                    assert!(fields.len() == types.len());
+                    for (ty, fld) in types.into_iter().zip(fields) {
                         fld.do_drop(Ty::new(ty), mir_access, conds);
                     }
                 }
@@ -676,7 +705,7 @@ pub trait AssignExt<'tcx> {
         new_expr: Expr<'tcx>,
         env: &mut Env<'tcx>,
         conds: &mut Vec<Cond<'tcx>>,
-        mir_access: MirAccess<'tcx>,
+        mir_access: MirAccess<'_, 'tcx>,
     );
 }
 
@@ -686,7 +715,7 @@ impl<'tcx> AssignExt<'tcx> for Place<'tcx> {
         new_expr: Expr<'tcx>,
         env: &mut Env<'tcx>,
         conds: &mut Vec<Cond<'tcx>>,
-        mir_access: MirAccess<'tcx>,
+        mir_access: MirAccess<'_, 'tcx>,
     ) {
         let expr = self.get_mut_expr(env, mir_access);
         let old_expr = expr.replace(new_expr);
@@ -715,14 +744,14 @@ pub struct BasicAsks<'tcx> {
     pub fun_asks: Map<String, FunTy<'tcx>>,
     pub drop_asks: Map<String, Ty<'tcx>>,
     pub adt_asks: Set<DefId>,
-    pub tup_asks: Map<String, GenericArgsRef<'tcx>>,
+    pub tup_asks: Map<String, Tys<'tcx>>,
     pub mut_asks: Map<String, Ty<'tcx>>,
 }
 
 pub trait GatherVars<'tcx> {
     fn gather_vars(
         &self,
-        mir_access: MirAccess<'tcx>,
+        mir_access: MirAccess<'_, 'tcx>,
         basic_asks: &mut BasicAsks<'tcx>,
         vars: &mut Map<Var, Ty<'tcx>>,
     );
@@ -740,7 +769,7 @@ fn traverse_path<'tcx>(path: &Path<'tcx>, vars: &mut Map<Var, Ty<'tcx>>) {
 impl<'tcx> GatherVars<'tcx> for Path<'tcx> {
     fn gather_vars(
         &self,
-        _: MirAccess<'tcx>,
+        _: MirAccess<'_, 'tcx>,
         _: &mut BasicAsks<'tcx>,
         vars: &mut Map<Var, Ty<'tcx>>,
     ) {
@@ -751,7 +780,7 @@ impl<'tcx> GatherVars<'tcx> for Path<'tcx> {
 impl<'tcx> GatherVars<'tcx> for Expr<'tcx> {
     fn gather_vars(
         &self,
-        _: MirAccess<'tcx>,
+        _: MirAccess<'_, 'tcx>,
         _: &mut BasicAsks<'tcx>,
         vars: &mut Map<Var, Ty<'tcx>>,
     ) {
@@ -783,7 +812,7 @@ impl<'tcx> GatherVars<'tcx> for Expr<'tcx> {
 impl<'tcx> GatherVars<'tcx> for Cond<'tcx> {
     fn gather_vars(
         &self,
-        mir_access: MirAccess<'tcx>,
+        mir_access: MirAccess<'_, 'tcx>,
         basic_asks: &mut BasicAsks<'tcx>,
         vars: &mut Map<Var, Ty<'tcx>>,
     ) {
@@ -811,7 +840,7 @@ impl<'tcx> GatherVars<'tcx> for Cond<'tcx> {
 impl<'tcx> GatherVars<'tcx> for End<'tcx> {
     fn gather_vars(
         &self,
-        mir_access: MirAccess<'tcx>,
+        mir_access: MirAccess<'_, 'tcx>,
         basic_asks: &mut BasicAsks<'tcx>,
         vars: &mut Map<Var, Ty<'tcx>>,
     ) {
@@ -819,12 +848,11 @@ impl<'tcx> GatherVars<'tcx> for End<'tcx> {
             End::Pivot { args, .. } => {
                 args.gather_vars(mir_access, basic_asks, vars);
             }
-            End::Return { res } => match res {
-                Some(expr) => {
+            End::Return { res } => {
+                if let Some(expr) = res {
                     expr.gather_vars(mir_access, basic_asks, vars);
                 }
-                None => {}
-            },
+            }
             End::Panic | End::NeverReturn => {}
         };
     }
@@ -833,7 +861,7 @@ impl<'tcx> GatherVars<'tcx> for End<'tcx> {
 impl<'tcx, T: GatherVars<'tcx>> GatherVars<'tcx> for Vec<T> {
     fn gather_vars(
         &self,
-        mir_access: MirAccess<'tcx>,
+        mir_access: MirAccess<'_, 'tcx>,
         basic_asks: &mut BasicAsks<'tcx>,
         vars: &mut Map<Var, Ty<'tcx>>,
     ) {
@@ -844,30 +872,30 @@ impl<'tcx, T: GatherVars<'tcx>> GatherVars<'tcx> for Vec<T> {
 }
 
 impl<'tcx> BasicAsks<'tcx> {
-    fn update_by_ty(&mut self, ty: Ty<'tcx>, mir_access: MirAccess<'tcx>) {
-        match &ty.kind() {
+    fn update_by_ty(&mut self, ty: Ty<'tcx>, mir_access: MirAccess<'_, 'tcx>) {
+        match ty.kind() {
             TyKind::Bool | TyKind::Int(_) | TyKind::Uint(_) | TyKind::Float(_) => {}
             TyKind::Adt(adt_def, adt_substs) => {
                 if adt_def.is_box() {
                     for ty in adt_substs.types() {
                         self.update_by_ty(Ty::new(ty), mir_access);
                     }
-                } else if self.adt_asks.insert(adt_def.did) {
+                } else if self.adt_asks.insert(adt_def.did()) {
                     for fld_def in adt_def.all_fields() {
                         self.update_by_ty(fld_def.get_ty_with(mir_access, adt_substs), mir_access);
                     }
                 }
             }
             TyKind::Ref(_, ty, mutability) => {
-                let ty = Ty::new(ty);
+                let ty = Ty::new(*ty);
                 if let Mutability::Mut = mutability {
                     self.mut_asks.insert(rep(ty).to_string(), ty);
                 }
                 self.update_by_ty(ty, mir_access);
             }
-            TyKind::Tuple(generic_args) => {
-                self.tup_asks.insert(rep(generic_args).to_string(), generic_args);
-                for ty in generic_args.types() {
+            TyKind::Tuple(types) => {
+                self.tup_asks.insert(rep_ty_list(types.into_iter()).to_string(), types);
+                for ty in types.into_iter() {
                     let ty = Ty::new(ty);
                     self.update_by_ty(ty, mir_access);
                 }
@@ -879,7 +907,7 @@ impl<'tcx> BasicAsks<'tcx> {
     pub fn update_by_vars(
         &mut self,
         vars: Map<Var, Ty<'tcx>>,
-        mir_access: MirAccess<'tcx>,
+        mir_access: MirAccess<'_, 'tcx>,
     ) -> Vec<(Var, Ty<'tcx>)> {
         let vars = vars.into_sorted_vec();
         for (_, ty) in &vars {

@@ -1,6 +1,6 @@
 use crate::types::{
-    BasicBlock, BasicBlockData, BasicBlockDatas, DefId, FieldIdx, GenericArgsRef, Local, MirBody,
-    Terminator, TyCtxt, VariantIdx,
+    BasicBlock, BasicBlockData, BasicBlocks, FieldIdx, GenericArgsRef, Local, Terminator,
+    VariantIdx,
 };
 
 pub const BB0: BasicBlock = BasicBlock::from_u32(0);
@@ -9,30 +9,17 @@ pub const VRT0: VariantIdx = VariantIdx::from_u32(0);
 pub const FLD0: FieldIdx = FieldIdx::from_u32(0);
 pub const FLD1: FieldIdx = FieldIdx::from_u32(1);
 
-/* captures a lifetime */
+/// Captures a lifetime.
 pub trait Cap<'a> {}
 impl<'a, T> Cap<'a> for T {}
 
 pub fn enumerate_bbds<'a, 'tcx>(
-    bbds: &'a BasicBlockDatas<'tcx>,
+    bbds: &'a BasicBlocks<'tcx>,
 ) -> impl Iterator<Item = (BasicBlock, &'a BasicBlockData<'tcx>)> {
     bbds.iter()
         .enumerate()
         .filter(|(_, bbd)| !bbd.is_cleanup)
         .map(|(i, bbd)| (BasicBlock::from(i), bbd))
-}
-
-pub fn enumerate_mirs<'tcx>(tcx: TyCtxt<'tcx>) -> impl Iterator<Item = (DefId, &MirBody<'tcx>)> {
-    tcx.mir_keys(())
-        .iter()
-        .map(|fun| fun.to_def_id())
-        .filter(move |&fun| {
-            tcx.def_path(fun).data.iter().all(|elem| &elem.data.to_string() != "{{constructor}}")
-        })
-        .map(move |fun| {
-            let mir = tcx.optimized_mir(fun);
-            (fun, mir)
-        })
 }
 
 pub fn get_terminator<'a, 'tcx>(bbd: &'a BasicBlockData<'tcx>) -> &'a Terminator<'tcx> {
