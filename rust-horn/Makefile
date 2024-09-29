@@ -1,6 +1,6 @@
 SHELL = /bin/bash
 
-.PHONY: build try try-mir clean
+.PHONY: build try clean
 
 build:
 	cargo fmt
@@ -8,13 +8,16 @@ build:
 
 RUST_LIB_PATH = $(shell rustc --print target-libdir)
 
-try:
-	for file in sample/*.rs; do \
-		name=$${file%.rs}; \
-		cargo run --release \
-			"$$name.rs" -o "$$name.smt2" \
-			-- -L $(RUST_LIB_PATH); \
-	done
+BENCH_DIR := ./sample
+BENCHES := $(wildcard $(BENCH_DIR)/*.rs)
+
+try: build $(BENCHES:$(BENCH_DIR)/%.rs=$(BENCH_DIR)/%.smt2)
+	echo "done"
+
+$(BENCH_DIR)/%.smt2: $(BENCH_DIR)/%.rs
+	cargo run --release \
+		"$<" -o "$@" \
+		-- -L $(RUST_LIB_PATH)
 
 clean:
 	cargo clean
