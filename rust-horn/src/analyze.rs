@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::library::intrinsic::{is_intrinsic, IntrinsicKind};
+use crate::library::item::{is_intrinsic, IntrinsicKind};
 use crate::prettify::pr_fun_name;
 use crate::represent::rep_fun_name;
 use crate::types::{
