@@ -35,13 +35,20 @@ pub struct Rule<'tcx> {
 
 impl<'tcx> Rule<'tcx> {
     fn from_prerule(
-        Prerule { init_env, conds, end }: Prerule<'tcx>,
+        Prerule {
+            init_env,
+            conds,
+            end,
+        }: Prerule<'tcx>,
         mir_access: MirAccess<'_, 'tcx>,
         is_main: bool,
         basic_asks: &mut BasicAsks<'tcx>,
     ) -> Self {
         use data::GatherVars;
-        let mut args = init_env.into_iter().map(|(_, expr)| expr).collect::<Vec<_>>();
+        let mut args = init_env
+            .into_iter()
+            .map(|(_, expr)| expr)
+            .collect::<Vec<_>>();
         let res_ty = _0.get_ty(mir_access);
         if !res_ty.is_unit() {
             args.push(Expr::from_var(Var::SelfResult, res_ty));
@@ -54,7 +61,12 @@ impl<'tcx> Rule<'tcx> {
         conds.gather_vars(mir_access, basic_asks, &mut vars);
         end.gather_vars(mir_access, basic_asks, &mut vars);
         let vars = basic_asks.update_by_vars(vars, mir_access);
-        Rule { vars, args, conds, end }
+        Rule {
+            vars,
+            args,
+            conds,
+            end,
+        }
     }
 }
 
@@ -91,7 +103,9 @@ struct Data<'a, 'steal, 'tcx> {
 }
 impl<'a, 'tcx> Data<'a, '_, 'tcx> {
     fn get_locals(self, pivot: Pivot) -> &'a OrderedSet<Local> {
-        let Data { ins_map, outs_map, .. } = self;
+        let Data {
+            ins_map, outs_map, ..
+        } = self;
         if let Pivot::Switch(bb) = pivot {
             &outs_map[&bb]
         } else {
@@ -122,7 +136,10 @@ impl<'a, 'tcx> Data<'a, '_, 'tcx> {
     fn get_param_tys(self, is_main: bool, pivot: Pivot) -> Vec<Ty<'tcx>> {
         let Data { mir_access, .. } = self;
         let locals = self.get_locals(pivot).clone();
-        let mut res: Vec<_> = locals.into_iter().map(|local| local.get_ty(mir_access)).collect();
+        let mut res: Vec<_> = locals
+            .into_iter()
+            .map(|local| local.get_ty(mir_access))
+            .collect();
         let res_ty = _0.get_ty(mir_access);
         if !res_ty.is_unit() {
             res.push(res_ty);
@@ -145,7 +162,10 @@ fn pivot_up<'tcx>(
     let Data { mir_access, .. } = data;
     let mut args = Vec::<Expr<'tcx>>::new();
     for local in data.get_locals(Pivot::Switch(pivot)).clone() {
-        args.push(env.remove(&local).unwrap_or_else(|| Expr::uninit(local.get_ty(mir_access))));
+        args.push(
+            env.remove(&local)
+                .unwrap_or_else(|| Expr::uninit(local.get_ty(mir_access))),
+        );
     }
     for (local, expr) in env {
         expr.do_drop(local.get_ty(mir_access), mir_access, &mut conds);
@@ -157,7 +177,14 @@ fn pivot_up<'tcx>(
     if is_main {
         args.push(Expr::from_var(Var::SelfPanic, mir_access.get_bool()));
     }
-    Prerule { init_env, conds, end: End::Pivot { next_switch: pivot, args } }
+    Prerule {
+        init_env,
+        conds,
+        end: End::Pivot {
+            next_switch: pivot,
+            args,
+        },
+    }
 }
 fn get_prerule<'tcx>(
     is_main: bool,
@@ -169,13 +196,19 @@ fn get_prerule<'tcx>(
     let mut bb = init_bb;
     let mut conds = Vec::<Cond<'tcx>>::new();
     let mut env = init_env.clone();
-    let Data { basic, mir_access, .. } = data;
+    let Data {
+        basic, mir_access, ..
+    } = data;
     loop {
         if let TerminatorKind::Call { target: None, .. } = &&basic[bb].terminator().kind {
             for (local, expr) in env {
                 expr.do_drop(local.get_ty(mir_access), mir_access, &mut conds);
             }
-            return Prerule { init_env, conds, end: End::Panic };
+            return Prerule {
+                init_env,
+                conds,
+                end: End::Panic,
+            };
         }
         for (stmt_index, stmt) in basic[bb].statements.iter().enumerate() {
             gather_conds_from_statement(
@@ -185,10 +218,17 @@ fn get_prerule<'tcx>(
         let terminator = &basic[bb].terminator();
         match &terminator.kind {
             TerminatorKind::Goto { target } if *target == bb => {
-                return Prerule { init_env, conds, end: End::NeverReturn };
+                return Prerule {
+                    init_env,
+                    conds,
+                    end: End::NeverReturn,
+                };
             }
             TerminatorKind::Goto { target }
-            | TerminatorKind::FalseEdge { real_target: target, .. }
+            | TerminatorKind::FalseEdge {
+                real_target: target,
+                ..
+            }
             | TerminatorKind::Drop { target, .. }
             | TerminatorKind::Assert { target, .. } => {
                 bb = *target;
@@ -199,13 +239,26 @@ fn get_prerule<'tcx>(
                 for (local, expr) in env {
                     expr.do_drop(local.get_ty(mir_access), mir_access, &mut conds);
                 }
-                return Prerule { init_env, conds, end: End::Return { res } };
+                return Prerule {
+                    init_env,
+                    conds,
+                    end: End::Return { res },
+                };
             }
             TerminatorKind::SwitchInt { .. } => {
                 return pivot_up(init_env, is_main, bb, conds, env, data);
             }
-            TerminatorKind::Call { func, args, destination, target: Some(target), .. } => {
-                let fun_ty @ FunTy { def_id, generic_args_ref } = func
+            TerminatorKind::Call {
+                func,
+                args,
+                destination,
+                target: Some(target),
+                ..
+            } => {
+                let fun_ty @ FunTy {
+                    def_id,
+                    generic_args_ref,
+                } = func
                     .get_ty(mir_access)
                     .as_fun_ty()
                     .expect("unexpected/unsupported type for a function");
@@ -256,7 +309,10 @@ fn gather_conds_from_statement<'tcx>(
             let terminator = &basic[bb].terminator();
             match &terminator.kind {
                 TerminatorKind::SwitchInt { .. } => {}
-                _ => panic!("unexpected terminator {:?} for taking discriminant", terminator),
+                _ => panic!(
+                    "unexpected terminator {:?} for taking discriminant",
+                    terminator
+                ),
             }
         }
         StatementKind::Assign(box (place, Rvalue::Use(Operand::Copy(mutbor))))
@@ -273,7 +329,11 @@ fn gather_conds_from_statement<'tcx>(
                 *expr = Expr::pair(ref_ty, Expr::decompose_mut_path(path));
             }
             match expr {
-                Expr::Aggregate { ty, variant_index: VRT0, fields } => {
+                Expr::Aggregate {
+                    ty,
+                    variant_index: VRT0,
+                    fields,
+                } => {
                     assert!(fields.len() == 2);
                     let new_expr = fields[0].do_borrow_mut(ty_body, *ty, (bb, stmt_index));
                     place.assign(new_expr, env, conds, mir_access);
@@ -285,7 +345,10 @@ fn gather_conds_from_statement<'tcx>(
             let expr = rvalue.get_expr_at((bb, stmt_index), env, mir_access);
             place.assign(expr, env, conds, mir_access);
         }
-        StatementKind::SetDiscriminant { place, variant_index } => {
+        StatementKind::SetDiscriminant {
+            place,
+            variant_index,
+        } => {
             set_tag(place, *variant_index, env, mir_access);
         }
         StatementKind::StorageLive(_)
@@ -312,7 +375,14 @@ struct FnCall<'a, 'tcx> {
 }
 
 fn gather_conds_from_fun<'tcx>(
-    FnCall { ty, instance, args, caller, res_place, res_ty }: FnCall<'_, 'tcx>,
+    FnCall {
+        ty,
+        instance,
+        args,
+        caller,
+        res_place,
+        res_ty,
+    }: FnCall<'_, 'tcx>,
     mir_access: MirAccess<'_, 'tcx>,
     env: &mut Map<Local, Expr<'tcx>>,
     conds: &mut Vec<Cond<'tcx>>,
@@ -353,7 +423,10 @@ fn gather_conds_from_fun<'tcx>(
         // do nothing
     } else {
         fun_asks.insert(rep_fun_name(ty), ty);
-        let mut args: Vec<_> = args.iter().map(|arg| arg.node.get_expr(env, mir_access)).collect();
+        let mut args: Vec<_> = args
+            .iter()
+            .map(|arg| arg.node.get_expr(env, mir_access))
+            .collect();
         if !res_ty.is_unit() {
             let res = Expr::from_var(Var::CallResult { caller }, res_ty);
             res_place.assign(res.clone(), env, conds, mir_access);
@@ -369,7 +442,9 @@ fn analyze_pivot<'tcx>(
     data: Data<'_, '_, 'tcx>,
     basic_asks: &mut BasicAsks<'tcx>,
 ) -> PivotDef<'tcx> {
-    let Data { basic, mir_access, .. } = data;
+    let Data {
+        basic, mir_access, ..
+    } = data;
     let BasicAsks { fun_asks, .. } = basic_asks;
     let mut prerules = Vec::<Prerule<'tcx>>::new();
     let param_tys = data.get_param_tys(is_main, pivot);
@@ -377,7 +452,12 @@ fn analyze_pivot<'tcx>(
         .get_locals(pivot)
         .clone()
         .into_iter()
-        .map(|local| (local, Expr::Path(Path::Var(Var::Input { local }, local.get_ty(mir_access)))))
+        .map(|local| {
+            (
+                local,
+                Expr::Path(Path::Var(Var::Input { local }, local.get_ty(mir_access))),
+            )
+        })
         .collect::<HashMap<_, _>>();
     let mut env = Env::from_inner(env);
     match pivot {
@@ -414,7 +494,10 @@ fn analyze_pivot<'tcx>(
                             let neq_tgt = discr_place.get_expr(&mut env, mir_access);
                             let mut prerule =
                                 get_prerule(is_main, rest_target, env, data, fun_asks);
-                            prerule.conds.push(Cond::Neq { tgt: neq_tgt, srcs: neq_srcs });
+                            prerule.conds.push(Cond::Neq {
+                                tgt: neq_tgt,
+                                srcs: neq_srcs,
+                            });
                             prerules.push(prerule);
                         }
                         _ => unimplemented!("unsupported branching"),
@@ -442,8 +525,11 @@ fn analyze_pivot<'tcx>(
                                         )
                                     })
                                     .collect::<Vec<_>>();
-                                *discr_place.get_mut_expr(&mut env, mir_access) =
-                                    Expr::Aggregate { ty: discr_ty, variant_index, fields: args };
+                                *discr_place.get_mut_expr(&mut env, mir_access) = Expr::Aggregate {
+                                    ty: discr_ty,
+                                    variant_index,
+                                    fields: args,
+                                };
                                 prerules.push(get_prerule(is_main, *tgt, env, data, fun_asks));
                             }
                         }
@@ -469,11 +555,20 @@ fn analyze_fun<'tcx>(
 ) -> FunDef<'tcx> {
     let mir = tcx.mir_built(fun_ty.def_id.expect_local()).borrow();
     let bbds = &mir.basic_blocks;
-    let mir_access = MirAccess { mir: &mir, generic_args: fun_ty.generic_args_ref, tcx };
+    let mir_access = MirAccess {
+        mir: &mir,
+        generic_args: fun_ty.generic_args_ref,
+        tcx,
+    };
     /* preparations */
     let basic = Basic { bbds };
     let (ins_map, outs_map) = basic.get_ins_outs_map(mir.arg_count);
-    let data = Data { ins_map: &ins_map, outs_map: &outs_map, basic, mir_access };
+    let data = Data {
+        ins_map: &ins_map,
+        outs_map: &outs_map,
+        basic,
+        mir_access,
+    };
     /* wrap up */
     let mut fun_def = Map::<Pivot, PivotDef<'tcx>>::new();
     let is_main = &rep_fun_name(fun_ty) == "%main";
@@ -528,16 +623,26 @@ pub fn analyze<'tcx>(tcx: TyCtxt<'tcx>) -> Summary<'tcx> {
             break;
         }
         for (fun_name, fun_ty) in fun_asks {
-            fun_defs.entry(fun_name).or_insert_with(|| analyze_fun(fun_ty, tcx, &mut basic_asks));
+            fun_defs
+                .entry(fun_name)
+                .or_insert_with(|| analyze_fun(fun_ty, tcx, &mut basic_asks));
         }
     }
     /* added drop functions */
     let mut drop_defs: Map<String, FunDef<'tcx>> = Map::new();
     for (drop_name, ty) in std::mem::take(&mut basic_asks.drop_asks).drain() {
-        drop_defs.entry(drop_name).or_insert_with(|| get_drop_def(ty, tcx, &mut basic_asks));
+        drop_defs
+            .entry(drop_name)
+            .or_insert_with(|| get_drop_def(ty, tcx, &mut basic_asks));
     }
     /* return results */
-    let BasicAsks { fun_asks, drop_asks, adt_asks, tup_asks, mut_asks } = basic_asks;
+    let BasicAsks {
+        fun_asks,
+        drop_asks,
+        adt_asks,
+        tup_asks,
+        mut_asks,
+    } = basic_asks;
     assert!(fun_asks.is_empty() && drop_asks.is_empty());
     Summary {
         fun_defs: fun_defs.into_sorted_vec(),
