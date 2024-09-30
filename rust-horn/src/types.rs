@@ -80,7 +80,11 @@ impl<K: Ord, V> Map<K, V> {
 }
 
 impl<K, V> Default for Map<K, V> {
-    fn default() -> Self { Self { inner: HashMap::new() } }
+    fn default() -> Self {
+        Self {
+            inner: HashMap::new(),
+        }
+    }
 }
 
 impl<K, Q: ?Sized, V> Index<&Q> for Map<K, V>
@@ -156,7 +160,11 @@ impl<T: Ord> IntoIterator for OrderedSet<T> {
 }
 
 impl<T: Eq + Hash> OrderedSet<T> {
-    pub fn new() -> Self { Self { inner: HashSet::<T>::new() } }
+    pub fn new() -> Self {
+        Self {
+            inner: HashSet::<T>::new(),
+        }
+    }
 
     pub fn insert(&mut self, value: T) -> bool { self.inner.insert(value) }
 
@@ -193,7 +201,12 @@ pub struct Set<T> {
 }
 
 impl<T> Set<T> {
-    pub fn new() -> Self { Self { dedup: HashSet::new(), container: Vec::new() } }
+    pub fn new() -> Self {
+        Self {
+            dedup: HashSet::new(),
+            container: Vec::new(),
+        }
+    }
 
     pub fn into_inner_vec(self) -> Vec<T> { self.container }
 }
@@ -235,7 +248,10 @@ impl<'tcx> Ty<'tcx> {
     pub fn as_fun_ty(self) -> Option<FunTy<'tcx>> {
         match *self.kind() {
             TyKind::FnDef(def_id, generic_args) | TyKind::Closure(def_id, generic_args) => {
-                Some(FunTy { def_id, generic_args_ref: generic_args })
+                Some(FunTy {
+                    def_id,
+                    generic_args_ref: generic_args,
+                })
             }
             _ => None,
         }

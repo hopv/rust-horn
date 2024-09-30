@@ -9,7 +9,10 @@ pub struct DefPathFilter {
 
 impl DefPathFilter {
     pub fn crate_name(string: &str) -> DefPathFilterBuilder {
-        DefPathFilterBuilder(Self { data: Vec::new(), crate_name: Symbol::intern(string) })
+        DefPathFilterBuilder(Self {
+            data: Vec::new(),
+            crate_name: Symbol::intern(string),
+        })
     }
 }
 
@@ -23,11 +26,15 @@ impl DefPathFilterBuilder {
     }
     #[inline]
     pub fn at_type_ns(self, string: &str) -> Self {
-        self.add(DefPathDataFilter::TypeNs(SymbolFilter(Symbol::intern(string))))
+        self.add(DefPathDataFilter::TypeNs(SymbolFilter(Symbol::intern(
+            string,
+        ))))
     }
     #[inline]
     pub fn at_value_ns(self, string: &str) -> Self {
-        self.add(DefPathDataFilter::ValueNs(SymbolFilter(Symbol::intern(string))))
+        self.add(DefPathDataFilter::ValueNs(SymbolFilter(Symbol::intern(
+            string,
+        ))))
     }
     #[inline]
     pub fn at_impl(self) -> Self { self.add(DefPathDataFilter::Impl) }

@@ -4,8 +4,8 @@ use std::str::pattern::Pattern;
 use crate::types::{
     with_tcx, AdtDef, AggregateKind, BasicBlock, BorrowKind, ClosureKind, DefId, FieldIdx, FnSig,
     FnSigTys, GenericArgsRef, Local, LocalDecl, MirBinOp, MirBody, MirUnOp, Mutability, NullOp,
-    Operand, ParamEnv, Place, ProjectionElem, Rvalue, Statement, StatementKind, Terminator,
-    TerminatorKind, Ty, TyConst, TyCtxt, TyKind, VariantIdx,
+    Operand, ParamEnv, Place, ProjectionElem, Rvalue, Statement, Terminator, TerminatorKind, Ty,
+    TyConst, TyCtxt, TyKind, VariantIdx,
 };
 use crate::util::{enumerate_basicblock_datas, Cap};
 
@@ -120,7 +120,13 @@ impl Display for Pr<rustc_middle::ty::Ty<'_>> {
             TyKind::Ref(_, ty, Mutability::Mut) => write!(f, "&mut {}", pr(ty)),
             TyKind::FnDef(fun, generic_args) => with_tcx(|tcx| {
                 let fn_sig = tcx.fn_sig(*fun).skip_binder().skip_binder();
-                write!(f, "fn {}{}{}", pr_fun_name(*fun), pr(generic_args), pr(fn_sig))
+                write!(
+                    f,
+                    "fn {}{}{}",
+                    pr_fun_name(*fun),
+                    pr(generic_args),
+                    pr(fn_sig)
+                )
             }),
             TyKind::FnPtr(poly_fn_sig, _) => {
                 write!(f, "fn {}", pr(poly_fn_sig.skip_binder()))
@@ -183,12 +189,20 @@ impl Display for Pr<&Place<'_>> {
                 ProjectionElem::Deref => write!(f, ".*")?,
                 ProjectionElem::Field(field_index, _) => write!(f, ".{}", pr(field_index))?,
                 ProjectionElem::Index(local) => write!(f, "[{}]", pr(local))?,
-                ProjectionElem::ConstantIndex { offset, from_end, .. } => {
+                ProjectionElem::ConstantIndex {
+                    offset, from_end, ..
+                } => {
                     let sign = if from_end { "-" } else { "" };
                     write!(f, "[{}{}]", sign, offset)?;
                 }
                 ProjectionElem::Subslice { from, to, from_end } => {
-                    write!(f, "[{}:-{}{}]", from, to, if from_end { " rev" } else { "" })?;
+                    write!(
+                        f,
+                        "[{}:-{}{}]",
+                        from,
+                        to,
+                        if from_end { " rev" } else { "" }
+                    )?;
                 }
                 ProjectionElem::Downcast(_, variant_index) => write!(f, "<{}>", pr(variant_index))?,
                 ProjectionElem::OpaqueCast(_) => write!(f, "(<opaque>)")?,
@@ -324,19 +338,8 @@ impl Display for Pr<&Rvalue<'_>> {
 impl Display for Pr<&Statement<'_>> {
     fn fmt(&self, f: &mut Formatter) -> FResult {
         let stmt = self.unpr;
-        match &stmt.kind {
-            StatementKind::Assign(box (place, rvalue)) => {
-                write!(f, "{} := {}", pr(place), pr(rvalue))
-            }
-            StatementKind::SetDiscriminant { place: box place, variant_index } => {
-                write!(f, "{}.tag := {}", pr(place), variant_index.index())
-            }
-            StatementKind::StorageLive(local) => write!(f, "live {}", pr(local)),
-            StatementKind::StorageDead(local) => write!(f, "dead {}", pr(local)),
-            StatementKind::AscribeUserType(_, _) => write!(f, "ascribe type"),
-            StatementKind::Nop => write!(f, "nop"),
-            _ => panic!("unsupported statement {:?}", stmt),
-        }
+        // Delegate to original `Debug` impl
+        write!(f, "{stmt:?}")
     }
 }
 
@@ -350,11 +353,19 @@ fn pr_terminator_short<'steal, 'tcx>(
     mir: &'steal MirBody<'tcx>,
     tcx: TyCtxt<'tcx>,
 ) -> impl Display + 'steal + Cap<'tcx> {
-    PrTerminatorShort { terminator, mir, tcx }
+    PrTerminatorShort {
+        terminator,
+        mir,
+        tcx,
+    }
 }
 impl Display for PrTerminatorShort<'_, '_> {
     fn fmt(&self, f: &mut Formatter) -> FResult {
-        let PrTerminatorShort { terminator, mir, tcx } = *self;
+        let PrTerminatorShort {
+            terminator,
+            mir,
+            tcx,
+        } = *self;
         match &terminator.kind {
             TerminatorKind::Goto { .. } => Ok(()),
             TerminatorKind::SwitchInt { discr, .. } => write!(f, "? {}", pr(discr)),
@@ -364,7 +375,13 @@ impl Display for PrTerminatorShort<'_, '_> {
                 let ty = place.ty(mir, tcx).ty;
                 write!(f, "drop<{}>({})", pr(ty), pr(place))
             }
-            TerminatorKind::Call { func, args, destination, target, .. } => {
+            TerminatorKind::Call {
+                func,
+                args,
+                destination,
+                target,
+                ..
+            } => {
                 if target.is_some() {
                     write!(f, "{} := ", pr(destination))?;
                 }
@@ -393,11 +410,19 @@ fn pr_terminator<'steal, 'tcx>(
     mir: &'steal MirBody<'tcx>,
     tcx: TyCtxt<'tcx>,
 ) -> impl Display + Cap<'steal> + Cap<'tcx> {
-    PrTerminator { terminator, mir, tcx }
+    PrTerminator {
+        terminator,
+        mir,
+        tcx,
+    }
 }
 impl<'steal, 'tcx> Display for PrTerminator<'steal, 'tcx> {
     fn fmt(&self, f: &mut Formatter) -> FResult {
-        let PrTerminator { terminator, mir, tcx } = *self;
+        let PrTerminator {
+            terminator,
+            mir,
+            tcx,
+        } = *self;
         write!(f, "{}", pr_terminator_short(terminator, mir, tcx))?;
         match &terminator.kind {
             TerminatorKind::Goto { target } => {
@@ -517,7 +542,10 @@ impl<'steal, 'tcx: 'steal> Display for PrMir<'steal, 'tcx> {
 }
 
 fn html_esc<T: Display>(x: T) -> String {
-    x.to_string().replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+    x.to_string()
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }
 
 struct PrMirDot<'steal, 'tcx: 'steal> {
@@ -572,7 +600,11 @@ impl Display for PrMirDot<'_, '_> {
                 pr(bb)
             )?;
             for stmt in &bbd.statements {
-                writeln!(f, r#"      <tr><td align="left">{}</td></tr>"#, html_esc(pr(stmt)))?;
+                writeln!(
+                    f,
+                    r#"      <tr><td align="left">{}</td></tr>"#,
+                    html_esc(pr(stmt))
+                )?;
             }
             let terminator = bbd.terminator();
             match &terminator.kind {

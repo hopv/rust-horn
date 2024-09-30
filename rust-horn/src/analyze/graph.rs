@@ -29,8 +29,14 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
         match &terminator.kind {
             TerminatorKind::Goto { target }
             | TerminatorKind::Drop { target, .. }
-            | TerminatorKind::FalseEdge { real_target: target, .. }
-            | TerminatorKind::Call { target: Some(target), .. }
+            | TerminatorKind::FalseEdge {
+                real_target: target,
+                ..
+            }
+            | TerminatorKind::Call {
+                target: Some(target),
+                ..
+            }
             | TerminatorKind::Assert { target, .. } => {
                 vec![*target]
             }
@@ -71,7 +77,10 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
     pub fn get_ins_outs_map(
         self,
         n_init_ins: usize,
-    ) -> (Map<BasicBlock, OrderedSet<Local>>, Map<BasicBlock, OrderedSet<Local>>) {
+    ) -> (
+        Map<BasicBlock, OrderedSet<Local>>,
+        Map<BasicBlock, OrderedSet<Local>>,
+    ) {
         fn dfs(
             me: BasicBlock,
             ins: &OrderedSet<Local>,
@@ -107,7 +116,10 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
                     StatementKind::Assign(box (_, Rvalue::Discriminant(_)))
                     | StatementKind::StorageLive(_) => {}
                     StatementKind::Assign(box (Place { local, .. }, _))
-                    | StatementKind::SetDiscriminant { place: box Place { local, .. }, .. } => {
+                    | StatementKind::SetDiscriminant {
+                        place: box Place { local, .. },
+                        ..
+                    } => {
                         ins.insert(*local);
                     }
                     StatementKind::StorageDead(local) => {
@@ -132,7 +144,11 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
                     Operand::Copy(place) | Operand::Move(place) => discr_local = Some(place.local),
                     Operand::Constant(..) => panic!("unexpected discriminant {:?}", discr),
                 },
-                TerminatorKind::Call { destination, target, .. } => {
+                TerminatorKind::Call {
+                    destination,
+                    target,
+                    ..
+                } => {
                     if target.is_some() {
                         ins.insert(destination.local);
                     }
