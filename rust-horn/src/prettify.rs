@@ -7,7 +7,7 @@ use crate::types::{
     Operand, ParamEnv, Place, ProjectionElem, Rvalue, Statement, StatementKind, Terminator,
     TerminatorKind, Ty, TyConst, TyCtxt, TyKind, VariantIdx,
 };
-use crate::util::{enumerate_bbds, get_terminator, Cap};
+use crate::util::{enumerate_basicblock_datas, Cap};
 
 pub fn pr_name(def_id: DefId) -> String {
     with_tcx(|tcx| tcx.def_path_str(def_id)).replace("{{closure}}", "{clsr}")
@@ -505,12 +505,12 @@ impl<'steal, 'tcx: 'steal> Display for PrMir<'steal, 'tcx> {
         }
         writeln!(f)?;
         // visit basic blocks
-        for (bb, bbd) in enumerate_bbds(&mir.basic_blocks) {
+        for (bb, bbd) in enumerate_basicblock_datas(&mir.basic_blocks) {
             writeln!(f, "  [{}]", pr(bb))?;
             for stmt in &bbd.statements {
                 writeln!(f, "  {}", pr(stmt))?;
             }
-            writeln!(f, "  {}\n", pr_terminator(get_terminator(bbd), mir, tcx))?;
+            writeln!(f, "  {}\n", pr_terminator(bbd.terminator(), mir, tcx))?;
         }
         writeln!(f, "}}")
     }
@@ -561,7 +561,7 @@ impl Display for PrMirDot<'_, '_> {
         write!(f, "  </table>>;\n\n")?;
         let mut jumps = Vec::<(BasicBlock, BasicBlock, String)>::new();
         // visit basic blocks
-        for (bb, bbd) in enumerate_bbds(&mir.basic_blocks) {
+        for (bb, bbd) in enumerate_basicblock_datas(&mir.basic_blocks) {
             writeln!(
                 f,
                 r##"  {} [
@@ -574,7 +574,7 @@ impl Display for PrMirDot<'_, '_> {
             for stmt in &bbd.statements {
                 writeln!(f, r#"      <tr><td align="left">{}</td></tr>"#, html_esc(pr(stmt)))?;
             }
-            let terminator = get_terminator(bbd);
+            let terminator = bbd.terminator();
             match &terminator.kind {
                 TerminatorKind::Goto { .. } => {}
                 TerminatorKind::SwitchInt { .. }

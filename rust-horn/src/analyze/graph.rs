@@ -4,7 +4,7 @@ use crate::types::{
     BasicBlock, BasicBlockData, BasicBlocks, Local, Map, Operand, OrderedSet, Place, Rvalue,
     StatementKind, TerminatorKind,
 };
-use crate::util::{enumerate_bbds, get_terminator, BB0};
+use crate::util::{enumerate_basicblock_datas, BB0};
 
 #[derive(Copy, Clone)]
 pub struct Basic<'a, 'tcx> {
@@ -18,14 +18,14 @@ impl<'tcx> Index<BasicBlock> for Basic<'_, 'tcx> {
 impl<'a, 'tcx> Basic<'a, 'tcx> {
     pub fn is_panicking(self, bb: BasicBlock) -> bool {
         matches!(
-            &get_terminator(&self[bb]).kind,
+            &self[bb].terminator().kind,
             TerminatorKind::Call { target: None, .. }
                 | TerminatorKind::UnwindTerminate(..)
                 | TerminatorKind::Unreachable
         )
     }
     pub fn get_targets(self, bb: BasicBlock) -> Vec<BasicBlock> {
-        let terminator = get_terminator(&self[bb]);
+        let terminator = self[bb].terminator();
         match &terminator.kind {
             TerminatorKind::Goto { target }
             | TerminatorKind::Drop { target, .. }
@@ -47,8 +47,8 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
 
     pub fn get_switches(self) -> Vec<BasicBlock> {
         let mut switches = Vec::<BasicBlock>::new();
-        for (bb, bbd) in enumerate_bbds(self.bbds) {
-            let terminator = get_terminator(bbd);
+        for (bb, bbd) in enumerate_basicblock_datas(self.bbds) {
+            let terminator = bbd.terminator();
             match &terminator.kind {
                 TerminatorKind::Goto { .. }
                 | TerminatorKind::Drop { .. }
@@ -118,7 +118,7 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
                     _ => panic!("unsupported statement {:?}", stmt),
                 }
             }
-            let terminator = get_terminator(&basic[me]);
+            let terminator = basic[me].terminator();
             let mut discr_local = None::<Local>;
             match &terminator.kind {
                 TerminatorKind::Goto { .. }
@@ -152,7 +152,7 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
         }
         dfs(BB0, &init_ins, None, self, &mut ins_map);
         let mut outs_map = Map::<BasicBlock, OrderedSet<Local>>::new();
-        for (me, _) in enumerate_bbds(self.bbds) {
+        for (me, _) in enumerate_basicblock_datas(self.bbds) {
             let mut outs = OrderedSet::<Local>::new();
             for him in self.get_targets(me) {
                 outs.extend(ins_map[&him].clone());
