@@ -490,7 +490,6 @@ impl<'tcx> ReadExprMutExt<'tcx> for Place<'tcx> {
         let Site { local, projs } = Site::from_place(self, mir_access);
         let mut expr = env.entry(local).or_insert_with(|| Expr::uninit(self.get_ty(mir_access)));
         for &proj in &projs {
-            dbg!(&proj);
             let Proj { base_ty, variant_index, field_index } = proj;
             expr = match expr {
                 Expr::Path(path) => {

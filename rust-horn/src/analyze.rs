@@ -173,7 +173,6 @@ fn get_prerule<'tcx>(
     loop {
         if let TerminatorKind::Call { target: None, .. } = &&basic[bb].terminator().kind {
             for (local, expr) in env {
-                dbg!(&local, &expr);
                 expr.do_drop(local.get_ty(mir_access), mir_access, &mut conds);
             }
             return Prerule { init_env, conds, end: End::Panic };
@@ -251,7 +250,6 @@ fn gather_conds_from_statement<'tcx>(
     env: &mut Map<Local, Expr<'tcx>>,
     conds: &mut Vec<Cond<'tcx>>,
 ) {
-    dbg!(stmt);
     match &stmt.kind {
         StatementKind::Assign(box (_, Rvalue::Discriminant(_))) => {
             assert!(stmt_index == basic[bb].statements.len() - 1);
