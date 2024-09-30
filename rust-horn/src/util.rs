@@ -1,6 +1,5 @@
 use crate::types::{
-    BasicBlock, BasicBlockData, BasicBlocks, FieldIdx, GenericArgsRef, Local, Terminator,
-    VariantIdx,
+    BasicBlock, BasicBlockData, BasicBlocks, FieldIdx, GenericArgsRef, Local, VariantIdx,
 };
 
 pub const BB0: BasicBlock = BasicBlock::from_u32(0);
@@ -13,17 +12,11 @@ pub const FLD1: FieldIdx = FieldIdx::from_u32(1);
 pub trait Cap<'a> {}
 impl<'a, T> Cap<'a> for T {}
 
-pub fn enumerate_bbds<'a, 'tcx>(
+/// Enumerates basic blocks that are not cleanup blocks.
+pub fn enumerate_basicblock_datas<'a, 'tcx>(
     bbds: &'a BasicBlocks<'tcx>,
 ) -> impl Iterator<Item = (BasicBlock, &'a BasicBlockData<'tcx>)> {
-    bbds.iter()
-        .enumerate()
-        .filter(|(_, bbd)| !bbd.is_cleanup)
-        .map(|(i, bbd)| (BasicBlock::from(i), bbd))
-}
-
-pub fn get_terminator<'a, 'tcx>(bbd: &'a BasicBlockData<'tcx>) -> &'a Terminator<'tcx> {
-    bbd.terminator.as_ref().unwrap()
+    bbds.iter_enumerated().filter(|(_, bbd)| !bbd.is_cleanup)
 }
 
 pub fn has_any_type(generic_args: GenericArgsRef<'_>) -> bool {

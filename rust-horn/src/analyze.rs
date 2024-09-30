@@ -8,7 +8,7 @@ use crate::types::{
     Operand, OrderedSet, ParamEnv, Place, Rvalue, Set, Spanned, Statement, StatementKind,
     TerminatorKind, Ty, TyCtxt, TyKind, Tys, VariantDef,
 };
-use crate::util::{get_terminator, BB0, VRT0, _0};
+use crate::util::{BB0, VRT0, _0};
 
 pub mod graph;
 use graph::Basic;
@@ -101,7 +101,7 @@ impl<'a, 'tcx> Data<'a, '_, 'tcx> {
     fn place_discriminant_kind(self, pivot: BasicBlock) -> (Place<'tcx>, DiscriminantKind) {
         let Data { basic, .. } = self;
         let bbd = &basic[pivot];
-        match &get_terminator(bbd).kind {
+        match &bbd.terminator().kind {
             TerminatorKind::SwitchInt { discr, .. } => match bbd.statements.last() {
                 Some(Statement {
                     kind: StatementKind::Assign(box (_, Rvalue::Discriminant(place))),
@@ -171,7 +171,7 @@ fn get_prerule<'tcx>(
     let mut env = init_env.clone();
     let Data { basic, mir_access, .. } = data;
     loop {
-        if let TerminatorKind::Call { target: None, .. } = &get_terminator(&basic[bb]).kind {
+        if let TerminatorKind::Call { target: None, .. } = &&basic[bb].terminator().kind {
             for (local, expr) in env {
                 dbg!(&local, &expr);
                 expr.do_drop(local.get_ty(mir_access), mir_access, &mut conds);
@@ -183,7 +183,7 @@ fn get_prerule<'tcx>(
                 stmt, basic, stmt_index, bb, mir_access, &mut env, &mut conds,
             );
         }
-        let terminator = get_terminator(&basic[bb]);
+        let terminator = &basic[bb].terminator();
         match &terminator.kind {
             TerminatorKind::Goto { target } if *target == bb => {
                 return Prerule { init_env, conds, end: End::NeverReturn };
@@ -255,7 +255,7 @@ fn gather_conds_from_statement<'tcx>(
     match &stmt.kind {
         StatementKind::Assign(box (_, Rvalue::Discriminant(_))) => {
             assert!(stmt_index == basic[bb].statements.len() - 1);
-            let terminator = get_terminator(&basic[bb]);
+            let terminator = &basic[bb].terminator();
             match &terminator.kind {
                 TerminatorKind::SwitchInt { .. } => {}
                 _ => panic!("unexpected terminator {:?} for taking discriminant", terminator),
@@ -387,7 +387,7 @@ fn analyze_pivot<'tcx>(
             prerules.push(get_prerule(is_main, BB0, env.clone(), data, fun_asks));
         }
         Pivot::Switch(bb) => {
-            let terminator = get_terminator(&basic[bb]);
+            let terminator = &basic[bb].terminator();
             if let TerminatorKind::SwitchInt { targets, .. } = &terminator.kind {
                 let (discr_place, discr_kind) = data.place_discriminant_kind(bb);
                 let discr_ty = discr_place.get_ty(mir_access);
