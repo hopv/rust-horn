@@ -37,6 +37,46 @@ use crate::prettify::{pr_mir, pr_mir_dot, pr_name};
 use crate::represent::rep_summary;
 use crate::types::{DefPathData, TyCtxt};
 
+fn main() {
+    println!("RustHorn!");
+    let mut opts = Options::default();
+    let mut args = Vec::new();
+    let mut args_iter = get_args();
+    while let Some(arg) = args_iter.next() {
+        match arg.as_str() {
+            "-o" => opts.output_file = PathBuf::from(args_iter.next().unwrap()),
+            "-d" => opts.prettify_dir = PathBuf::from(args_iter.next().unwrap()),
+            "--mir" => opts.mir = true,
+            "--no-mir" => opts.mir = false,
+            "--mir-dot" => opts.mir_dot = true,
+            "--no-mir-dot" => opts.mir_dot = false,
+            "--" => break,
+            _ => args.push(arg),
+        };
+    }
+    args.extend(args_iter);
+    RunCompiler::new(&args, &mut MyCallbacks { opts })
+        .run()
+        .unwrap();
+}
+
+struct Options {
+    output_file: PathBuf,
+    prettify_dir: PathBuf,
+    mir: bool,
+    mir_dot: bool,
+}
+impl Default for Options {
+    fn default() -> Self {
+        Options {
+            prettify_dir: PathBuf::from("out"),
+            output_file: PathBuf::from("out.smt2"),
+            mir: false,
+            mir_dot: false,
+        }
+    }
+}
+
 struct MyCallbacks {
     opts: Options,
 }
@@ -61,52 +101,30 @@ impl Callbacks for MyCallbacks {
             let res = drive_rust_horn(tcx, &self.opts);
             res.unwrap();
         });
+        // continue compiling for borrowck
+        Compilation::Continue
+    }
+    fn after_analysis<'tcx>(
+        &mut self,
+        _compiler: &rustc_interface::interface::Compiler,
+        _queries: &'tcx Queries<'tcx>,
+    ) -> Compilation {
         Compilation::Stop
     }
 }
 
-fn main() {
-    println!("RustHorn!");
-    let mut opts = Options::default();
-    let mut args = Vec::new();
-    let mut args_iter = get_args();
-    while let Some(arg) = args_iter.next() {
-        match arg.as_str() {
-            "-o" => opts.output_file = PathBuf::from(args_iter.next().unwrap()),
-            "-d" => opts.prettify_dir = PathBuf::from(args_iter.next().unwrap()),
-            "--mir" => opts.mir = true,
-            "--no-mir" => opts.mir = false,
-            "--mir-dot" => opts.mir_dot = true,
-            "--no-mir-dot" => opts.mir_dot = false,
-            "--" => break,
-            _ => args.push(arg),
-        };
-    }
-    args.extend(args_iter);
-    RunCompiler::new(&args, &mut MyCallbacks { opts }).run().unwrap();
-}
-
-struct Options {
-    output_file: PathBuf,
-    prettify_dir: PathBuf,
-    mir: bool,
-    mir_dot: bool,
-}
-impl Default for Options {
-    fn default() -> Self {
-        Options {
-            prettify_dir: PathBuf::from("out"),
-            output_file: PathBuf::from("out.smt2"),
-            mir: false,
-            mir_dot: false,
-        }
-    }
-}
-
 fn drive_rust_horn(tcx: TyCtxt, opts: &Options) -> Result<()> {
-    for fun in tcx.mir_keys(()).iter().map(|fun| fun.to_def_id()).filter(move |&fun| {
-        tcx.def_path(fun).data.iter().all(|elem| !matches!(&elem.data, DefPathData::Ctor))
-    }) {
+    for fun in tcx
+        .mir_keys(())
+        .iter()
+        .map(|fun| fun.to_def_id())
+        .filter(move |&fun| {
+            tcx.def_path(fun)
+                .data
+                .iter()
+                .all(|elem| !matches!(&elem.data, DefPathData::Ctor))
+        })
+    {
         let mir = tcx.mir_built(fun.expect_local()).borrow();
         let fun_name = pr_name(fun);
         let prettify_dir = &opts.prettify_dir;
