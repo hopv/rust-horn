@@ -7,7 +7,7 @@ use rustc_index::{Idx, IndexVec};
 use crate::analyze::data;
 use crate::types::{DefId, TyCtxt};
 
-use super::def_path_filter::DefIdFilter;
+use super::def_id_filter::DefIdFilter;
 use super::impls;
 
 pub struct Item {

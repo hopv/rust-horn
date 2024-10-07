@@ -1,7 +1,7 @@
 use crate::analyze::data;
 
 use super::{
-    def_path_filter::{DefIdFilter, TyFilter},
+    def_id_filter::{DefIdFilter, TyFilter},
     item::{FnDef, IntrinsicKind, ItemKind, ItemStore, RawChcDef, TypeAliasDef},
 };
 

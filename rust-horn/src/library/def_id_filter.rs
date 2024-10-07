@@ -1,4 +1,4 @@
-//! find `DefPath` the implementation of which we want to override.
+//! find `DefId` of the implementation which we want to override.
 
 use std::sync::{Arc, Mutex};
 
