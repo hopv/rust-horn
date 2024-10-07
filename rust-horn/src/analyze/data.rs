@@ -1,3 +1,4 @@
+use crate::library;
 use crate::represent::{rep, rep_drop_name, rep_ty_list};
 use crate::types::{
     adt_is_box, BasicBlock, BorrowKind, ConstOperand, DefId, EarlyBinder, FieldDef, FieldIdx,
@@ -8,13 +9,15 @@ use crate::types::{
 use crate::util::{FLD0, FLD1, VRT0};
 
 #[derive(Copy, Clone)]
+/// Access to the MIR and the type context, and the generic arguments
+/// of the current function.
 pub struct MirAccess<'steal, 'tcx> {
     pub mir: &'steal MirBody<'tcx>,
     pub generic_args: GenericArgsRef<'tcx>,
     pub tcx: TyCtxt<'tcx>,
 }
 impl<'tcx> MirAccess<'_, 'tcx> {
-    pub fn get_bool(self) -> Ty<'tcx> { Ty::new(self.tcx.mk_ty_from_kind(TyKind::Bool)) }
+    pub fn get_bool(self) -> Ty<'tcx> { Ty::new(self.tcx.types.bool) }
 }
 
 pub trait GetTypeExt<'tcx> {
@@ -996,6 +999,8 @@ impl<'tcx> BasicAsks<'tcx> {
                     for ty in adt_substs.types() {
                         self.update_by_ty(Ty::new(ty), mir_access);
                     }
+                } else if library::need_to_rename_ty(mir_access.tcx, adt_def.did()).is_some() {
+                    // do nothing
                 } else if self.adt_asks.insert(adt_def.did()) {
                     for fld_def in adt_def.all_fields() {
                         self.update_by_ty(fld_def.get_ty_with(mir_access, adt_substs), mir_access);

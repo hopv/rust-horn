@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::library::item::{is_intrinsic, IntrinsicKind};
+use crate::library::{self, IntrinsicKind};
 use crate::prettify::pr_fun_name;
 use crate::represent::rep_fun_name;
 use crate::types::{
@@ -390,7 +390,7 @@ fn gather_conds_from_fun<'tcx>(
 ) {
     let did = instance.def_id();
     let fun_name = pr_fun_name(did);
-    if let Some(intrinsic) = is_intrinsic(mir_access.tcx, did) {
+    if let Some(intrinsic) = library::is_intrinsic(mir_access.tcx, did) {
         match intrinsic {
             IntrinsicKind::BinOp(bin_op) => {
                 let res = Expr::from_bin_op(

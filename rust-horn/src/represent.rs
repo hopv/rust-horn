@@ -2,10 +2,11 @@ use std::fmt::{Display, Formatter, Result as FResult};
 
 use crate::analyze::data::{BinOp, Cond, Const, End, Expr, Float, Int, Path, Proj, UnOp, Var};
 use crate::analyze::{FunDef, FunDefRef, Pivot, PivotDef, Rule, Summary};
+use crate::library;
 use crate::prettify::pr_name;
 use crate::types::{
-    adt_is_box, AdtDef, DefId, FieldIdx, FunTy, GenericArgs, GenericArgsRef, Mutability, Ty,
-    TyCtxt, TyKind, Tys, VariantDef, VariantIdx,
+    adt_is_box, with_tcx, AdtDef, DefId, FieldIdx, FunTy, GenericArgs, GenericArgsRef, Mutability,
+    Ty, TyCtxt, TyKind, Tys, VariantDef, VariantIdx,
 };
 use crate::util::{has_any_type, Cap, FLD0, FLD1, VRT0};
 
@@ -166,6 +167,10 @@ impl Display for Rep<rustc_middle::ty::Ty<'_>> {
             TyKind::Adt(adt_def, generic_args) => {
                 if let Some(ty) = adt_is_box(adt_def, generic_args) {
                     write!(f, "{}", rep(ty))
+                } else if let Some(alternative) =
+                    with_tcx(|tcx| library::need_to_rename_ty(tcx, adt_def.did()))
+                {
+                    write!(f, "{}", alternative.name)
                 } else {
                     write!(f, "{}", rep_adt_ty(*adt_def, generic_args))
                 }
@@ -694,6 +699,10 @@ impl Display for RepSummary<'_, '_> {
         for (drop_name, drop_def) in drop_defs.iter() {
             write!(f, "{}", rep_fun_def(drop_name, drop_def))?;
         }
+        for chc_defs in library::activated_chc_defs() {
+            writeln!(f, "{}", chc_defs.raw)?;
+        }
+
         // functions
         if !fun_defs.is_empty() {
             writeln!(f)?;
