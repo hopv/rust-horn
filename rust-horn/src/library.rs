@@ -1,4 +1,4 @@
-mod def_path_filter;
+mod def_id_filter;
 mod impls;
 mod item;
 
