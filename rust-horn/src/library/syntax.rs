@@ -38,13 +38,4 @@ pub struct LocalInit {
 }
 
 #[derive(Debug, Clone)]
-pub enum Expr {
-    Assign(ExprAssign),
-}
-
-#[derive(Debug, Clone)]
-pub struct ExprAssign {
-    pub left: Box<Expr>,
-    // pub eq_token: Eq,
-    pub right: Box<Expr>,
-}
+pub enum Expr {}

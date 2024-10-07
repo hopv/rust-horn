@@ -3,7 +3,7 @@ pub use rustc_apfloat::ieee::{
 };
 pub use rustc_hir::{
     def_id::DefId,
-    definitions::{DefPath, DefPathData, DisambiguatedDefPathData},
+    definitions::{DefPathData, DisambiguatedDefPathData},
     Mutability,
 };
 pub use rustc_middle::mir::{
