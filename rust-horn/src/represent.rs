@@ -5,8 +5,8 @@ use crate::analyze::{FunDef, FunDefRef, Pivot, PivotDef, Rule, Summary};
 use crate::library;
 use crate::prettify::pr_name;
 use crate::types::{
-    adt_is_box, with_tcx, AdtDef, DefId, FieldIdx, FunTy, GenericArgs, GenericArgsRef, Mutability,
-    Ty, TyCtxt, TyKind, Tys, VariantDef, VariantIdx,
+    with_tcx, AdtDef, DefId, FieldIdx, FunTy, GenericArgs, GenericArgsRef, Mutability, Ty, TyCtxt,
+    TyKind, Tys, VariantDef, VariantIdx,
 };
 use crate::util::{has_any_type, Cap, FLD0, FLD1, VRT0};
 
@@ -165,7 +165,7 @@ impl Display for Rep<rustc_middle::ty::Ty<'_>> {
             TyKind::Int(_) | TyKind::Uint(_) => write!(f, "Int"),
             TyKind::Float(_) => write!(f, "Real"),
             TyKind::Adt(adt_def, generic_args) => {
-                if let Some(ty) = adt_is_box(adt_def, generic_args) {
+                if let Some(ty) = Ty::new(ty).as_boxed_ty() {
                     write!(f, "{}", rep(ty))
                 } else if let Some(alternative) =
                     with_tcx(|tcx| library::need_to_rename_ty(tcx, adt_def.did()))

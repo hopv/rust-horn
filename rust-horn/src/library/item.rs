@@ -23,6 +23,7 @@ pub struct Item {
 pub enum ItemKind {
     Intrinsic(IntrinsicKind),
     RawChcDef(RawChcDef),
+    #[allow(dead_code)]
     TypeAliasDef(TypeAliasDef),
     #[allow(dead_code)]
     FnDef(FnDef),
@@ -53,6 +54,7 @@ impl ItemKind {
         }
     }
 
+    #[allow(dead_code)]
     pub fn as_fn_def(&self) -> Option<&FnDef> {
         if let Self::FnDef(v) = self {
             Some(v)
@@ -142,7 +144,7 @@ impl ItemStore {
             }
         })
     }
-    fn activate(&mut self, item: ItemIdx) {
+    pub fn activate(&mut self, item: ItemIdx) {
         if self.activated_items.insert(item) {
             if let Some(other) = self.items[item].activate_other {
                 self.activate(other);
@@ -184,6 +186,7 @@ pub fn need_to_rename_ty(tcx: TyCtxt, def_id: DefId) -> Option<TypeAliasDef> {
     item_from_def_id(tcx, def_id).and_then(|item| item.as_type_alias_def().cloned())
 }
 
+#[allow(dead_code)]
 pub fn need_to_replace_fn(tcx: TyCtxt, def_id: DefId) -> Option<FnDef> {
     item_from_def_id(tcx, def_id).and_then(|item| item.as_fn_def().cloned())
 }

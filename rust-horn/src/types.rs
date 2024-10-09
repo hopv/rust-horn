@@ -37,25 +37,20 @@ impl<'tcx> Display for Ty<'tcx> {
 
 impl<'tcx> Ty<'tcx> {
     pub fn new(ty: rustc_middle::ty::Ty<'tcx>) -> Self { Self { ty } }
+
+    pub fn as_boxed_ty(self) -> Option<Self> {
+        if self.is_box() {
+            Some(Ty::new(self.boxed_ty()))
+        } else {
+            None
+        }
+    }
 }
 
 impl<'tcx> std::ops::Deref for Ty<'tcx> {
     type Target = rustc_middle::ty::Ty<'tcx>;
 
     fn deref(&self) -> &Self::Target { &self.ty }
-}
-
-pub fn adt_is_box<'tcx>(
-    adt_def: &'tcx AdtDef,
-    generic_args: GenericArgsRef<'tcx>,
-) -> Option<Ty<'tcx>> {
-    if adt_def.is_box() {
-        let tys = generic_args.types().collect::<Vec<_>>();
-        assert!(tys.len() == 2 && format!("{:?}", tys[1]) == "std::alloc::Global");
-        Some(Ty::new(tys[0]))
-    } else {
-        None
-    }
 }
 
 fn sort_set<T: Ord>(set: HashSet<T>) -> Vec<T> {

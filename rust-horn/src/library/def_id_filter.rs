@@ -46,11 +46,13 @@ impl DefIdFilterBuilder {
     #[inline]
     pub fn at_impl(self) -> Self { self.add(DefPathDataFilter::Impl(Default::default())) }
     #[inline]
+    #[allow(dead_code)]
     pub fn at_impl_of(self) -> DefIdFilterImplBuilder { DefIdFilterImplBuilder::new(self) }
     #[inline]
     pub fn finish(self) -> DefIdFilter { self.0 }
 }
 
+#[allow(dead_code)]
 pub struct DefIdFilterImplBuilder {
     parent: DefIdFilterBuilder,
     self_ty: Option<TyFilter>,
@@ -65,18 +67,23 @@ impl DefIdFilterImplBuilder {
             trait_ref: None,
         }
     }
+
+    #[allow(dead_code)]
     pub fn self_ty(mut self, filter: TyFilter) -> Self {
         assert!(self.self_ty.is_none(), "self_ty is already set");
         self.self_ty = Some(filter);
         self
     }
 
+    #[allow(dead_code)]
     pub fn trait_ref(mut self, filter: DefIdFilter) -> Self {
         assert!(self.trait_ref.is_none(), "trait_ref is already set");
         self.trait_ref = Some(filter);
         self
     }
+
     #[inline]
+    #[allow(dead_code)]
     pub fn finish_impl(self) -> DefIdFilterBuilder {
         self.parent.add(DefPathDataFilter::Impl(ImplFilter {
             self_ty: self.self_ty.map(Box::new),
@@ -218,6 +225,7 @@ impl<'tcx> Filter<'tcx> for DefPathDataFilter {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum TyFilter {
     Adt(DefIdFilter),
 }

@@ -1,10 +1,10 @@
 use crate::library;
 use crate::represent::{rep, rep_drop_name, rep_ty_list};
 use crate::types::{
-    adt_is_box, BasicBlock, BorrowKind, ConstOperand, DefId, EarlyBinder, FieldDef, FieldIdx,
-    Float128, Float16, Float32, Float64, FloatTy, FunTy, GenericArgsRef, Local, Map, MirBinOp,
-    MirBody, MirUnOp, Mutability, Operand, OrderedSet, ParamEnv, Place, ProjectionElem, Rvalue,
-    Set, Size, Ty, TyCtxt, TyKind, Tys, VariantIdx, DUMMY_SP,
+    BasicBlock, BorrowKind, ConstOperand, DefId, EarlyBinder, FieldDef, FieldIdx, Float128,
+    Float16, Float32, Float64, FloatTy, FunTy, GenericArgsRef, Local, Map, MirBinOp, MirBody,
+    MirUnOp, Mutability, Operand, OrderedSet, ParamEnv, Place, ProjectionElem, Rvalue, Set, Size,
+    Ty, TyCtxt, TyKind, Tys, VariantIdx, DUMMY_SP,
 };
 use crate::util::{FLD0, FLD1, VRT0};
 
@@ -243,7 +243,7 @@ impl Const {
         } else if ty.is_unit() {
             Const::Unit
         } else {
-            panic!("unexpected type of constant {:?}", ty)
+            panic!("unexpected type of constant {ty:?}")
         }
     }
 }
@@ -280,7 +280,7 @@ impl BinOp {
             MirBinOp::Div => match &ty.kind() {
                 TyKind::Int(_) | TyKind::Uint(_) => BinOp::DivInt,
                 TyKind::Float(_) => BinOp::DivReal,
-                _ => panic!("unexpected type {} for division", ty),
+                _ => panic!("unexpected type {ty} for division"),
             },
             MirBinOp::Rem => BinOp::Mod,
             MirBinOp::BitAnd => BinOp::And,
@@ -290,7 +290,7 @@ impl BinOp {
             MirBinOp::Ne => BinOp::Ne,
             MirBinOp::Ge => BinOp::Ge,
             MirBinOp::Gt => BinOp::Gt,
-            _ => panic!("unsupported binary operator {:?}", mir_bin_op),
+            _ => panic!("unsupported binary operator {mir_bin_op:?}"),
         }
     }
     pub fn is_overflow_kind(self) -> bool {
@@ -373,7 +373,7 @@ impl<'tcx> Expr<'tcx> {
                     adt_def.variants()[variant_index].fields.len()
                 }
                 TyKind::Tuple(generic_args) => generic_args.len(),
-                _ => unreachable!("unexpected type {} for projection", base_ty),
+                _ => unreachable!("unexpected type {base_ty} for projection"),
             }
         }
 
@@ -415,12 +415,12 @@ impl<'tcx> Expr<'tcx> {
 }
 
 impl Ty<'_> {
-    pub fn ty_body(self) -> Self {
+    pub fn peel_ty(self) -> Self {
         match self.kind() {
-            TyKind::Ref(_, ty, Mutability::Not) => return Ty::new(*ty).ty_body(),
-            TyKind::Adt(adt_def, adt_substs) => {
-                if let Some(ty) = adt_is_box(adt_def, adt_substs) {
-                    return ty.ty_body();
+            TyKind::Ref(_, ty, Mutability::Not) => return Ty::new(*ty).peel_ty(),
+            TyKind::Adt(..) => {
+                if let Some(ty) = self.as_boxed_ty() {
+                    return ty.peel_ty();
                 }
             }
             _ => (),
@@ -431,11 +431,10 @@ impl Ty<'_> {
 
 impl<'tcx> Expr<'tcx> {
     pub fn decompose_mut_path(path: &Path<'tcx>) -> (Self, Self) {
-        let ty = path.ty().ty_body();
+        let ty = path.ty().peel_ty();
         assert!(
             matches!(ty.kind(), TyKind::Ref(_, _, Mutability::Mut)),
-            "unexpected type {:?} for a mutable reference",
-            ty
+            "unexpected type {ty:?} for a mutable reference",
         );
         (
             Expr::Path(path.get_proj(ty, VRT0, FLD0)),
@@ -482,7 +481,7 @@ impl<'tcx> Site<'tcx> {
             let mut next_variant_index = VRT0;
             let base_ty = place.get_ty_with(mir_access, i);
             match &proj {
-                ProjectionElem::Deref => match &base_ty.kind() {
+                ProjectionElem::Deref => match base_ty.kind() {
                     TyKind::Ref(_, _, Mutability::Not) | TyKind::RawPtr(_, Mutability::Not) => {}
                     TyKind::Adt(adt_def, _) if adt_def.is_box() => {}
                     TyKind::Ref(_, _, Mutability::Mut) => {
@@ -492,7 +491,7 @@ impl<'tcx> Site<'tcx> {
                             base_ty,
                         });
                     }
-                    _ => panic!("unexpected type {} for dereference", base_ty),
+                    _ => panic!("unexpected type {base_ty} for dereference"),
                 },
                 ProjectionElem::Downcast(_, variant_index) => {
                     next_variant_index = *variant_index;
@@ -509,7 +508,7 @@ impl<'tcx> Site<'tcx> {
                                 variant_index == VRT0 && field_index.index() < generic_args.len()
                             );
                         }
-                        _ => panic!("unexpected type {} for taking a field", base_ty),
+                        _ => panic!("unexpected type {base_ty} for taking a field"),
                     };
                     projs.push(Proj {
                         variant_index,
@@ -517,7 +516,7 @@ impl<'tcx> Site<'tcx> {
                         base_ty,
                     });
                 }
-                _ => panic!("unsupported projection element {:?}", proj),
+                _ => panic!("unsupported projection element {proj:?}"),
             }
             variant_index = next_variant_index;
         }
@@ -539,12 +538,12 @@ impl<'tcx> ReadExprExt<'tcx> for Place<'tcx> {
             None => Expr::uninit(self.get_ty(mir_access)),
             Some(expr) => expr.clone(),
         };
-        for &proj in &projs {
-            let Proj {
-                base_ty,
-                variant_index,
-                field_index,
-            } = proj;
+        for Proj {
+            base_ty,
+            variant_index,
+            field_index,
+        } in projs
+        {
             expr = match expr {
                 Expr::Path(path) => Expr::Path(path.get_proj(base_ty, variant_index, field_index)),
                 Expr::Aggregate {
@@ -555,7 +554,7 @@ impl<'tcx> ReadExprExt<'tcx> for Place<'tcx> {
                     assert!(variant_index == variant_index2);
                     fields.remove(field_index.index())
                 }
-                _ => panic!("unexpected expr {:?}", &expr),
+                _ => panic!("unexpected expr {expr:?}"),
             }
         }
         expr
@@ -580,12 +579,12 @@ impl<'tcx> ReadExprMutExt<'tcx> for Place<'tcx> {
         let mut expr = env
             .entry(local)
             .or_insert_with(|| Expr::uninit(self.get_ty(mir_access)));
-        for &proj in &projs {
-            let Proj {
-                base_ty,
-                variant_index,
-                field_index,
-            } = proj;
+        for Proj {
+            base_ty,
+            variant_index,
+            field_index,
+        } in projs
+        {
             expr = match expr {
                 Expr::Path(path) => {
                     *expr = Expr::aggregate_proj(base_ty, variant_index, path);
@@ -599,10 +598,10 @@ impl<'tcx> ReadExprMutExt<'tcx> for Place<'tcx> {
                     fields,
                     ..
                 } => {
-                    assert!(variant_index == *variant_index2);
+                    assert_eq!(variant_index, *variant_index2);
                     &mut fields[field_index.index()]
                 }
-                _ => panic!("unexpected expr {:?}", expr),
+                _ => panic!("unexpected expr {expr:?}"),
             }
         }
         expr
@@ -669,7 +668,7 @@ impl<'tcx> ReadExprCtxExt<'tcx> for Rvalue<'tcx> {
                 UnOp::from_mir_un_op(*mir_un_op),
                 Box::new(opd.get_expr(env, mir_access)),
             ),
-            _ => panic!("unexpected rvalue {:?}", self),
+            _ => panic!("unexpected rvalue {self:?}"),
         }
     }
 }
@@ -689,7 +688,7 @@ pub fn set_tag<'tcx>(
         Expr::Aggregate { variant_index, .. } => {
             assert!(tag == *variant_index);
         }
-        _ => panic!("unexpected expr {:?}", expr),
+        _ => panic!("unexpected expr {expr:?}"),
     }
 }
 
@@ -702,7 +701,7 @@ fn needs_drop<'tcx>(ty: Ty<'tcx>, mir_access: MirAccess<'_, 'tcx>) -> bool {
         match ty.kind() {
             TyKind::Bool | TyKind::Int(_) | TyKind::Uint(_) | TyKind::Float(_) => false,
             TyKind::Adt(adt_def, adt_substs) => {
-                if let Some(ty) = adt_is_box(adt_def, adt_substs) {
+                if let Some(ty) = ty.as_boxed_ty() {
                     needs_drop(ty, mir_access, seen)
                 } else {
                     let key = rep(ty).to_string();
@@ -725,7 +724,7 @@ fn needs_drop<'tcx>(ty: Ty<'tcx>, mir_access: MirAccess<'_, 'tcx>) -> bool {
             TyKind::Tuple(generic_args) => generic_args
                 .into_iter()
                 .any(|ty| needs_drop(Ty::new(ty), mir_access, seen)),
-            _ => panic!("unsupported type {}", ty),
+            _ => panic!("unsupported type {ty}"),
         }
     }
 
@@ -747,13 +746,13 @@ impl<'tcx> DropExt<'tcx> for Path<'tcx> {
             if let Path::Var(Var::Uninit, _) = path {
                 return;
             }
-            match &ty.kind() {
+            match ty.kind() {
                 TyKind::Ref(_, _, Mutability::Mut) => {
                     let (cur, ret) = Expr::decompose_mut_path(path);
                     conds.push(Cond::Eq { src: cur, tgt: ret });
                 }
-                TyKind::Adt(adt_def, adt_substs) => {
-                    if let Some(ty) = adt_is_box(adt_def, adt_substs) {
+                TyKind::Adt(_, _) => {
+                    if let Some(ty) = ty.as_boxed_ty() {
                         drop_path(ty, path, conds);
                     } else {
                         conds.push(Cond::Drop {
@@ -762,7 +761,7 @@ impl<'tcx> DropExt<'tcx> for Path<'tcx> {
                         });
                     }
                 }
-                _ => panic!("unexpected type {}", ty),
+                _ => panic!("unexpected type {ty}"),
             }
         }
 
@@ -806,7 +805,7 @@ impl<'tcx> DropExt<'tcx> for Expr<'tcx> {
                         fld.do_drop(Ty::new(ty), mir_access, conds);
                     }
                 }
-                _ => panic!("unexpected type {} for aggregation", ty),
+                _ => panic!("unexpected type {ty} for aggregation"),
             },
             _ => {}
         };
@@ -1047,7 +1046,7 @@ impl<'tcx> BasicAsks<'tcx> {
                     self.update_by_ty(ty, mir_access);
                 }
             }
-            _ => panic!("unsupported type {}", ty),
+            _ => panic!("unsupported type {ty}"),
         }
     }
 
