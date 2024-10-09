@@ -360,6 +360,10 @@ impl Display for Rep<Var> {
             Var::SelfResult => write!(f, "_@"),
             Var::SelfPanic => write!(f, "_!"),
             Var::CallResult { caller: bb } => write!(f, "_@.{}", bb.index()),
+            Var::CallIdent {
+                identifier,
+                caller: bb,
+            } => write!(f, "_@{identifier}.{}", bb.index()),
             Var::Rand { caller: bb } => write!(f, "_?.{}", bb.index()),
             Var::MutRet {
                 location: bb,
@@ -467,6 +471,7 @@ impl Display for Rep<&Expr<'_>> {
                     write!(f, ")")
                 }
             }
+            Expr::Construct { name, args } => write!(f, "{}", rep_apply(name, args)),
         }
     }
 }
@@ -508,7 +513,12 @@ impl Display for Rep<&Cond<'_>> {
                 }
                 write!(f, ")")
             }
-            Cond::Call { fun_ty, args } => write!(f, "{}", rep_apply(&rep_fun_name(*fun_ty), args)),
+            Cond::CallRustFn { fun_ty, args } => {
+                write!(f, "{}", rep_apply(&rep_fun_name(*fun_ty), args))
+            }
+            Cond::Intrinsic { name, args } => {
+                write!(f, "{}", rep_apply(name, args))
+            }
         }
     }
 }

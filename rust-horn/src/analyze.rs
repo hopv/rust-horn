@@ -432,7 +432,7 @@ fn gather_conds_from_fun<'tcx>(
             res_place.assign(res.clone(), env, conds, mir_access);
             args.push(res.clone());
         }
-        conds.push(Cond::Call { fun_ty: ty, args });
+        conds.push(Cond::CallRustFn { fun_ty: ty, args });
     }
 }
 
