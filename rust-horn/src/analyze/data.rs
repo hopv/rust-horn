@@ -117,6 +117,13 @@ pub enum Var {
         /// `BasicBlock` of the `Call` instruction
         caller: BasicBlock,
     },
+    #[allow(dead_code)]
+    CallIdent {
+        /// Unique identifier of an Ident in the inlined *function*.
+        identifier: u32,
+        /// `BasicBlock` of the `Call` instruction
+        caller: BasicBlock,
+    },
     Rand {
         /// `BasicBlock` of the `Call` instruction
         caller: BasicBlock,
@@ -314,13 +321,18 @@ impl UnOp {
 pub enum Expr<'tcx> {
     Path(Path<'tcx>),
     Const(Const),
-    BinOp(BinOp, Box<Expr<'tcx>>, Box<Expr<'tcx>>),
-    UnOp(UnOp, Box<Expr<'tcx>>),
+    BinOp(BinOp, Box<Self>, Box<Self>),
+    UnOp(UnOp, Box<Self>),
     /// Same as `Aggregate` in Rust MIR.
     Aggregate {
         ty: Ty<'tcx>,
         variant_index: VariantIdx,
-        fields: Vec<Expr<'tcx>>,
+        fields: Vec<Self>,
+    },
+    #[allow(dead_code)]
+    Construct {
+        name: &'static str,
+        args: Vec<Self>,
     },
 }
 
@@ -839,8 +851,13 @@ pub enum Cond<'tcx> {
         tgt: Expr<'tcx>,
         srcs: Vec<Expr<'tcx>>,
     },
-    Call {
+    CallRustFn {
         fun_ty: FunTy<'tcx>,
+        args: Vec<Expr<'tcx>>,
+    },
+    #[allow(dead_code)]
+    Intrinsic {
+        name: &'static str,
         args: Vec<Expr<'tcx>>,
     },
 }
@@ -921,6 +938,11 @@ impl<'tcx> GatherVars<'tcx> for Expr<'tcx> {
                         traverse_expr(field, vars);
                     }
                 }
+                Expr::Construct { name: _, args } => {
+                    for arg in args {
+                        traverse_expr(arg, vars);
+                    }
+                }
             }
         }
 
@@ -949,7 +971,10 @@ impl<'tcx> GatherVars<'tcx> for Cond<'tcx> {
                 tgt.gather_vars(mir_access, basic_asks, vars);
                 srcs.gather_vars(mir_access, basic_asks, vars);
             }
-            Cond::Call { args, .. } => {
+            Cond::CallRustFn { args, .. } => {
+                args.gather_vars(mir_access, basic_asks, vars);
+            }
+            Cond::Intrinsic { args, .. } => {
                 args.gather_vars(mir_access, basic_asks, vars);
             }
         }
