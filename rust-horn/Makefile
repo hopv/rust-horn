@@ -12,7 +12,7 @@ BENCH_DIR := ./sample
 BENCHES := $(wildcard $(BENCH_DIR)/*.rs)
 
 try: build $(BENCHES:$(BENCH_DIR)/%.rs=$(BENCH_DIR)/%.smt2)
-	echo "done"
+	@echo "done"
 
 $(BENCH_DIR)/%.smt2: $(BENCH_DIR)/%.rs
 	cargo run --release \

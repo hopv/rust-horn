@@ -1,8 +1,8 @@
 use crate::analyze::data;
 
 use super::{
-    def_id_filter::{DefIdFilter, TyFilter},
-    item::{FnDef, IntrinsicKind, ItemKind, ItemStore, RawChcDef, TypeAliasDef},
+    def_id_filter::DefIdFilter,
+    item::{IntrinsicKind, ItemKind, ItemStore},
 };
 
 pub fn provide_intrinsic_items(store: &mut ItemStore) {

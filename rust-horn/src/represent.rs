@@ -1,14 +1,16 @@
 use std::fmt::{Display, Formatter, Result as FResult};
 
+use rustc_hash::FxHashSet;
+
 use crate::analyze::data::{BinOp, Cond, Const, End, Expr, Float, Int, Path, Proj, UnOp, Var};
 use crate::analyze::{FunDef, FunDefRef, Pivot, PivotDef, Rule, Summary};
 use crate::library;
 use crate::prettify::pr_name;
 use crate::types::{
-    adt_is_box, with_tcx, AdtDef, DefId, FieldIdx, FunTy, GenericArgs, GenericArgsRef, Mutability,
-    Ty, TyCtxt, TyKind, Tys, VariantDef, VariantIdx,
+    with_tcx, AdtDef, DefId, FieldIdx, GenericArgs, GenericArgsRef, Mutability, Ty, TyCtxt, TyKind,
+    Tys, VariantDef, VariantIdx,
 };
-use crate::util::{has_any_type, Cap, FLD0, FLD1, VRT0};
+use crate::util::{has_any_type, is_main, Cap, FLD0, FLD1, VRT0};
 
 /* basic */
 
@@ -35,21 +37,18 @@ fn safe_ty(ty: Ty) -> String {
         .replace(['(', ')'], "")
 }
 
-pub fn rep_fun_name(fun_ty: FunTy) -> String {
+pub fn rep_fun_name(fun_id: DefId) -> String {
     // FIXME: def_path_str is not suitable for a trait invocation
     // which can be determined at compile-time.
-    format!(
-        "{}{}",
-        rep_name(fun_ty.def_id),
-        rep_ty_list(fun_ty.generic_args_ref.types())
-    )
+    rep_name(fun_id).to_string()
 }
 
-fn rep_fun_name_pivot(fun_name: &str, pivot: Pivot) -> String {
+fn rep_fun_name_pivot(fun_id: DefId, pivot: Pivot) -> String {
+    let fun_name = rep_fun_name(fun_id);
     if let Pivot::Switch(bb) = pivot {
-        format!("{}.{}", fun_name, bb.index())
+        format!("{fun_name}.{}", bb.index())
     } else {
-        fun_name.to_string()
+        fun_name
     }
 }
 pub fn rep_drop_name(ty: Ty) -> String { format!("drop<{}>", safe_ty(ty)) }
@@ -93,7 +92,7 @@ fn rep_builder(base_ty: Ty, variant_index: VariantIdx) -> String {
             assert!(variant_index == VRT0);
             format!("~tup{}", rep_ty_list(types.into_iter()))
         }
-        _ => panic!("unexpected type {} for projection", base_ty),
+        _ => panic!("unexpected type {base_ty} for projection"),
     }
 }
 fn rep_selector_name(base_ty: Ty, variant_index: VariantIdx, field_index: FieldIdx) -> String {
@@ -118,7 +117,7 @@ fn rep_selector_name(base_ty: Ty, variant_index: VariantIdx, field_index: FieldI
                 rep_ty_list(types.into_iter())
             )
         }
-        _ => panic!("unexpected type {} for projection", base_ty),
+        _ => panic!("unexpected type {base_ty} for projection"),
     }
 }
 
@@ -165,12 +164,12 @@ impl Display for Rep<rustc_middle::ty::Ty<'_>> {
             TyKind::Int(_) | TyKind::Uint(_) => write!(f, "Int"),
             TyKind::Float(_) => write!(f, "Real"),
             TyKind::Adt(adt_def, generic_args) => {
-                if let Some(ty) = adt_is_box(adt_def, generic_args) {
+                if let Some(ty) = Ty::new(ty).as_boxed_ty() {
                     write!(f, "{}", rep(ty))
                 } else if let Some(alternative) =
                     with_tcx(|tcx| library::need_to_rename_ty(tcx, adt_def.did()))
                 {
-                    write!(f, "{}", alternative.name)
+                    write!(f, "{alternative}")
                 } else {
                     write!(f, "{}", rep_adt_ty(*adt_def, generic_args))
                 }
@@ -179,7 +178,7 @@ impl Display for Rep<rustc_middle::ty::Ty<'_>> {
             TyKind::Ref(_, ty, Mutability::Mut) => write!(f, "~Mut<{}>", rep(ty)),
             TyKind::Tuple(types) => write!(f, "~Tup{}", rep_ty_list(types.into_iter())),
             TyKind::Param(param_ty) => write!(f, "%{}", param_ty.name),
-            _ => panic!("unsupported type {}", ty),
+            _ => panic!("unsupported type {ty}"),
         }
     }
 }
@@ -202,7 +201,7 @@ impl Display for RepTyList<'_> {
             write!(f, "<")?;
             let mut sep = "";
             for ty in types {
-                write!(f, "{}{}", sep, safe_ty(Ty::new(*ty)))?;
+                write!(f, "{sep}{}", safe_ty(Ty::new(*ty)))?;
                 sep = "-";
             }
             write!(f, ">")?;
@@ -288,7 +287,7 @@ impl Display for RepAdt<'_> {
         )?;
         let mut sep = "";
         for param in &params {
-            write!(f, "{}%{}", sep, param)?;
+            write!(f, "{sep}%{param}")?;
             sep = " ";
         }
         write!(f, ") (")?;
@@ -315,14 +314,14 @@ impl Display for RepTup<'_> {
     fn fmt(&self, f: &mut Formatter) -> FResult {
         let RepTup { generic_args } = self;
         let rep_ty_list = rep_ty_list(generic_args.into_iter());
-        write!(f, "(declare-datatypes ((~Tup{} 0)) ((par () (", rep_ty_list)?;
+        write!(f, "(declare-datatypes ((~Tup{rep_ty_list} 0)) ((par () (")?;
         let types = generic_args.into_iter().collect::<Vec<_>>();
         if types.is_empty() {
-            write!(f, "~tup{}", rep_ty_list)?;
+            write!(f, "~tup{rep_ty_list}")?;
         } else {
-            write!(f, "(~tup{}", rep_ty_list)?;
+            write!(f, "(~tup{rep_ty_list}")?;
             for (i, ty) in types.iter().enumerate() {
-                write!(f, " (~at{}/{} {})", i, rep_ty_list, rep(ty))?;
+                write!(f, " (~at{i}/{} {})", rep_ty_list, rep(ty))?;
             }
             write!(f, ")")?;
         }
@@ -333,19 +332,17 @@ impl Display for RepTup<'_> {
 struct RepMut<'tcx> {
     ty: Ty<'tcx>,
 }
-fn rep_mut(ty: Ty<'_>) -> impl Display + '_ { RepMut { ty } }
+fn rep_mut(ty: Ty<'_>) -> (String, impl Display + '_) {
+    let key = rep(ty).to_string();
+    (key, RepMut { ty })
+}
 impl Display for RepMut<'_> {
     fn fmt(&self, f: &mut Formatter) -> FResult {
         let RepMut { ty } = self;
+        let ty = rep(ty).to_string();
         writeln!(
       f,
-      "(declare-datatypes ((~Mut<{}> 0)) ((par () ((~mut<{}> (~cur<{}> {}) (~ret<{}> {}))))))",
-      rep(ty),
-      rep(ty),
-      rep(ty),
-      rep(ty),
-      rep(ty),
-      rep(ty)
+      "(declare-datatypes ((~Mut<{ty}> 0)) ((par () ((~mut<{ty}> (~cur<{ty}> {ty}) (~ret<{ty}> {ty}))))))",
     )
     }
 }
@@ -465,7 +462,7 @@ impl Display for Rep<&Expr<'_>> {
                     write!(f, "{}", rep_builder(*ty, *variant_index))
                 } else {
                     write!(f, "({}", rep_builder(*ty, *variant_index))?;
-                    for fld in fields.iter() {
+                    for fld in fields {
                         write!(f, " {}", rep(fld))?;
                     }
                     write!(f, ")")
@@ -487,9 +484,9 @@ impl Display for RepApply<'_, '_> {
     fn fmt(&self, f: &mut Formatter) -> FResult {
         let RepApply { fun_name, args } = *self;
         if args.is_empty() {
-            write!(f, "{}", fun_name)
+            write!(f, "{fun_name}")
         } else {
-            write!(f, "({}", fun_name)?;
+            write!(f, "({fun_name}")?;
             for arg in args {
                 write!(f, " {}", rep(arg))?;
             }
@@ -513,8 +510,8 @@ impl Display for Rep<&Cond<'_>> {
                 }
                 write!(f, ")")
             }
-            Cond::CallRustFn { fun_ty, args } => {
-                write!(f, "{}", rep_apply(&rep_fun_name(*fun_ty), args))
+            Cond::CallRustFn { fun_id, args } => {
+                write!(f, "{}", rep_apply(&rep_fun_name(*fun_id), args))
             }
             Cond::Intrinsic { name, args } => {
                 write!(f, "{}", rep_apply(name, args))
@@ -524,15 +521,15 @@ impl Display for Rep<&Cond<'_>> {
 }
 
 struct RepEnd<'a, 'tcx> {
-    fun_name: &'a str,
+    fun_id: DefId,
     end: &'a End<'tcx>,
 }
-fn rep_end<'a, 'tcx: 'a>(fun_name: &'a str, end: &'a End<'tcx>) -> impl Display + Cap<'tcx> + 'a {
-    RepEnd { fun_name, end }
+fn rep_end<'a, 'tcx: 'a>(fun_id: DefId, end: &'a End<'tcx>) -> impl Display + Cap<'tcx> + 'a {
+    RepEnd { fun_id, end }
 }
 impl Display for RepEnd<'_, '_> {
     fn fmt(&self, f: &mut Formatter) -> FResult {
-        let RepEnd { fun_name, end } = self;
+        let RepEnd { fun_id, end } = self;
         match end {
             End::Pivot {
                 next_switch: pivot,
@@ -541,25 +538,26 @@ impl Display for RepEnd<'_, '_> {
                 write!(
                     f,
                     "{}",
-                    rep_apply(&rep_fun_name_pivot(fun_name, Pivot::Switch(*pivot)), args)
+                    rep_apply(&rep_fun_name_pivot(*fun_id, Pivot::Switch(*pivot)), args)
                 )
             }
             End::Return { res } => {
-                if fun_name == &"%main" {
+                if with_tcx(|tcx| is_main(tcx, *fun_id)) {
                     write!(f, "(= _! false)")
                 } else if let Some(expr) = res {
                     let r = format!("{}", rep(expr));
                     if r == "~tup0" {
                         write!(f, "true")
                     } else {
-                        write!(f, "(= _@ {})", r)
+                        write!(f, "(= _@ {r})")
                     }
                 } else {
                     write!(f, "true")
                 }
             }
             End::Panic => {
-                assert!(fun_name == &"%main");
+                let is_main = with_tcx(|tcx| is_main(tcx, *fun_id));
+                assert!(is_main);
                 write!(f, "(= _! true)")
             }
             End::NeverReturn => write!(f, "false"),
@@ -570,23 +568,23 @@ impl Display for RepEnd<'_, '_> {
 /* function signature */
 
 struct RepFunSig<'a, 'tcx> {
-    fun_name: &'a str,
+    fun_id: DefId,
     fun_def: FunDefRef<'a, 'tcx>,
 }
 fn rep_fun_sig<'a, 'tcx: 'a>(
-    fun_name: &'a str,
+    fun_id: DefId,
     fun_def: FunDefRef<'a, 'tcx>,
 ) -> impl Display + Cap<'tcx> + 'a {
-    RepFunSig { fun_name, fun_def }
+    RepFunSig { fun_id, fun_def }
 }
 impl Display for RepFunSig<'_, '_> {
     fn fmt(&self, f: &mut Formatter) -> FResult {
-        let RepFunSig { fun_name, fun_def } = self;
-        for (pivot, PivotDef { param_tys, .. }) in fun_def.iter() {
-            write!(f, "(declare-fun {} (", rep_fun_name_pivot(fun_name, *pivot))?;
+        let RepFunSig { fun_id, fun_def } = self;
+        for (pivot, PivotDef { param_tys, .. }) in *fun_def {
+            write!(f, "(declare-fun {} (", rep_fun_name_pivot(*fun_id, *pivot))?;
             let mut sep = "";
-            for param_ty in param_tys.iter() {
-                write!(f, "{}{}", sep, rep(param_ty))?;
+            for param_ty in param_tys {
+                write!(f, "{sep}{}", rep(param_ty))?;
                 sep = " ";
             }
             writeln!(f, ") Bool)")?;
@@ -598,53 +596,54 @@ impl Display for RepFunSig<'_, '_> {
 /* function definition */
 
 struct RepFunDef<'a, 'tcx> {
-    fun_name: &'a str,
+    fun_id: DefId,
     fun_def: &'a FunDef<'tcx>,
 }
 fn rep_fun_def<'a, 'tcx: 'a>(
-    fun_name: &'a str,
+    fun_id: DefId,
     fun_def: &'a FunDef<'tcx>,
 ) -> impl Display + Cap<'tcx> + 'a {
-    RepFunDef { fun_name, fun_def }
+    RepFunDef { fun_id, fun_def }
 }
 impl Display for RepFunDef<'_, '_> {
     fn fmt(&self, f: &mut Formatter) -> FResult {
-        let RepFunDef { fun_name, fun_def } = self;
+        let RepFunDef { fun_id, fun_def } = self;
+        let fun_name = rep_fun_name(*fun_id);
         if !fun_def.is_empty() {
             writeln!(f)?;
         }
-        for (pivot, PivotDef { rules, .. }) in fun_def.iter() {
+        for (pivot, PivotDef { rules, .. }) in *fun_def {
             if let Pivot::Switch(bb) = pivot {
-                writeln!(f, "; {} bb{}", fun_name, bb.index())?;
+                writeln!(f, "; {fun_name} bb{}", bb.index())?;
             } else {
-                writeln!(f, "; {}", fun_name)?;
+                writeln!(f, "; {fun_name}")?;
             }
             for Rule {
                 vars,
                 args,
                 conds,
                 end,
-            } in rules.iter()
+            } in rules
             {
                 write!(f, "(assert (forall (")?;
                 if vars.is_empty() {
                     write!(f, "(_% Int)")?; // dummy
                 } else {
                     let mut sep = "";
-                    for (var, ty) in vars.iter() {
-                        write!(f, "{}({} {})", sep, rep(var), rep(ty))?;
+                    for (var, ty) in vars {
+                        write!(f, "{sep}({} {})", rep(var), rep(ty))?;
                         sep = " ";
                     }
                 }
                 write!(f, ") (=>\n  (and")?;
-                for cond in conds.iter() {
+                for cond in conds {
                     write!(f, " {}", rep(cond))?;
                 }
-                writeln!(f, " {})", rep_end(fun_name, end))?;
+                writeln!(f, " {})", rep_end(*fun_id, end))?;
                 writeln!(
                     f,
                     "  {})))",
-                    rep_apply(&rep_fun_name_pivot(fun_name, *pivot), args)
+                    rep_apply(&rep_fun_name_pivot(*fun_id, *pivot), args)
                 )?;
             }
         }
@@ -670,59 +669,70 @@ impl Display for RepSummary<'_, '_> {
             summary:
                 Summary {
                     fun_defs,
-                    drop_defs,
-                    adt_asks,
-                    tup_asks,
-                    mut_asks,
+                    adt_ids,
+                    tuples,
+                    mut_tuples,
                 },
             tcx,
         } = self;
+
+        // preamble
         writeln!(f, "(set-logic HORN)")?;
+
         // adt definitions
-        if !adt_asks.is_empty() {
+        if !adt_ids.is_empty() {
             writeln!(f)?;
         }
-        for &adt_id in adt_asks.iter() {
+        for &adt_id in adt_ids {
             write!(f, "{}", rep_adt(tcx.adt_def(adt_id), *tcx))?;
         }
+
         // muts
-        if !mut_asks.is_empty() {
+        if !mut_tuples.is_empty() {
             writeln!(f)?;
+            writeln!(
+                f,
+                "; monomorphized tuple definitions for mutable references"
+            )?;
+            let mut seen_key = FxHashSet::default();
+            for ty in mut_tuples {
+                let (key, rep) = rep_mut(*ty);
+                if seen_key.insert(key) {
+                    write!(f, "{rep}")?;
+                }
+            }
         }
-        for (_, ty) in mut_asks.iter() {
-            write!(f, "{}", rep_mut(*ty))?;
-        }
+
         // tuples
-        if !tup_asks.is_empty() {
+        if !tuples.is_empty() {
             writeln!(f)?;
+            writeln!(f, "; monomorphized tuple definitions")?;
         }
-        for (_, generic_args) in tup_asks.iter() {
+        for generic_args in tuples {
             write!(f, "{}", rep_tup(generic_args))?;
         }
-        // drop definitions
-        if !drop_defs.is_empty() {
+
+        // additional functions
+        let chc_defs = library::activated_chc_defs();
+        if !chc_defs.is_empty() {
             writeln!(f)?;
+            writeln!(f, "; library definitions")?;
         }
-        for (drop_name, drop_def) in drop_defs.iter() {
-            write!(f, "{}", rep_fun_sig(drop_name, drop_def))?;
-        }
-        for (drop_name, drop_def) in drop_defs.iter() {
-            write!(f, "{}", rep_fun_def(drop_name, drop_def))?;
-        }
-        for chc_defs in library::activated_chc_defs() {
-            writeln!(f, "{}", chc_defs.raw)?;
+        for chc_def in chc_defs {
+            writeln!(f, "{}", chc_def.raw)?;
         }
 
         // functions
         if !fun_defs.is_empty() {
             writeln!(f)?;
         }
-        for (fun_name, fun_def) in fun_defs.iter() {
-            write!(f, "{}", rep_fun_sig(fun_name, fun_def))?;
+        for (fun_id, fun_def) in fun_defs {
+            write!(f, "{}", rep_fun_sig(*fun_id, fun_def))?;
         }
-        for (fun_name, fun_def) in fun_defs.iter() {
-            write!(f, "{}", rep_fun_def(fun_name, fun_def))?;
+        for (fun_id, fun_def) in fun_defs {
+            write!(f, "{}", rep_fun_def(*fun_id, fun_def))?;
         }
+
         // the verification condition
         writeln!(f, "\n(assert (forall ((_% Int)) (=> (%main true) false)))")?;
         writeln!(f, "(check-sat)")?;

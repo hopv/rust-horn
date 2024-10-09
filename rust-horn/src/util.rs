@@ -1,5 +1,6 @@
 use crate::types::{
-    BasicBlock, BasicBlockData, BasicBlocks, FieldIdx, GenericArgsRef, Local, VariantIdx,
+    BasicBlock, BasicBlockData, BasicBlocks, DefId, FieldIdx, GenericArgsRef, Local, TyCtxt,
+    VariantIdx,
 };
 
 pub const BB0: BasicBlock = BasicBlock::from_u32(0);
@@ -21,4 +22,9 @@ pub fn enumerate_basicblock_datas<'a, 'tcx>(
 
 pub fn has_any_type(generic_args: GenericArgsRef<'_>) -> bool {
     generic_args.types().next().is_some()
+}
+
+/// Returns `true` if the given [`DefId`] is the main function.
+pub fn is_main(tcx: TyCtxt, def_id: DefId) -> bool {
+    tcx.entry_fn(()).map(|(id, _)| id) == Some(def_id)
 }

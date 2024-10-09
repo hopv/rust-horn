@@ -1,7 +1,9 @@
 use std::ops::Index;
 
+use indexmap::IndexMap;
+
 use crate::types::{
-    BasicBlock, BasicBlockData, BasicBlocks, Local, Map, Operand, OrderedSet, Place, Rvalue,
+    BasicBlock, BasicBlockData, BasicBlocks, Local, Operand, OrderedSet, Place, Rvalue,
     StatementKind, TerminatorKind,
 };
 use crate::util::{enumerate_basicblock_datas, BB0};
@@ -47,7 +49,7 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
                 let targets = targets.all_targets();
                 targets.to_vec()
             }
-            _ => panic!("unsupported terminator {:?}", terminator),
+            _ => panic!("unsupported terminator {terminator:?}"),
         }
     }
 
@@ -67,7 +69,7 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
                 TerminatorKind::SwitchInt { .. } => {
                     switches.push(bb);
                 }
-                _ => panic!("unsupported terminator {:?}", terminator),
+                _ => panic!("unsupported terminator {terminator:?}"),
             }
         }
         switches.sort_unstable();
@@ -78,15 +80,15 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
         self,
         n_init_ins: usize,
     ) -> (
-        Map<BasicBlock, OrderedSet<Local>>,
-        Map<BasicBlock, OrderedSet<Local>>,
+        IndexMap<BasicBlock, OrderedSet<Local>>,
+        IndexMap<BasicBlock, OrderedSet<Local>>,
     ) {
         fn dfs(
             me: BasicBlock,
             ins: &OrderedSet<Local>,
             discr_local: Option<Local>,
             basic: Basic,
-            ins_map: &mut Map<BasicBlock, OrderedSet<Local>>,
+            ins_map: &mut IndexMap<BasicBlock, OrderedSet<Local>>,
         ) {
             let mut ins = ins.clone();
             /* shrink */
@@ -94,12 +96,11 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
                 ins.clear();
             }
             for stmt in &basic[me].statements {
-                if let StatementKind::StorageDead(local) = &stmt.kind {
-                    if Some(*local) != discr_local {
-                        ins.remove(local);
-                    }
-                } else {
+                let StatementKind::StorageDead(local) = &stmt.kind else {
                     break;
+                };
+                if Some(*local) != discr_local {
+                    ins.remove(local);
                 }
             }
             /* return or shrink further */
@@ -114,7 +115,9 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
             for stmt in &basic[me].statements {
                 match &stmt.kind {
                     StatementKind::Assign(box (_, Rvalue::Discriminant(_)))
-                    | StatementKind::StorageLive(_) => {}
+                    | StatementKind::StorageLive(_)
+                    | StatementKind::FakeRead(..)
+                    | StatementKind::PlaceMention(..) => {}
                     StatementKind::Assign(box (Place { local, .. }, _))
                     | StatementKind::SetDiscriminant {
                         place: box Place { local, .. },
@@ -125,9 +128,7 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
                     StatementKind::StorageDead(local) => {
                         ins.remove(local);
                     }
-                    StatementKind::FakeRead(..) => {}
-                    StatementKind::PlaceMention(..) => {}
-                    _ => panic!("unsupported statement {:?}", stmt),
+                    _ => panic!("unsupported statement {stmt:?}"),
                 }
             }
             let terminator = basic[me].terminator();
@@ -142,7 +143,7 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
 
                 TerminatorKind::SwitchInt { discr, .. } => match discr {
                     Operand::Copy(place) | Operand::Move(place) => discr_local = Some(place.local),
-                    Operand::Constant(..) => panic!("unexpected discriminant {:?}", discr),
+                    Operand::Constant(..) => panic!("unexpected discriminant {discr:?}"),
                 },
                 TerminatorKind::Call {
                     destination,
@@ -153,21 +154,21 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
                         ins.insert(destination.local);
                     }
                 }
-                _ => panic!("unsupported terminator {:?}", terminator),
+                _ => panic!("unsupported terminator {terminator:?}"),
             }
             for him in basic.get_targets(me) {
                 dfs(him, &ins, discr_local, basic, ins_map);
             }
         } // fn dfs
 
-        let mut ins_map = Map::<BasicBlock, OrderedSet<Local>>::new();
+        let mut ins_map = IndexMap::<BasicBlock, OrderedSet<Local>>::new();
 
         let mut init_ins: OrderedSet<Local> = OrderedSet::new();
         for i in 1..=n_init_ins {
             init_ins.insert(Local::from(i));
         }
         dfs(BB0, &init_ins, None, self, &mut ins_map);
-        let mut outs_map = Map::<BasicBlock, OrderedSet<Local>>::new();
+        let mut outs_map = IndexMap::<BasicBlock, OrderedSet<Local>>::new();
         for (me, _) in enumerate_basicblock_datas(self.bbds) {
             let mut outs = OrderedSet::<Local>::new();
             for him in self.get_targets(me) {

@@ -1,29 +1,18 @@
 (set-logic HORN)
 
+; monomorphized tuple definitions for mutable references
 (declare-datatypes ((~Mut<Int> 0)) ((par () ((~mut<Int> (~cur<Int> Int) (~ret<Int> Int))))))
 
-(declare-fun %inc_max_repeat (Int ~Mut<Int> ~Mut<Int>) Bool)
-(declare-fun %inc_max_repeat.0 (Int ~Mut<Int> ~Mut<Int> Bool) Bool)
 (declare-fun %main (Bool) Bool)
 (declare-fun %main.4 (Int Int Int Bool Bool) Bool)
 (declare-fun %main.6 (Int Int Int Bool Bool Bool) Bool)
+(declare-fun %inc_max_repeat (Int ~Mut<Int> ~Mut<Int>) Bool)
+(declare-fun %inc_max_repeat.0 (Int ~Mut<Int> ~Mut<Int> Bool) Bool)
 (declare-fun %take_max (~Mut<Int> ~Mut<Int> ~Mut<Int>) Bool)
 (declare-fun %take_max.0 (~Mut<Int> ~Mut<Int> Bool ~Mut<Int>) Bool)
 
-; %inc_max_repeat
-(assert (forall ((_1 Int) (_2 ~Mut<Int>) (_3 ~Mut<Int>)) (=>
-  (and (%inc_max_repeat.0 _1 _2 _3 (not (= _1 0))))
-  (%inc_max_repeat _1 _2 _3))))
-; %inc_max_repeat bb0
-(assert (forall ((_1 Int) (_2 ~Mut<Int>) (_3 ~Mut<Int>)) (=>
-  (and (= (~ret<Int> _2) (~cur<Int> _2)) (= (~ret<Int> _3) (~cur<Int> _3)) true)
-  (%inc_max_repeat.0 _1 _2 _3 false))))
-(assert (forall ((_1 Int) (_2 ~Mut<Int>) (_3 ~Mut<Int>) (_@.1 ~Mut<Int>) (_*.1_3 Int) (_*.1_5 Int) (_*.2_11 Int) (_*.2_13 Int)) (=>
-  (and (%take_max (~mut<Int> (~cur<Int> _2) _*.1_3) (~mut<Int> (~cur<Int> _3) _*.1_5) _@.1) (%inc_max_repeat (- _1 1) (~mut<Int> _*.1_3 _*.2_11) (~mut<Int> _*.1_5 _*.2_13)) (= (~ret<Int> _@.1) (+ (~cur<Int> _@.1) 1)) (= (~ret<Int> _2) _*.2_11) (= (~ret<Int> _3) _*.2_13) true)
-  (%inc_max_repeat.0 _1 _2 _3 true))))
-
 ; %main
-(assert (forall ((_! Bool) (_?.0 Int) (_?.1 Int) (_?.2 Int) (_*.3_6 Int) (_*.3_7 Int) (_*.3_10 Int) (_*.3_11 Int)) (=>
+(assert (forall ((_! Bool) (_?.0 Int) (_?.1 Int) (_*.3_7 Int) (_?.2 Int) (_*.3_11 Int) (_*.3_10 Int) (_*.3_6 Int)) (=>
   (and (%inc_max_repeat _?.0 (~mut<Int> _?.1 _*.3_7) (~mut<Int> _?.2 _*.3_11)) (= _*.3_10 _*.3_11) (= _*.3_6 _*.3_7) (%main.4 _?.0 _*.3_6 _*.3_10 (>= (- _*.3_6 _*.3_10) _?.0) _!))
   (%main _!))))
 ; %main bb4
@@ -40,6 +29,18 @@
 (assert (forall ((_1 Int) (_2 Int) (_3 Int) (_11 Bool) (_! Bool)) (=>
   (and (= _! false))
   (%main.6 _1 _2 _3 _11 true _!))))
+
+; %inc_max_repeat
+(assert (forall ((_1 Int) (_2 ~Mut<Int>) (_3 ~Mut<Int>)) (=>
+  (and (%inc_max_repeat.0 _1 _2 _3 (not (= _1 0))))
+  (%inc_max_repeat _1 _2 _3))))
+; %inc_max_repeat bb0
+(assert (forall ((_1 Int) (_2 ~Mut<Int>) (_3 ~Mut<Int>)) (=>
+  (and (= (~ret<Int> _2) (~cur<Int> _2)) (= (~ret<Int> _3) (~cur<Int> _3)) true)
+  (%inc_max_repeat.0 _1 _2 _3 false))))
+(assert (forall ((_1 Int) (_2 ~Mut<Int>) (_3 ~Mut<Int>) (_*.1_3 Int) (_*.1_5 Int) (_@.1 ~Mut<Int>) (_*.2_11 Int) (_*.2_13 Int)) (=>
+  (and (%take_max (~mut<Int> (~cur<Int> _2) _*.1_3) (~mut<Int> (~cur<Int> _3) _*.1_5) _@.1) (%inc_max_repeat (- _1 1) (~mut<Int> _*.1_3 _*.2_11) (~mut<Int> _*.1_5 _*.2_13)) (= (~ret<Int> _@.1) (+ (~cur<Int> _@.1) 1)) (= (~ret<Int> _2) _*.2_11) (= (~ret<Int> _3) _*.2_13) true)
+  (%inc_max_repeat.0 _1 _2 _3 true))))
 
 ; %take_max
 (assert (forall ((_1 ~Mut<Int>) (_2 ~Mut<Int>) (_@ ~Mut<Int>)) (=>

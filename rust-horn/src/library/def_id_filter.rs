@@ -44,13 +44,15 @@ impl DefIdFilterBuilder {
         ))))
     }
     #[inline]
-    pub fn at_impl(self) -> Self { self.add(DefPathDataFilter::Impl(Default::default())) }
+    pub fn at_impl(self) -> Self { self.add(DefPathDataFilter::Impl(ImplFilter::default())) }
     #[inline]
+    #[allow(dead_code)]
     pub fn at_impl_of(self) -> DefIdFilterImplBuilder { DefIdFilterImplBuilder::new(self) }
     #[inline]
     pub fn finish(self) -> DefIdFilter { self.0 }
 }
 
+#[allow(dead_code)]
 pub struct DefIdFilterImplBuilder {
     parent: DefIdFilterBuilder,
     self_ty: Option<TyFilter>,
@@ -65,18 +67,23 @@ impl DefIdFilterImplBuilder {
             trait_ref: None,
         }
     }
+
+    #[allow(dead_code)]
     pub fn self_ty(mut self, filter: TyFilter) -> Self {
         assert!(self.self_ty.is_none(), "self_ty is already set");
         self.self_ty = Some(filter);
         self
     }
 
+    #[allow(dead_code)]
     pub fn trait_ref(mut self, filter: DefIdFilter) -> Self {
         assert!(self.trait_ref.is_none(), "trait_ref is already set");
         self.trait_ref = Some(filter);
         self
     }
+
     #[inline]
+    #[allow(dead_code)]
     pub fn finish_impl(self) -> DefIdFilterBuilder {
         self.parent.add(DefPathDataFilter::Impl(ImplFilter {
             self_ty: self.self_ty.map(Box::new),
@@ -140,7 +147,7 @@ struct RichDefPath {
 #[derive(Debug, Clone, Copy)]
 struct RichDefPathData {
     disambiguated_data: DisambiguatedDefPathData,
-    /// def_id of the item, which cannot be obtained via `DefPath`.
+    /// `def_id` of the item, which cannot be obtained via `DefPath`.
     def_id: DefId,
 }
 
@@ -153,19 +160,15 @@ impl RichDefPath {
             let p = index.unwrap();
             def_id = DefId { index: p, ..def_id };
             let key = tcx.def_key(def_id);
-            match key.disambiguated_data.data {
-                DefPathData::CrateRoot => {
-                    assert!(key.parent.is_none());
-                    break;
-                }
-                _ => {
-                    data.push(RichDefPathData {
-                        disambiguated_data: key.disambiguated_data,
-                        def_id,
-                    });
-                    index = key.parent;
-                }
+            if key.disambiguated_data.data == DefPathData::CrateRoot {
+                assert!(key.parent.is_none());
+                break;
             }
+            data.push(RichDefPathData {
+                disambiguated_data: key.disambiguated_data,
+                def_id,
+            });
+            index = key.parent;
         }
         data.reverse();
         Self { data }
@@ -192,8 +195,8 @@ impl<'tcx> Filter<'tcx> for DefPathDataFilter {
         // we skip `target.disambiguator` for filtering
         // because it can easily be changed.
         match (self, &target.disambiguated_data.data) {
-            (DefPathDataFilter::TypeNs(l), DefPathData::TypeNs(r)) => l.filter(tcx, r),
-            (DefPathDataFilter::ValueNs(l), DefPathData::ValueNs(r)) => l.filter(tcx, r),
+            (DefPathDataFilter::TypeNs(l), DefPathData::TypeNs(r))
+            | (DefPathDataFilter::ValueNs(l), DefPathData::ValueNs(r)) => l.filter(tcx, r),
             (DefPathDataFilter::Impl(ImplFilter { self_ty, trait_ref }), DefPathData::Impl) => {
                 if let Some(self_ty) = self_ty {
                     let ty = tcx.type_of(target.def_id).instantiate_identity();
@@ -218,6 +221,7 @@ impl<'tcx> Filter<'tcx> for DefPathDataFilter {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum TyFilter {
     Adt(DefIdFilter),
 }

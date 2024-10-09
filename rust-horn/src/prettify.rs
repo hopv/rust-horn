@@ -4,7 +4,7 @@ use std::str::pattern::Pattern;
 use crate::types::{
     with_tcx, AdtDef, AggregateKind, BasicBlock, BorrowKind, ClosureKind, DefId, FieldIdx, FnSig,
     FnSigTys, GenericArgsRef, Local, LocalDecl, MirBinOp, MirBody, MirUnOp, Mutability, NullOp,
-    Operand, ParamEnv, Place, ProjectionElem, Rvalue, Statement, Terminator, TerminatorKind, Ty,
+    Operand, ParamEnv, Place, ProjectionElem, Rvalue, Statement, Terminator, TerminatorKind,
     TyConst, TyCtxt, TyKind, VariantIdx,
 };
 use crate::util::{enumerate_basicblock_datas, Cap};
@@ -97,9 +97,6 @@ pub fn pr_adt_name(adt_def: AdtDef) -> String {
     }
 }
 
-impl Display for Pr<Ty<'_>> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FResult { self.unpr.ty.fmt(f) }
-}
 impl Display for Pr<rustc_middle::ty::Ty<'_>> {
     fn fmt(&self, f: &mut Formatter) -> FResult {
         let ty = self.unpr;
@@ -157,7 +154,7 @@ impl Display for Pr<rustc_middle::ty::Ty<'_>> {
                 write!(f, "{})", if cnt == 1 { "," } else { "" })
             }
             TyKind::Param(param_ty) => write!(f, "{}", param_ty.name),
-            _ => panic!("unsupported type {}", ty),
+            _ => panic!("unsupported type {ty}"),
         }
     }
 }
@@ -193,7 +190,7 @@ impl Display for Pr<&Place<'_>> {
                     offset, from_end, ..
                 } => {
                     let sign = if from_end { "-" } else { "" };
-                    write!(f, "[{}{}]", sign, offset)?;
+                    write!(f, "[{sign}{offset}]")?;
                 }
                 ProjectionElem::Subslice { from, to, from_end } => {
                     write!(
@@ -228,8 +225,12 @@ impl Display for Pr<GenericArgsRef<'_>> {
     }
 }
 
-fn pr_bits<'tcx>(ty: Ty<'tcx>, bits: u128, tcx: TyCtxt<'tcx>) -> impl Display + 'tcx {
-    TyConst::from_bits(tcx, bits, ParamEnv::reveal_all().and(ty.ty))
+fn pr_bits<'tcx>(
+    ty: rustc_middle::ty::Ty<'tcx>,
+    bits: u128,
+    tcx: TyCtxt<'tcx>,
+) -> impl Display + 'tcx {
+    TyConst::from_bits(tcx, bits, ParamEnv::reveal_all().and(ty))
 }
 
 impl Display for Pr<&Operand<'_>> {
@@ -251,7 +252,7 @@ impl Display for Pr<BorrowKind> {
         match bor_kind {
             BorrowKind::Shared => write!(f, "&"),
             BorrowKind::Mut { .. } => write!(f, "&mut "),
-            _ => panic!("unsupported borrow kind {:?}", bor_kind),
+            BorrowKind::Fake(_) => panic!("unsupported borrow kind {bor_kind:?}"),
         }
     }
 }
@@ -283,7 +284,7 @@ impl Display for Pr<MirBinOp> {
             MirBinOp::Ne => write!(f, "!="),
             MirBinOp::Ge => write!(f, ">="),
             MirBinOp::Gt => write!(f, ">"),
-            MirBinOp::Offset => panic!("unsupported binary operator {:?}", bin_op),
+            MirBinOp::Offset => panic!("unsupported binary operator {bin_op:?}"),
             MirBinOp::Cmp => todo!(),
         }
     }
@@ -302,7 +303,7 @@ impl Display for Pr<MirUnOp> {
         match self.unpr {
             MirUnOp::Not => write!(f, "!"),
             MirUnOp::Neg => write!(f, "-"),
-            op => unimplemented!("unsupported unary operator {op:?}"),
+            op @ MirUnOp::PtrMetadata => unimplemented!("unsupported unary operator {op:?}"),
         }
     }
 }
@@ -324,13 +325,13 @@ impl Display for Pr<&Rvalue<'_>> {
             Rvalue::Aggregate(box AggregateKind::Array(_), opds) => {
                 write!(f, "[")?;
                 let mut sep = "";
-                for opd in opds.iter() {
+                for opd in opds {
                     write!(f, "{}{}", sep, pr(opd))?;
                     sep = ", ";
                 }
                 write!(f, "]")
             }
-            _ => panic!("unsupported rvalue {:?}", rvalue),
+            _ => panic!("unsupported rvalue {rvalue:?}"),
         }
     }
 }
@@ -396,7 +397,7 @@ impl Display for PrTerminatorShort<'_, '_> {
             TerminatorKind::Assert { cond, expected, .. } => {
                 write!(f, "assert!({} == {})", pr(cond), expected)
             }
-            _ => panic!("unsupported terminator {:?}", terminator),
+            _ => panic!("unsupported terminator {terminator:?}"),
         }
     }
 }
@@ -431,7 +432,7 @@ impl<'steal, 'tcx> Display for PrTerminator<'steal, 'tcx> {
             TerminatorKind::SwitchInt { discr, targets, .. } => {
                 write!(f, " [")?;
                 for (val, tgt) in targets.iter() {
-                    let label = pr_bits(Ty::new(discr.ty(mir, tcx)), val, tcx).to_string();
+                    let label = pr_bits(discr.ty(mir, tcx), val, tcx).to_string();
                     write!(f, "{} -> goto {}, ", label, pr(tgt))?;
                 }
                 write!(f, "else -> goto {}]", pr(targets.otherwise()))?;
@@ -446,7 +447,7 @@ impl<'steal, 'tcx> Display for PrTerminator<'steal, 'tcx> {
                 }
             }
             _ => {
-                panic!("unsupported terminator {:?}", terminator);
+                panic!("unsupported terminator {terminator:?}");
             }
         }
         Ok(())
@@ -627,7 +628,7 @@ impl Display for PrMirDot<'_, '_> {
                         html_esc(pr_terminator_short(terminator, mir, tcx))
                     )?;
                 }
-                _ => panic!("unsupported terminator {:?}", terminator),
+                _ => panic!("unsupported terminator {terminator:?}"),
             }
             match &terminator.kind {
                 TerminatorKind::Goto { target }
@@ -637,7 +638,7 @@ impl Display for PrMirDot<'_, '_> {
                 }
                 TerminatorKind::SwitchInt { discr, targets, .. } => {
                     for (val, tgt) in targets.iter() {
-                        let label = pr_bits(Ty::new(discr.ty(mir, tcx)), val, tcx).to_string();
+                        let label = pr_bits(discr.ty(mir, tcx), val, tcx).to_string();
                         jumps.push((bb, tgt, label));
                     }
                     jumps.push((bb, targets.otherwise(), "else".to_string()));
@@ -648,7 +649,7 @@ impl Display for PrMirDot<'_, '_> {
                         jumps.push((bb, *target, String::new()));
                     }
                 }
-                _ => panic!("unsupported terminator {:?}", terminator),
+                _ => panic!("unsupported terminator {terminator:?}"),
             }
             writeln!(f, "    </table>>\n  ];\n")?;
         }
@@ -656,7 +657,7 @@ impl Display for PrMirDot<'_, '_> {
         for (bb, bb2, label) in &jumps {
             write!(f, "  {} -> {}", pr(bb), pr(bb2))?;
             if !label.is_empty() {
-                write!(f, r##" [taillabel = "{}", fontcolor = "#ef8cff"]"##, label)?;
+                write!(f, r##" [taillabel = "{label}", fontcolor = "#ef8cff"]"##)?;
             }
             writeln!(f, ";")?;
         }
