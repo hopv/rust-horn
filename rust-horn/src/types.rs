@@ -114,6 +114,8 @@ impl<'tcx> Ty<'tcx> {
     pub fn is_unit(&self) -> bool { self.ty.is_unit() }
 
     pub fn kind(&self) -> &'_ RhTyKind<'tcx> { &self.kind }
+
+    pub fn tuple_fields(&self) -> &'tcx [rustc_middle::ty::Ty<'tcx>] { self.ty.tuple_fields() }
 }
 
 fn sort_set<T: Ord>(set: HashSet<T>) -> Vec<T> {

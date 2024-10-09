@@ -177,6 +177,11 @@ impl Display for Rep<&Ty<'_>> {
                     with_tcx(|tcx| library::need_to_rename_ty(tcx, adt_def.did()))
                 {
                     write!(f, "{alternative}")
+                } else if with_tcx(|tcx| {
+                    let s = tcx.def_path_str(adt_def.did());
+                    s == "Sender" || s == "Receiver"
+                }) {
+                    write!(f, "ChannelBuf<int>")
                 } else {
                     write!(f, "{}", rep_adt_ty(*adt_def, generic_args))
                 }

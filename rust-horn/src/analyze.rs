@@ -380,6 +380,91 @@ fn gather_conds_from_fun<'tcx>(
         let res = Expr::from_var(Var::Rand { caller }, res_ty);
         res_place.assign(res, env, conds, mir_access);
         return;
+    } else if crate::pr_name(did) == "channel" {
+        // ad-hoc
+        res_place.assign(
+            Expr::pair(
+                res_ty.clone(),
+                (
+                    Expr::from_var(
+                        Var::CallIdent {
+                            identifier: 0,
+                            caller,
+                        },
+                        Ty::new(res_ty.tuple_fields()[0]),
+                    ),
+                    Expr::from_var(
+                        Var::CallIdent {
+                            identifier: 0,
+                            caller,
+                        },
+                        Ty::new(res_ty.tuple_fields()[1]),
+                    ),
+                ),
+            ),
+            env,
+            conds,
+            mir_access,
+        );
+        return;
+    } else if crate::pr_name(did) == "Sender::send" {
+        // ad-hoc
+        let (y, y_) = args[0].node.get_expr(env, mir_access).decompose_mut();
+        let x = args[1].node.get_expr(env, mir_access);
+        conds.push(Cond::Eq {
+            tgt: y,
+            src: Expr::Construct {
+                name: "insert",
+                args: vec![x, y_],
+            },
+        });
+        return;
+    } else if crate::pr_name(did) == "Sender::clone" {
+        // ad-hoc
+        let (x, x_) = args[0].node.get_expr(env, mir_access).decompose_mut();
+        let res = Expr::from_var(
+            Var::CallIdent {
+                identifier: 0,
+                caller,
+            },
+            res_ty,
+        );
+        conds.push(Cond::Intrinsic {
+            name: "MergeInt",
+            args: vec![x_, res.clone(), x],
+        });
+        res_place.assign(res, env, conds, mir_access);
+        return;
+    } else if crate::pr_name(did) == "Sender::drop" {
+        // ad-hoc
+        let x = args[0].node.get_expr(env, mir_access);
+        conds.push(Cond::Eq {
+            tgt: x,
+            src: Expr::Construct {
+                name: "nil",
+                args: Vec::new(),
+            },
+        });
+        return;
+    } else if crate::pr_name(did) == "Receiver::recv" {
+        // ad-hoc
+        let res = Expr::from_var(
+            Var::CallIdent {
+                identifier: 0,
+                caller,
+            },
+            res_ty,
+        );
+        let (z, z_) = args[0].node.get_expr(env, mir_access).decompose_mut();
+        conds.push(Cond::Eq {
+            tgt: z,
+            src: Expr::Construct {
+                name: "insert",
+                args: vec![res.clone(), z_],
+            },
+        });
+        res_place.assign(res, env, conds, mir_access);
+        return;
     }
 
     if let Some(hardcoded) = library::is_hardcoded(mir_access.tcx, did) {

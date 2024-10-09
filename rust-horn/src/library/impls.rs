@@ -2,7 +2,8 @@ use crate::analyze::data::{self, Cond};
 
 use super::{
     def_id_filter::DefIdFilter,
-    item::{IntrinsicKind, ItemKind, ItemStore},
+    item::{IntrinsicKind, ItemKind, ItemStore, RawChcDef},
+    RawDefPhase,
 };
 
 pub fn provide_intrinsic_items(store: &mut ItemStore) {
@@ -64,4 +65,36 @@ pub fn provide_stdlib_items(store: &mut ItemStore) {
         }),
         None,
     );
+}
+
+// FIXME: This is a temporary hack to provide the definition of
+// `ChannelBuf` for `{local}::Sender`. We will later
+// invent a more general way to provide such definitions.
+pub fn provide_optlib_channel(store: &mut ItemStore) {
+    let self_str = "ChannelBuf<int>";
+    let channel_def = store.register_item(
+        ItemKind::RawChcDef(RawChcDef {
+                raw: format!(
+                    "(declare-datatypes (({self_str} 0)) ((par () ((insert (head Int) (tail {self_str})) (nil)))))",
+                ),
+                phase: RawDefPhase::BeforeAdtDef,
+        }),
+        None,
+    );
+    let merge_def = store.register_item(
+        ItemKind::RawChcDef(RawChcDef {
+            raw: format!(
+                r#"(declare-fun MergeInt ({self_str} {self_str} {self_str}) Bool)
+(assert (MergeInt nil nil nil))
+(assert (forall ((x1 {self_str}) (x2 {self_str}) (x {self_str}) (n Int))
+  (=> (MergeInt x1 x2 x) (MergeInt (insert n x1) x2 (insert n x)))))
+(assert (forall ((x1 {self_str}) (x2 {self_str}) (x {self_str}) (n Int))
+  (=> (MergeInt x1 x2 x) (MergeInt x1 (insert n x2) (insert n x)))))"#,
+            ),
+            phase: RawDefPhase::AfterDeclareSort,
+        }),
+        None,
+    );
+    store.activate(channel_def);
+    store.activate(merge_def);
 }
