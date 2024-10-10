@@ -71,11 +71,11 @@ pub fn provide_stdlib_items(store: &mut ItemStore) {
 // `ChannelBuf` for `{local}::Sender`. We will later
 // invent a more general way to provide such definitions.
 pub fn provide_optlib_channel(store: &mut ItemStore) {
-    let self_str = "ChannelBuf<int>";
+    let self_str = "ChannelBuf<Int>";
     let channel_def = store.register_item(
         ItemKind::RawChcDef(RawChcDef {
                 raw: format!(
-                    "(declare-datatypes (({self_str} 0)) ((par () ((insert (head Int) (tail {self_str})) (nil)))))",
+                    "(declare-datatypes (({self_str} 0)) ((par () ((insert (head Int) (tail {self_str})) (nilBuf)))))",
                 ),
                 phase: RawDefPhase::BeforeAdtDef,
         }),
@@ -85,7 +85,7 @@ pub fn provide_optlib_channel(store: &mut ItemStore) {
         ItemKind::RawChcDef(RawChcDef {
             raw: format!(
                 r#"(declare-fun MergeInt ({self_str} {self_str} {self_str}) Bool)
-(assert (MergeInt nil nil nil))
+(assert (MergeInt nilBuf nilBuf nilBuf))
 (assert (forall ((x1 {self_str}) (x2 {self_str}) (x {self_str}) (n Int))
   (=> (MergeInt x1 x2 x) (MergeInt (insert n x1) x2 (insert n x)))))
 (assert (forall ((x1 {self_str}) (x2 {self_str}) (x {self_str}) (n Int))
@@ -97,4 +97,49 @@ pub fn provide_optlib_channel(store: &mut ItemStore) {
     );
     store.activate(channel_def);
     store.activate(merge_def);
+}
+
+// FIXME: This is a temporary hack to provide the definition of
+// `LockHistory` for `{local}::Mutex`. We will later
+// invent a more general way to provide such definitions.
+pub fn provide_optlib_mutex(store: &mut ItemStore) {
+    let self_str = "LockHistory<Int>";
+    let mutex_def = store.register_item(
+        ItemKind::RawChcDef(RawChcDef {
+                raw: format!(
+                    "(declare-datatypes (({self_str} 0)) ((par () ((insertLock (headHist ~Mut<Int>) (tailHist {self_str})) (nilHistory)))))",
+                ),
+                phase: RawDefPhase::BeforeAdtDef,
+        }),
+        None,
+    );
+    let merge_def = store.register_item(
+        ItemKind::RawChcDef(RawChcDef {
+            raw: format!(
+                r#"(declare-fun MergeLock ({self_str} {self_str} {self_str}) Bool)
+(assert (MergeLock nilHistory nilHistory nilHistory))
+(assert (forall ((x1 {self_str}) (x2 {self_str}) (x {self_str}) (n ~Mut<Int>))
+  (=> (MergeLock x1 x2 x) (MergeLock (insertLock n x1) x2 (insertLock n x)))))
+(assert (forall ((x1 {self_str}) (x2 {self_str}) (x {self_str}) (n ~Mut<Int>))
+  (=> (MergeLock x1 x2 x) (MergeLock x1 (insertLock n x2) (insertLock n x)))))"#,
+            ),
+            phase: RawDefPhase::AfterDeclareSort,
+        }),
+        None,
+    );
+    let consistent_def = store.register_item(
+        ItemKind::RawChcDef(RawChcDef {
+            raw: format!(
+                r#"(declare-fun Consistent (Int {self_str}) Bool)
+(assert (forall ((init Int)) (Consistent init nilHistory)))
+(assert (forall ((init Int) (init2 Int) (x {self_str}))
+  (=> (Consistent init2 x) (Consistent init (insertLock (~mut<Int> init init2) x)))))"#,
+            ),
+            phase: RawDefPhase::AfterDeclareSort,
+        }),
+        None,
+    );
+    store.activate(mutex_def);
+    store.activate(merge_def);
+    store.activate(consistent_def);
 }

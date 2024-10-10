@@ -441,7 +441,7 @@ fn gather_conds_from_fun<'tcx>(
         conds.push(Cond::Eq {
             tgt: x,
             src: Expr::Construct {
-                name: "nil",
+                name: "nilBuf",
                 args: Vec::new(),
             },
         });
@@ -465,8 +465,69 @@ fn gather_conds_from_fun<'tcx>(
         });
         res_place.assign(res, env, conds, mir_access);
         return;
+    } else if crate::pr_name(did) == "Mutex::new" {
+        // ad-hoc
+        let x = args[0].node.get_expr(env, mir_access);
+        let y = Expr::from_var(
+            Var::CallIdent {
+                identifier: 0,
+                caller,
+            },
+            res_ty,
+        );
+        res_place.assign(y.clone(), env, conds, mir_access);
+        conds.push(Cond::Intrinsic {
+            name: "Consistent",
+            args: vec![x, y],
+        });
+        return;
+    } else if crate::pr_name(did) == "Mutex::lock" {
+        // ad-hoc
+        let (y, y_) = args[0].node.get_expr(env, mir_access).decompose_mut();
+        let res = Expr::from_var(
+            Var::CallIdent {
+                identifier: 0,
+                caller,
+            },
+            res_ty,
+        );
+        conds.push(Cond::Eq {
+            tgt: y,
+            src: Expr::Construct {
+                name: "insertLock",
+                args: vec![res.clone(), y_],
+            },
+        });
+        res_place.assign(res, env, conds, mir_access);
+        return;
+    } else if crate::pr_name(did) == "Mutex::clone" {
+        // ad-hoc
+        let (x, x_) = args[0].node.get_expr(env, mir_access).decompose_mut();
+        let res = Expr::from_var(
+            Var::CallIdent {
+                identifier: 0,
+                caller,
+            },
+            res_ty,
+        );
+        conds.push(Cond::Intrinsic {
+            name: "MergeLock",
+            args: vec![x_, res.clone(), x],
+        });
+        res_place.assign(res, env, conds, mir_access);
+        return;
+    } else if crate::pr_name(did) == "Mutex::drop" {
+        // ad-hoc
+        let x = args[0].node.get_expr(env, mir_access);
+        conds.push(Cond::Eq {
+            tgt: x,
+            src: Expr::Construct {
+                name: "nilHistory",
+                args: Vec::new(),
+            },
+        });
+        return;
     }
-
     if let Some(hardcoded) = library::is_hardcoded(mir_access.tcx, did) {
         let args = args
             .iter()

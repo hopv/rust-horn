@@ -150,6 +150,7 @@ impl ItemStore {
         impls::provide_intrinsic_items(&mut this);
         impls::provide_stdlib_items(&mut this);
         impls::provide_optlib_channel(&mut this);
+        impls::provide_optlib_mutex(&mut this);
         this
     }
     #[allow(dead_code)]

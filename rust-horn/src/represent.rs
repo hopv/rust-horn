@@ -181,7 +181,12 @@ impl Display for Rep<&Ty<'_>> {
                     let s = tcx.def_path_str(adt_def.did());
                     s == "Sender" || s == "Receiver"
                 }) {
-                    write!(f, "ChannelBuf<int>")
+                    write!(f, "ChannelBuf<Int>")
+                } else if with_tcx(|tcx| {
+                    let s = tcx.def_path_str(adt_def.did());
+                    s == "Mutex"
+                }) {
+                    write!(f, "LockHistory<Int>")
                 } else {
                     write!(f, "{}", rep_adt_ty(*adt_def, generic_args))
                 }
