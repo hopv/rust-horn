@@ -6,7 +6,7 @@ use once_cell::sync::Lazy;
 use rustc_hash::FxHashMap;
 use rustc_hir::def_id::DefId;
 
-use crate::types::{DefPathData, DisambiguatedDefPathData, Symbol, Ty, TyCtxt, TyKind};
+use crate::types::{DefPathData, DisambiguatedDefPathData, RhTyKind, Symbol, Ty, TyCtxt};
 
 #[derive(Debug)]
 pub struct DefIdFilter {
@@ -231,7 +231,7 @@ impl<'tcx> Filter<'tcx> for TyFilter {
 
     fn filter(&self, tcx: TyCtxt<'tcx>, target: &Self::Target) -> bool {
         match (self, target.kind()) {
-            (TyFilter::Adt(filter), TyKind::Adt(adt_def, ..)) => filter.filter(tcx, &adt_def.did()),
+            (TyFilter::Adt(filter), RhTyKind::Adt { def, .. }) => filter.filter(tcx, &def.did()),
             _ => false,
         }
     }

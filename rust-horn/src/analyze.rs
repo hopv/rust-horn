@@ -1,9 +1,9 @@
 use crate::library::{self, IntrinsicKind};
 use crate::prettify::pr_fun_name;
 use crate::types::{
-    BasicBlock, DefId, EntryFnType, FieldDef, FieldIdx, FunTy, Instance, Local, Mutability,
-    Operand, OrderedSet, ParamEnv, Place, Rvalue, Spanned, Statement, StatementKind,
-    TerminatorKind, Ty, TyCtxt, TyKind, Tys, VariantDef,
+    BasicBlock, DefId, EntryFnType, FieldDef, FieldIdx, FunTy, Instance, Local, Operand,
+    OrderedSet, ParamEnv, Place, RhTyKind, Rvalue, Spanned, Statement, StatementKind,
+    TerminatorKind, Ty, TyCtxt, Tys, VariantDef,
 };
 use crate::util::{is_main, BB0, _0};
 
@@ -165,7 +165,7 @@ fn pivot_up<'tcx>(
         );
     }
     for (local, expr) in env {
-        expr.do_drop(local.get_ty(mir_access), mir_access, &mut conds);
+        expr.do_drop(&local.get_ty(mir_access), mir_access, &mut conds);
     }
     let res_ty = _0.get_ty(mir_access);
     if !res_ty.is_unit() {
@@ -199,7 +199,7 @@ fn get_prerule<'tcx>(
     loop {
         if let TerminatorKind::Call { target: None, .. } = &basic[bb].terminator().kind {
             for (local, expr) in env {
-                expr.do_drop(local.get_ty(mir_access), mir_access, &mut conds);
+                expr.do_drop(&local.get_ty(mir_access), mir_access, &mut conds);
             }
             return Prerule {
                 init_env,
@@ -234,7 +234,7 @@ fn get_prerule<'tcx>(
             TerminatorKind::Return => {
                 let res = env.swap_remove(&_0);
                 for (local, expr) in env {
-                    expr.do_drop(local.get_ty(mir_access), mir_access, &mut conds);
+                    expr.do_drop(&local.get_ty(mir_access), mir_access, &mut conds);
                 }
                 return Prerule {
                     init_env,
@@ -308,18 +308,17 @@ fn gather_conds_from_statement<'tcx>(
             };
         }
         StatementKind::Assign(box (place, Rvalue::Use(Operand::Copy(mutbor))))
-            if mutbor.get_ty(mir_access).ref_mutability() == Some(Mutability::Mut) =>
+            if let RhTyKind::RefMut { ty: ty_body } = mutbor.get_ty(mir_access).kind() =>
         {
             let expr = mutbor.get_mut_expr(env, mir_access);
-            let ty_body = Ty::new(mutbor.get_ty(mir_access).builtin_deref(false).unwrap());
+            let ref_ty = mutbor.get_ty(mir_access);
             if let Expr::Path(path) = expr {
-                let ref_ty = mutbor.get_ty(mir_access);
                 *expr = Expr::pair(ref_ty, Expr::decompose_mut_path(path));
             }
-            let Some((ty, fst, _)) = expr.as_mut_pair() else {
+            let Some((ref_ty, fst, _)) = expr.as_mut_pair() else {
                 panic!("unexpected expression {expr:?} for a mutable reference");
             };
-            let new_expr = fst.do_borrow_mut(ty_body, ty, (bb, stmt_index));
+            let new_expr = fst.do_borrow_mut(*ty_body.clone(), ref_ty, (bb, stmt_index));
             place.assign(new_expr, env, conds, mir_access);
         }
         StatementKind::Assign(box (place, rvalue)) => {
@@ -339,7 +338,7 @@ fn gather_conds_from_statement<'tcx>(
         | StatementKind::PlaceMention(..) => {}
         StatementKind::StorageDead(local) => {
             if let Some(expr) = env.swap_remove(local) {
-                expr.do_drop(local.get_ty(mir_access), mir_access, conds);
+                expr.do_drop(&local.get_ty(mir_access), mir_access, conds);
             }
         }
         _ => panic!("unsupported statement {stmt:?}"),
@@ -440,12 +439,12 @@ fn analyze_pivot<'tcx>(
             let terminator = &basic[bb].terminator();
             if let TerminatorKind::SwitchInt { targets, .. } = &terminator.kind {
                 let (discr_place, discr_kind) = data.place_discriminant_kind(bb);
-                let discr_ty = discr_place.get_ty(mir_access);
+                let discriminant_ty = discr_place.get_ty(mir_access);
                 let main_targets = targets.iter().collect::<Vec<_>>();
                 let rest_target = targets.otherwise();
                 match discr_kind {
-                    DiscriminantKind::Value => match &discr_ty.kind() {
-                        TyKind::Bool => {
+                    DiscriminantKind::Value => match discriminant_ty.kind() {
+                        RhTyKind::Bool => {
                             assert!(main_targets.len() == 1 && main_targets[0].0 == 0);
                             for (b, tgt) in [(false, &main_targets[0].1), (true, &rest_target)] {
                                 let mut env = env.clone();
@@ -454,7 +453,7 @@ fn analyze_pivot<'tcx>(
                                 prerules.push(get_prerule(is_main, *tgt, env, data, def_request));
                             }
                         }
-                        TyKind::Int(_) | TyKind::Uint(_) => {
+                        RhTyKind::Int => {
                             let mut neq_srcs = vec![];
                             for (val, tgt) in &main_targets {
                                 let mut env = env.clone();
@@ -474,34 +473,37 @@ fn analyze_pivot<'tcx>(
                         }
                         _ => unimplemented!("unsupported branching"),
                     },
-                    DiscriminantKind::Tag => match discr_ty.kind() {
-                        TyKind::Adt(adt_def, adt_substs) => {
-                            let variants = adt_def.variants();
-                            assert!(variants.len() == main_targets.len());
-                            for ((variant_index, VariantDef { fields, .. }), (val, tgt)) in
-                                variants.iter_enumerated().zip(main_targets.iter())
-                            {
-                                assert!(*val == u128::from(variant_index.as_u32()));
-                                let mut env = env.clone();
-                                let args = fields
-                                    .iter_enumerated()
-                                    .map(|(field_index, fld_def): (FieldIdx, &FieldDef)| {
-                                        Expr::from_var(
-                                            Var::Split(bb, variant_index, field_index),
-                                            fld_def.get_ty_with(mir_access, adt_substs),
-                                        )
-                                    })
-                                    .collect::<Vec<_>>();
-                                *discr_place.get_mut_expr(&mut env, mir_access) = Expr::Aggregate {
-                                    ty: discr_ty,
-                                    variant_index,
-                                    fields: args,
-                                };
-                                prerules.push(get_prerule(is_main, *tgt, env, data, def_request));
-                            }
+                    DiscriminantKind::Tag => {
+                        let RhTyKind::Adt { def, args } = discriminant_ty.kind() else {
+                            panic!(
+                                "unexpected tag branching for a non-adt type {discriminant_ty:?}"
+                            )
+                        };
+
+                        let variants = def.variants();
+                        assert!(variants.len() == main_targets.len());
+                        for ((variant_index, VariantDef { fields, .. }), (val, tgt)) in
+                            variants.iter_enumerated().zip(main_targets.iter())
+                        {
+                            assert!(*val == u128::from(variant_index.as_u32()));
+                            let mut env = env.clone();
+                            let args = fields
+                                .iter_enumerated()
+                                .map(|(field_index, fld_def): (FieldIdx, &FieldDef)| {
+                                    Expr::from_var(
+                                        Var::Split(bb, variant_index, field_index),
+                                        fld_def.get_ty_with(mir_access, args),
+                                    )
+                                })
+                                .collect::<Vec<_>>();
+                            *discr_place.get_mut_expr(&mut env, mir_access) = Expr::Aggregate {
+                                ty: discriminant_ty.clone(),
+                                variant_index,
+                                fields: args,
+                            };
+                            prerules.push(get_prerule(is_main, *tgt, env, data, def_request));
                         }
-                        _ => panic!("unexpected tag branching for a non-adt type {discr_ty:?}"),
-                    },
+                    }
                 }
             } else {
                 panic!("unexpected terminator {terminator:?} for a pivot");
@@ -602,7 +604,8 @@ impl<'tcx> DefRequest<'tcx> {
     pub fn add_adt_def(&mut self, def_id: DefId) -> bool { self.adt_ids.insert(def_id) }
     pub fn add_tuple_def(&mut self, tys: Tys<'tcx>) -> bool { self.tuples.insert(tys) }
     pub fn add_mut_tuple_def(&mut self, ty: Ty<'tcx>) -> bool { self.mut_tuples.insert(ty) }
-    /// Accept the request for analyzing a function. Returns an iterator of the requested functions.
+
+    /// Accept the request for analyzing functions. Returns an iterator of the requested functions.
     pub fn accept_analyze_fun(&mut self) -> impl Iterator<Item = DefId> {
         std::mem::take(&mut self.fun_ids).into_iter()
     }
@@ -620,7 +623,7 @@ pub trait GatherVars<'tcx> {
 fn traverse_path<'tcx>(path: &Path<'tcx>, vars: &mut IndexMap<Var, Ty<'tcx>>) {
     match path {
         Path::Var(var, ty) => {
-            vars.insert(*var, *ty);
+            vars.insert(*var, ty.clone());
         }
         Path::Proj { body: path, .. } => traverse_path(path, vars),
     }
@@ -735,33 +738,28 @@ impl<'tcx, T: GatherVars<'tcx>> GatherVars<'tcx> for Vec<T> {
 }
 
 impl<'tcx> DefRequest<'tcx> {
-    fn update_by_ty(&mut self, ty: Ty<'tcx>, mir_access: MirAccess<'_, 'tcx>) {
+    fn update_by_ty(&mut self, ty: &Ty<'tcx>, mir_access: MirAccess<'_, 'tcx>) {
         match ty.kind() {
-            TyKind::Bool | TyKind::Int(_) | TyKind::Uint(_) | TyKind::Float(_) => {}
-            TyKind::Adt(adt_def, adt_substs) => {
-                if adt_def.is_box() {
-                    for ty in adt_substs.types() {
-                        self.update_by_ty(Ty::new(ty), mir_access);
-                    }
-                } else if library::need_to_rename_ty(mir_access.tcx, adt_def.did()).is_some() {
+            RhTyKind::Bool | RhTyKind::Int | RhTyKind::Float => {}
+            RhTyKind::Adt { def, args } => {
+                if library::need_to_rename_ty(mir_access.tcx, def.did()).is_some() {
                     // do nothing
-                } else if self.add_adt_def(adt_def.did()) {
-                    for fld_def in adt_def.all_fields() {
-                        self.update_by_ty(fld_def.get_ty_with(mir_access, adt_substs), mir_access);
+                } else if self.add_adt_def(def.did()) {
+                    for fld_def in def.all_fields() {
+                        self.update_by_ty(&fld_def.get_ty_with(mir_access, args), mir_access);
                     }
                 }
             }
-            TyKind::Ref(_, ty, mutability) => {
-                let ty = Ty::new(*ty);
-                if let Mutability::Mut = mutability {
-                    self.add_mut_tuple_def(ty);
-                }
+            RhTyKind::Transparent { box ty, .. } => {
                 self.update_by_ty(ty, mir_access);
             }
-            TyKind::Tuple(types) => {
-                self.add_tuple_def(types);
-                for ty in types.into_iter() {
-                    let ty = Ty::new(ty);
+            RhTyKind::RefMut { box ty } => {
+                self.add_mut_tuple_def(ty.clone());
+                self.update_by_ty(ty, mir_access);
+            }
+            RhTyKind::Tuple { elems } => {
+                self.add_tuple_def(elems.clone());
+                for ty in elems {
                     self.update_by_ty(ty, mir_access);
                 }
             }
@@ -775,7 +773,7 @@ impl<'tcx> DefRequest<'tcx> {
         mir_access: MirAccess<'_, 'tcx>,
     ) -> Vec<(Var, Ty<'tcx>)> {
         for (_, ty) in &vars {
-            self.update_by_ty(*ty, mir_access);
+            self.update_by_ty(ty, mir_access);
         }
         vars.into_iter().collect()
     }

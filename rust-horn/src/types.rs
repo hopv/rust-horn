@@ -15,7 +15,7 @@ pub use rustc_middle::ty::{
     tls::with as with_tcx, AdtDef, ClosureKind, Const as TyConst, FieldDef, FloatTy, FnSig,
     FnSigTys, GenericArgs, GenericArgsRef, Instance, ParamEnv, TyCtxt, TyKind, VariantDef,
 };
-pub type Tys<'tcx> = <TyCtxt<'tcx> as rustc_type_ir::Interner>::Tys;
+pub type Tys<'tcx> = Vec<Ty<'tcx>>;
 pub use rustc_session::config::EntryFnType;
 pub use rustc_span::{source_map::Spanned, Symbol, DUMMY_SP};
 pub use rustc_target::abi::{FieldIdx, Size, VariantIdx};
@@ -23,31 +23,97 @@ pub use rustc_target::abi::{FieldIdx, Size, VariantIdx};
 use std::fmt::Display;
 use std::{collections::HashSet, hash::Hash};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Ty<'tcx> {
-    pub ty: rustc_middle::ty::Ty<'tcx>,
+    ty: rustc_middle::ty::Ty<'tcx>,
+    kind: RhTyKind<'tcx>,
 }
 
 impl<'tcx> Display for Ty<'tcx> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { self.ty.fmt(f) }
 }
 
-impl<'tcx> Ty<'tcx> {
-    pub fn new(ty: rustc_middle::ty::Ty<'tcx>) -> Self { Self { ty } }
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// Types in Rust-Horn.
+pub enum RhTyKind<'tcx> {
+    Bool,
+    Int,
+    Float,
 
-    pub fn as_boxed_ty(self) -> Option<Self> {
-        if self.is_box() {
-            Some(Ty::new(self.boxed_ty()))
-        } else {
-            None
+    /// An ADT. `Box` no longer occurs in this variant.
+    Adt {
+        def: AdtDef<'tcx>,
+        args: GenericArgsRef<'tcx>,
+    },
+
+    Fn(FunTy<'tcx>),
+    Tuple {
+        elems: Tys<'tcx>,
+    },
+    RefMut {
+        ty: Box<Ty<'tcx>>,
+    },
+    Transparent {
+        kind: TransparentKind,
+        ty: Box<Ty<'tcx>>,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum TransparentKind {
+    Box,
+    RefImmut,
+}
+
+impl<'tcx> RhTyKind<'tcx> {
+    fn from_raw(ty: rustc_middle::ty::Ty<'tcx>) -> Self {
+        if ty.is_box() {
+            return Self::Transparent {
+                kind: TransparentKind::Box,
+                ty: Box::new(Ty::new(ty.boxed_ty())),
+            };
+        }
+        match ty.kind() {
+            TyKind::Bool => Self::Bool,
+            TyKind::Int(..) | TyKind::Uint(..) => Self::Int,
+            TyKind::Float(..) => Self::Float,
+            TyKind::Adt(def, args) => Self::Adt { def: *def, args },
+            TyKind::Ref(_, ty, Mutability::Not) => Self::Transparent {
+                kind: TransparentKind::RefImmut,
+                ty: Box::new(Ty::new(*ty)),
+            },
+            TyKind::Ref(_, ty, Mutability::Mut) => Self::RefMut {
+                ty: Box::new(Ty::new(*ty)),
+            },
+            TyKind::FnDef(def_id, generic_args_ref) | TyKind::Closure(def_id, generic_args_ref) => {
+                Self::Fn(FunTy {
+                    def_id: *def_id,
+                    generic_args_ref,
+                })
+            }
+            TyKind::Tuple(elems) => Self::Tuple {
+                elems: elems.into_iter().map(Ty::new).collect(),
+            },
+            _ => panic!("{ty} is not supported yet"),
         }
     }
 }
 
-impl<'tcx> std::ops::Deref for Ty<'tcx> {
-    type Target = rustc_middle::ty::Ty<'tcx>;
+impl<'tcx> Ty<'tcx> {
+    pub fn new(ty: rustc_middle::ty::Ty<'tcx>) -> Self {
+        let kind = RhTyKind::from_raw(ty);
+        Self { ty, kind }
+    }
 
-    fn deref(&self) -> &Self::Target { &self.ty }
+    /// Returns `true` if the kind is [`RefMut`].
+    ///
+    /// [`RefMut`]: RhTyKind::RefMut
+    #[must_use]
+    pub fn is_ref_mut(&self) -> bool { matches!(self.kind, RhTyKind::RefMut { .. }) }
+
+    pub fn is_unit(&self) -> bool { self.ty.is_unit() }
+
+    pub fn kind(&self) -> &'_ RhTyKind<'tcx> { &self.kind }
 }
 
 fn sort_set<T: Ord>(set: HashSet<T>) -> Vec<T> {
@@ -115,22 +181,18 @@ impl<T: Eq + Hash> OrderedSet<T> {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct FunTy<'tcx> {
     pub def_id: DefId,
     pub generic_args_ref: GenericArgsRef<'tcx>,
 }
 
 impl<'tcx> Ty<'tcx> {
-    pub fn as_fun_ty(self) -> Option<FunTy<'tcx>> {
-        match *self.kind() {
-            TyKind::FnDef(def_id, generic_args) | TyKind::Closure(def_id, generic_args) => {
-                Some(FunTy {
-                    def_id,
-                    generic_args_ref: generic_args,
-                })
-            }
-            _ => None,
+    pub fn as_fun_ty(&self) -> Option<FunTy<'tcx>> {
+        if let RhTyKind::Fn(fun_ty) = self.kind {
+            Some(fun_ty)
+        } else {
+            None
         }
     }
 }

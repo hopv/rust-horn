@@ -20,9 +20,7 @@ pub fn enumerate_basicblock_datas<'a, 'tcx>(
     bbds.iter_enumerated().filter(|(_, bbd)| !bbd.is_cleanup)
 }
 
-pub fn has_any_type(generic_args: GenericArgsRef<'_>) -> bool {
-    generic_args.types().next().is_some()
-}
+pub fn has_any_type(args: GenericArgsRef<'_>) -> bool { args.types().next().is_some() }
 
 /// Returns `true` if the given [`DefId`] is the main function.
 pub fn is_main(tcx: TyCtxt, def_id: DefId) -> bool {

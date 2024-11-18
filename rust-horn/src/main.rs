@@ -1,6 +1,7 @@
 #![feature(rustc_private)]
 #![feature(box_patterns)]
 #![feature(pattern)]
+#![feature(if_let_guard)]
 
 extern crate rustc_apfloat;
 extern crate rustc_data_structures;
