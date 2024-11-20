@@ -307,20 +307,6 @@ fn gather_conds_from_statement<'tcx>(
                 panic!("unexpected terminator {terminator:?} for taking discriminant",)
             };
         }
-        StatementKind::Assign(box (place, Rvalue::Use(Operand::Copy(mutbor))))
-            if let RhTyKind::RefMut { ty: ty_body } = mutbor.get_ty(mir_access).kind() =>
-        {
-            let expr = mutbor.get_mut_expr(env, mir_access);
-            let ref_ty = mutbor.get_ty(mir_access);
-            if let Expr::Path(path) = expr {
-                *expr = Expr::pair(ref_ty, Expr::decompose_mut_path(path));
-            }
-            let Some((ref_ty, fst, _)) = expr.as_mut_pair() else {
-                panic!("unexpected expression {expr:?} for a mutable reference");
-            };
-            let new_expr = fst.do_borrow_mut(*ty_body.clone(), ref_ty, (bb, stmt_index));
-            place.assign(new_expr, env, conds, mir_access);
-        }
         StatementKind::Assign(box (place, rvalue)) => {
             let expr = rvalue.get_expr_at((bb, stmt_index), env, mir_access);
             place.assign(expr, env, conds, mir_access);

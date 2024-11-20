@@ -339,22 +339,6 @@ impl<'tcx> Expr<'tcx> {
         }
     }
 
-    /// Destruct a pair of expressions if possible.
-    pub fn as_mut_pair(&mut self) -> Option<(Ty<'tcx>, &'_ mut Self, &'_ mut Self)> {
-        let Expr::Aggregate {
-            ty,
-            variant_index: VRT0,
-            fields,
-        } = self
-        else {
-            return None;
-        };
-        let [fst, snd] = fields.as_mut_slice() else {
-            return None;
-        };
-        Some((ty.clone(), fst, snd))
-    }
-
     fn aggregate_proj(
         base_ty: Ty<'tcx>,
         variant_index: VariantIdx,
