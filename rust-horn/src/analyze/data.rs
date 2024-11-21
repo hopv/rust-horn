@@ -126,7 +126,9 @@ impl<'tcx> Path<'tcx> {
         match self {
             Path::Var(_, ty)
             | Path::Proj {
-                projection: Proj { base_ty: ty, .. },
+                projection: Proj {
+                    projected_ty: ty, ..
+                },
                 ..
             } => ty.clone(),
         }
@@ -141,7 +143,7 @@ impl<'tcx> Path<'tcx> {
             Path::Var(Var::Uninit, _) => self.clone(),
             _ => Path::Proj {
                 projection: Proj {
-                    base_ty: ty.clone(),
+                    projected_ty: ty.clone(),
                     variant_index,
                     field_index,
                 },
@@ -426,7 +428,7 @@ pub type Env<'tcx> = IndexMap<Local, Expr<'tcx>>;
 
 #[derive(Debug, Clone)]
 pub struct Proj<'tcx> {
-    pub base_ty: Ty<'tcx>,
+    pub projected_ty: Ty<'tcx>,
     pub variant_index: VariantIdx,
     pub field_index: FieldIdx,
 }
@@ -443,24 +445,24 @@ impl<'tcx> Site<'tcx> {
         let mut variant_index = VRT0;
         for (i, proj) in projection.iter().enumerate() {
             let mut next_variant_index = VRT0;
-            let base_ty = place.get_ty_with(mir_access, i);
+            let projected_ty = place.get_ty_with(mir_access, i);
             match proj {
-                ProjectionElem::Deref => match base_ty.kind() {
+                ProjectionElem::Deref => match projected_ty.kind() {
                     RhTyKind::Transparent { .. } => {}
                     RhTyKind::RefMut { .. } => {
                         projs.push(Proj {
                             variant_index: VRT0,
                             field_index: FLD0,
-                            base_ty,
+                            projected_ty,
                         });
                     }
-                    _ => panic!("unexpected type {base_ty} for dereference"),
+                    _ => panic!("unexpected type {projected_ty} for dereference"),
                 },
                 ProjectionElem::Downcast(_, variant_index) => {
                     next_variant_index = variant_index;
                 }
                 ProjectionElem::Field(field_index, _) => {
-                    match base_ty.kind() {
+                    match projected_ty.kind() {
                         RhTyKind::Adt { def, .. } => assert!(
                             variant_index.index() < def.variants().len()
                                 && field_index.index() < def.variants()[variant_index].fields.len()
@@ -468,12 +470,12 @@ impl<'tcx> Site<'tcx> {
                         RhTyKind::Tuple { elems } => {
                             assert!(variant_index == VRT0 && field_index.index() < elems.len());
                         }
-                        _ => panic!("unexpected type {base_ty} for taking a field"),
+                        _ => panic!("unexpected type {projected_ty} for taking a field"),
                     };
                     projs.push(Proj {
                         variant_index,
                         field_index,
-                        base_ty,
+                        projected_ty,
                     });
                 }
                 _ => panic!("unsupported projection element {proj:?}"),
@@ -499,13 +501,15 @@ impl<'tcx> ReadExprExt<'tcx> for Place<'tcx> {
             Some(expr) => expr.clone(),
         };
         for Proj {
-            base_ty,
+            projected_ty,
             variant_index,
             field_index,
         } in projs
         {
             expr = match expr {
-                Expr::Path(path) => Expr::Path(path.get_proj(&base_ty, variant_index, field_index)),
+                Expr::Path(path) => {
+                    Expr::Path(path.get_proj(&projected_ty, variant_index, field_index))
+                }
                 Expr::Aggregate {
                     variant_index: variant_index2,
                     mut fields,
@@ -540,14 +544,14 @@ impl<'tcx> ReadExprMutExt<'tcx> for Place<'tcx> {
             .entry(local)
             .or_insert_with(|| Expr::uninit(self.get_ty(mir_access)));
         for Proj {
-            base_ty,
+            projected_ty,
             variant_index,
             field_index,
         } in projs
         {
             expr = match expr {
                 Expr::Path(path) => {
-                    *expr = Expr::aggregate_proj(base_ty, variant_index, path);
+                    *expr = Expr::aggregate_proj(projected_ty, variant_index, path);
                     expr.as_mut_aggregate_fields()
                         .unwrap()
                         .get_mut(field_index.index())

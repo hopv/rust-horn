@@ -95,7 +95,7 @@ fn rep_builder(base_ty: &Ty, variant_index: VariantIdx) -> String {
         _ => panic!("unexpected type {base_ty} for projection"),
     }
 }
-fn rep_selector_name(base_ty: Ty, variant_index: VariantIdx, field_index: FieldIdx) -> String {
+fn rep_selector_name(base_ty: &Ty, variant_index: VariantIdx, field_index: FieldIdx) -> String {
     match base_ty.kind() {
         RhTyKind::RefMut { box ty } => {
             assert!(variant_index == VRT0);
@@ -382,7 +382,7 @@ impl Display for Rep<&Path<'_>> {
             Path::Proj {
                 projection:
                     Proj {
-                        base_ty,
+                        projected_ty,
                         variant_index,
                         field_index,
                     },
@@ -391,7 +391,7 @@ impl Display for Rep<&Path<'_>> {
                 write!(
                     f,
                     "({} {})",
-                    rep_selector_name(base_ty.clone(), *variant_index, *field_index),
+                    rep_selector_name(projected_ty, *variant_index, *field_index),
                     rep(path)
                 )
             }
