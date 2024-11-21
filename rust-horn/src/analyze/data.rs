@@ -444,7 +444,7 @@ impl<'tcx> Site<'tcx> {
         for (i, proj) in projection.iter().enumerate() {
             let mut next_variant_index = VRT0;
             let base_ty = place.get_ty_with(mir_access, i);
-            match &proj {
+            match proj {
                 ProjectionElem::Deref => match base_ty.kind() {
                     RhTyKind::Transparent { .. } => {}
                     RhTyKind::RefMut { .. } => {
@@ -457,7 +457,7 @@ impl<'tcx> Site<'tcx> {
                     _ => panic!("unexpected type {base_ty} for dereference"),
                 },
                 ProjectionElem::Downcast(_, variant_index) => {
-                    next_variant_index = *variant_index;
+                    next_variant_index = variant_index;
                 }
                 ProjectionElem::Field(field_index, _) => {
                     match base_ty.kind() {
@@ -472,7 +472,7 @@ impl<'tcx> Site<'tcx> {
                     };
                     projs.push(Proj {
                         variant_index,
-                        field_index: *field_index,
+                        field_index,
                         base_ty,
                     });
                 }
