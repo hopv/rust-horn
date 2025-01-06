@@ -419,6 +419,19 @@ fn gather_conds_from_fun<'tcx>(
             },
         });
         return;
+    } else if crate::pr_name(did) == "spawn" {
+        let callee_fn_def_id = args[0].node.get_ty(mir_access).as_fun_ty().unwrap().def_id;
+        def_request.analyze_fun(callee_fn_def_id);
+        let args: Vec<_> = args
+            .iter()
+            .skip(1)
+            .map(|arg| arg.node.get_expr(env, mir_access))
+            .collect();
+        conds.push(Cond::CallRustFn {
+            fun_id: callee_fn_def_id,
+            args,
+        });
+        return;
     } else if crate::pr_name(did) == "Sender::clone" {
         // ad-hoc
         let (x, x_) = args[0].node.get_expr(env, mir_access).decompose_mut();
