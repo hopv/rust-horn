@@ -12,12 +12,20 @@ use crate::types::{
 };
 use crate::util::{has_any_type, is_main, Cap, FLD0, FLD1, VRT0};
 
+/// Export [`Display`] type as converted one from some type. See their impl and reference for example.
+pub trait SmtLib2Display<'tcx> {
+    type Formatted<'this>: Display
+    where Self: 'this;
+
+    fn format(&self, tcx: TyCtxt<'tcx>) -> Self::Formatted<'_>;
+}
+
 /* basic */
 
-pub struct Rep<T> {
+struct Rep<T> {
     unrep: T,
 }
-pub fn rep<T>(x: T) -> Rep<T> { Rep { unrep: x } }
+fn rep<T>(x: T) -> Rep<T> { Rep { unrep: x } }
 impl<T> Display for Rep<&T>
 where
     T: Copy,
@@ -181,10 +189,10 @@ impl Display for Rep<&Ty<'_>> {
         }
     }
 }
-pub struct RepTyList<'tcx> {
+struct RepTyList<'tcx> {
     inner: Tys<'tcx>,
 }
-pub fn rep_ty_list<'tcx>(ty_list: impl Iterator<Item = Ty<'tcx>>) -> impl Display + 'tcx {
+fn rep_ty_list<'tcx>(ty_list: impl Iterator<Item = Ty<'tcx>>) -> impl Display + 'tcx {
     RepTyList {
         inner: ty_list.collect(),
     }
@@ -645,15 +653,15 @@ impl Display for RepFunDef<'_, '_> {
 
 /* summary */
 
-struct RepSummary<'a, 'tcx> {
-    summary: &'a Summary<'tcx>,
-    tcx: TyCtxt<'tcx>,
+impl<'tcx> SmtLib2Display<'tcx> for Summary<'tcx> {
+    type Formatted<'this> = RepSummary<'this, 'tcx> where Self: 'this;
+
+    fn format(&self, tcx: TyCtxt<'tcx>) -> Self::Formatted<'_> { RepSummary { summary: self, tcx } }
 }
-pub fn rep_summary<'a, 'tcx: 'a>(
+
+pub struct RepSummary<'a, 'tcx> {
     summary: &'a Summary<'tcx>,
     tcx: TyCtxt<'tcx>,
-) -> impl Display + Cap<'tcx> + 'a {
-    RepSummary { summary, tcx }
 }
 impl Display for RepSummary<'_, '_> {
     fn fmt(&self, f: &mut Formatter) -> FResult {

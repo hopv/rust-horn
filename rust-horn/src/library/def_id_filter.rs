@@ -141,6 +141,7 @@ impl RichDefPathCache {
 }
 
 #[derive(Debug, Clone)]
+/// Enriched version of [`rustc_hir::definitions::DefPath`].
 struct RichDefPath {
     data: Vec<RichDefPathData>,
 }
@@ -152,7 +153,7 @@ struct RichDefPathData {
 }
 
 impl RichDefPath {
-    /// Similar to `DefPath::make`, but also stores `DefId` for each component.
+    /// Similar to [`rustc_hir::definitions::DefPath::make`], but stores `DefId` for each component.
     fn make(tcx: TyCtxt, mut def_id: DefId) -> Self {
         let mut data = vec![];
         let mut index = Some(def_id.index);

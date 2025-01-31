@@ -34,10 +34,9 @@ use std::fs::File;
 use std::io::{Result, Write};
 use std::path::PathBuf;
 
-use crate::analyze::analyze;
-use crate::prettify::{pr_mir, pr_mir_dot, pr_name};
-use crate::represent::rep_summary;
-use crate::types::{DefPathData, TyCtxt};
+use prettify::{pr_mir, pr_mir_dot, pr_name};
+use represent::SmtLib2Display;
+use types::{DefPathData, TyCtxt};
 
 fn main() {
     println!("RustHorn!");
@@ -143,12 +142,12 @@ fn drive_rust_horn(tcx: TyCtxt, opts: &Options) -> Result<()> {
             write!(dot_file, "{}", pr_mir_dot(&mir, fun, tcx))?;
         }
     }
-    let summary = analyze(tcx);
+    let summary = analyze::analyze_from_main_fn(tcx);
     let path = &opts.output_file;
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
     let mut output_file = File::create(path)?;
-    write!(output_file, "{}", rep_summary(&summary, tcx))?;
+    write!(output_file, "{}", summary.format(tcx))?;
     Ok(())
 }

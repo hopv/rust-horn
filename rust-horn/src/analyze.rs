@@ -40,7 +40,7 @@ impl<'tcx> Rule<'tcx> {
         }: Prerule<'tcx>,
         mir_access: MirAccess<'_, 'tcx>,
         is_main: bool,
-        def_request: &mut DefRequest<'tcx>,
+        def_request: &mut Request<'tcx>,
     ) -> Self {
         let mut args = init_env
             .into_iter()
@@ -188,7 +188,7 @@ fn get_prerule<'tcx>(
     init_bb: BasicBlock,
     init_env: Env<'tcx>,
     data: Data<'_, '_, 'tcx>,
-    def_request: &mut DefRequest<'tcx>,
+    def_request: &mut Request<'tcx>,
 ) -> Prerule<'tcx> {
     let mut bb = init_bb;
     let mut conds = Vec::<Cond<'tcx>>::new();
@@ -350,7 +350,7 @@ fn gather_conds_from_fun<'tcx>(
     mir_access: MirAccess<'_, 'tcx>,
     env: &mut Env<'tcx>,
     conds: &mut Vec<Cond<'tcx>>,
-    def_request: &mut DefRequest<'tcx>,
+    def_request: &mut Request<'tcx>,
 ) {
     let did = instance.def_id();
     let fun_name = pr_fun_name(did);
@@ -404,7 +404,7 @@ fn analyze_pivot<'tcx>(
     is_main: bool,
     pivot: Pivot,
     data: Data<'_, '_, 'tcx>,
-    def_request: &mut DefRequest<'tcx>,
+    def_request: &mut Request<'tcx>,
 ) -> PivotDef<'tcx> {
     let Data {
         basic, mir_access, ..
@@ -506,7 +506,7 @@ fn analyze_pivot<'tcx>(
 fn analyze_fun<'tcx>(
     fun_id: DefId,
     tcx: TyCtxt<'tcx>,
-    def_request: &mut DefRequest<'tcx>,
+    def_request: &mut Request<'tcx>,
 ) -> FunDef<'tcx> {
     let mir = tcx.mir_built(fun_id.expect_local()).borrow();
     let bbds = &mir.basic_blocks;
@@ -539,34 +539,36 @@ pub struct Summary<'tcx> {
     pub mut_tuples: Vec<Ty<'tcx>>,
 }
 
-pub fn analyze<'tcx>(tcx: TyCtxt<'tcx>) -> Summary<'tcx> {
+/// Analyze functions reachable from the main function.
+pub fn analyze_from_main_fn<'tcx>(tcx: TyCtxt<'tcx>) -> Summary<'tcx> {
     let mut fun_defs: IndexMap<DefId, FunDef<'tcx>> = IndexMap::new();
-    let mut def_request = DefRequest::default();
-    /* analyze the main function */
+    let mut request = Request::default();
+
     let Some((main, EntryFnType::Main { .. })) = tcx.entry_fn(()) else {
-        panic!("no main function!");
+        panic!("there is no entry point; Rust-Horn only works on programs with main function");
     };
-    fun_defs.insert(main, analyze_fun(main, tcx, &mut def_request));
+    request.analyze_fun(main);
 
     /* analyze required functions */
     loop {
-        let requested_funs: Vec<_> = def_request.accept_analyze_fun().collect();
+        let requested_funs: Vec<_> = request.accept_analyze_fun().collect();
         if requested_funs.is_empty() {
             break;
         }
         for fun_id in requested_funs {
             fun_defs
                 .entry(fun_id)
-                .or_insert_with(|| analyze_fun(fun_id, tcx, &mut def_request));
+                .or_insert_with(|| analyze_fun(fun_id, tcx, &mut request));
         }
     }
+
     /* return results */
-    let DefRequest {
-        fun_ids,
+    let Request {
+        to_be_analyzed_fun_ids: fun_ids,
         adt_ids,
         tuples,
-        mut_tuples,
-    } = def_request;
+        tuple_of_muts: mut_tuples,
+    } = request;
     assert!(fun_ids.is_empty());
     Summary {
         fun_defs: fun_defs.into_iter().collect(),
@@ -577,23 +579,23 @@ pub fn analyze<'tcx>(tcx: TyCtxt<'tcx>) -> Summary<'tcx> {
 }
 
 #[derive(Debug, Default)]
-/// Request for a definition.
-pub struct DefRequest<'tcx> {
-    fun_ids: IndexSet<DefId>,
+/// Request for analysis or definition.
+pub struct Request<'tcx> {
+    to_be_analyzed_fun_ids: IndexSet<DefId>,
     adt_ids: IndexSet<DefId>,
     tuples: IndexSet<Tys<'tcx>>,
-    mut_tuples: IndexSet<Ty<'tcx>>,
+    tuple_of_muts: IndexSet<Ty<'tcx>>,
 }
 
-impl<'tcx> DefRequest<'tcx> {
-    pub fn analyze_fun(&mut self, fun_ty: DefId) { self.fun_ids.insert(fun_ty); }
+impl<'tcx> Request<'tcx> {
+    pub fn analyze_fun(&mut self, fun_ty: DefId) { self.to_be_analyzed_fun_ids.insert(fun_ty); }
     pub fn add_adt_def(&mut self, def_id: DefId) -> bool { self.adt_ids.insert(def_id) }
     pub fn add_tuple_def(&mut self, tys: Tys<'tcx>) -> bool { self.tuples.insert(tys) }
-    pub fn add_mut_tuple_def(&mut self, ty: Ty<'tcx>) -> bool { self.mut_tuples.insert(ty) }
+    pub fn add_mut_tuple_def(&mut self, ty: Ty<'tcx>) -> bool { self.tuple_of_muts.insert(ty) }
 
     /// Accept the request for analyzing functions. Returns an iterator of the requested functions.
-    pub fn accept_analyze_fun(&mut self) -> impl Iterator<Item = DefId> {
-        std::mem::take(&mut self.fun_ids).into_iter()
+    pub fn accept_analyze_fun(&mut self) -> impl ExactSizeIterator<Item = DefId> {
+        std::mem::take(&mut self.to_be_analyzed_fun_ids).into_iter()
     }
 }
 
@@ -601,7 +603,7 @@ pub trait GatherVars<'tcx> {
     fn gather_vars(
         &self,
         mir_access: MirAccess<'_, 'tcx>,
-        def_request: &mut DefRequest<'tcx>,
+        def_request: &mut Request<'tcx>,
         vars: &mut IndexMap<Var, Ty<'tcx>>,
     );
 }
@@ -619,7 +621,7 @@ impl<'tcx> GatherVars<'tcx> for Path<'tcx> {
     fn gather_vars(
         &self,
         _: MirAccess<'_, 'tcx>,
-        _: &mut DefRequest<'tcx>,
+        _: &mut Request<'tcx>,
         vars: &mut IndexMap<Var, Ty<'tcx>>,
     ) {
         traverse_path(self, vars);
@@ -630,7 +632,7 @@ impl<'tcx> GatherVars<'tcx> for Expr<'tcx> {
     fn gather_vars(
         &self,
         _: MirAccess<'_, 'tcx>,
-        _: &mut DefRequest<'tcx>,
+        _: &mut Request<'tcx>,
         vars: &mut IndexMap<Var, Ty<'tcx>>,
     ) {
         fn traverse_expr<'tcx>(expr: &Expr<'tcx>, vars: &mut IndexMap<Var, Ty<'tcx>>) {
@@ -667,7 +669,7 @@ impl<'tcx> GatherVars<'tcx> for Cond<'tcx> {
     fn gather_vars(
         &self,
         mir_access: MirAccess<'_, 'tcx>,
-        def_request: &mut DefRequest<'tcx>,
+        def_request: &mut Request<'tcx>,
         vars: &mut IndexMap<Var, Ty<'tcx>>,
     ) {
         match self {
@@ -693,7 +695,7 @@ impl<'tcx> GatherVars<'tcx> for End<'tcx> {
     fn gather_vars(
         &self,
         mir_access: MirAccess<'_, 'tcx>,
-        def_request: &mut DefRequest<'tcx>,
+        def_request: &mut Request<'tcx>,
         vars: &mut IndexMap<Var, Ty<'tcx>>,
     ) {
         match self {
@@ -714,7 +716,7 @@ impl<'tcx, T: GatherVars<'tcx>> GatherVars<'tcx> for Vec<T> {
     fn gather_vars(
         &self,
         mir_access: MirAccess<'_, 'tcx>,
-        def_request: &mut DefRequest<'tcx>,
+        def_request: &mut Request<'tcx>,
         vars: &mut IndexMap<Var, Ty<'tcx>>,
     ) {
         for item in self {
@@ -723,7 +725,7 @@ impl<'tcx, T: GatherVars<'tcx>> GatherVars<'tcx> for Vec<T> {
     }
 }
 
-impl<'tcx> DefRequest<'tcx> {
+impl<'tcx> Request<'tcx> {
     fn update_by_ty(&mut self, ty: &Ty<'tcx>, mir_access: MirAccess<'_, 'tcx>) {
         match ty.kind() {
             RhTyKind::Bool | RhTyKind::Int | RhTyKind::Float => {}
