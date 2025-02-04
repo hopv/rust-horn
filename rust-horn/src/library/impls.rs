@@ -102,6 +102,7 @@ pub fn provide_optlib_channel(store: &mut ItemStore) {
 // FIXME: This is a temporary hack to provide the definition of
 // `LockHistory` for `{local}::Mutex`. We will later
 // invent a more general way to provide such definitions.
+#[allow(dead_code)]
 pub fn provide_optlib_mutex(store: &mut ItemStore) {
     let self_str = "LockHistory<Int>";
     let mutex_def = store.register_item(
