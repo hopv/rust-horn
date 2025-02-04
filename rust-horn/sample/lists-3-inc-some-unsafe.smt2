@@ -1,5 +1,6 @@
 (set-logic HORN)
 
+; adt definitions
 (declare-datatypes ((%List 0)) ((par () (
   (%List-0 (%List-0.0 Int) (%List-0.1 %List))
   %List-1))))
@@ -8,6 +9,7 @@
 (declare-datatypes ((~Mut<Int> 0)) ((par () ((~mut<Int> (~cur<Int> Int) (~ret<Int> Int))))))
 (declare-datatypes ((~Mut<%List> 0)) ((par () ((~mut<%List> (~cur<%List> %List) (~ret<%List> %List))))))
 
+; functions
 (declare-fun %main (Bool) Bool)
 (declare-fun %main.4 (%List Int ~Mut<Int> Int Bool Bool) Bool)
 (declare-fun %sum (%List Int) Bool)

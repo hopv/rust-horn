@@ -3,6 +3,7 @@
 ; monomorphized tuple definitions for mutable references
 (declare-datatypes ((~Mut<Int> 0)) ((par () ((~mut<Int> (~cur<Int> Int) (~ret<Int> Int))))))
 
+; functions
 (declare-fun %main (Bool) Bool)
 (declare-fun %main.4 (Int Int Int Bool Bool) Bool)
 (declare-fun %main.6 (Int Int Int Bool Bool Bool) Bool)
