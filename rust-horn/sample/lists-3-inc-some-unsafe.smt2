@@ -1,5 +1,9 @@
 (set-logic HORN)
 
+; library definitions
+(declare-datatypes ((ChannelBuf<Int> 0)) ((par () ((insert (head Int) (tail ChannelBuf<Int>)) (nilBuf)))))
+(declare-datatypes ((LockHistory<Int> 0)) ((par () ((insertLock (headHist ~Mut<Int>) (tailHist LockHistory<Int>)) (nilHistory)))))
+
 ; adt definitions
 (declare-datatypes ((%List 0)) ((par () (
   (%List-0 (%List-0.0 Int) (%List-0.1 %List))
@@ -8,6 +12,24 @@
 ; monomorphized tuple definitions for mutable references
 (declare-datatypes ((~Mut<Int> 0)) ((par () ((~mut<Int> (~cur<Int> Int) (~ret<Int> Int))))))
 (declare-datatypes ((~Mut<%List> 0)) ((par () ((~mut<%List> (~cur<%List> %List) (~ret<%List> %List))))))
+
+; library definitions
+(declare-fun Consistent (Int LockHistory<Int>) Bool)
+(assert (forall ((init Int)) (Consistent init nilHistory)))
+(assert (forall ((init Int) (init2 Int) (x LockHistory<Int>))
+  (=> (Consistent init2 x) (Consistent init (insertLock (~mut<Int> init init2) x)))))
+(declare-fun MergeInt (ChannelBuf<Int> ChannelBuf<Int> ChannelBuf<Int>) Bool)
+(assert (MergeInt nilBuf nilBuf nilBuf))
+(assert (forall ((x1 ChannelBuf<Int>) (x2 ChannelBuf<Int>) (x ChannelBuf<Int>) (n Int))
+  (=> (MergeInt x1 x2 x) (MergeInt (insert n x1) x2 (insert n x)))))
+(assert (forall ((x1 ChannelBuf<Int>) (x2 ChannelBuf<Int>) (x ChannelBuf<Int>) (n Int))
+  (=> (MergeInt x1 x2 x) (MergeInt x1 (insert n x2) (insert n x)))))
+(declare-fun MergeLock (LockHistory<Int> LockHistory<Int> LockHistory<Int>) Bool)
+(assert (MergeLock nilHistory nilHistory nilHistory))
+(assert (forall ((x1 LockHistory<Int>) (x2 LockHistory<Int>) (x LockHistory<Int>) (n ~Mut<Int>))
+  (=> (MergeLock x1 x2 x) (MergeLock (insertLock n x1) x2 (insertLock n x)))))
+(assert (forall ((x1 LockHistory<Int>) (x2 LockHistory<Int>) (x LockHistory<Int>) (n ~Mut<Int>))
+  (=> (MergeLock x1 x2 x) (MergeLock x1 (insertLock n x2) (insertLock n x)))))
 
 ; functions
 (declare-fun %main (Bool) Bool)
