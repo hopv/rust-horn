@@ -679,9 +679,21 @@ impl Display for RepSummary<'_, '_> {
         // preamble
         writeln!(f, "(set-logic HORN)")?;
 
+        // library definitions before adt definitions
+        let mut lib_defs = library::activated_chc_defs();
+        lib_defs.retain(|chc_def| chc_def.phase == library::RawDefPhase::BeforeAdtDef);
+        if !lib_defs.is_empty() {
+            writeln!(f)?;
+            writeln!(f, "; library definitions")?;
+        }
+        for chc_def in lib_defs {
+            writeln!(f, "{}", chc_def.raw)?;
+        }
+
         // adt definitions
         if !adt_ids.is_empty() {
             writeln!(f)?;
+            writeln!(f, "; adt definitions")?;
         }
         for &adt_id in adt_ids {
             write!(f, "{}", rep_adt(tcx.adt_def(adt_id), *tcx))?;
@@ -712,19 +724,21 @@ impl Display for RepSummary<'_, '_> {
             write!(f, "{}", rep_tup(elems.clone()))?;
         }
 
-        // additional functions
-        let chc_defs = library::activated_chc_defs();
-        if !chc_defs.is_empty() {
+        // library definitions after sort declarations
+        let mut lib_defs = library::activated_chc_defs();
+        lib_defs.retain(|chc_def| chc_def.phase == library::RawDefPhase::AfterDeclareSort);
+        if !lib_defs.is_empty() {
             writeln!(f)?;
             writeln!(f, "; library definitions")?;
         }
-        for chc_def in chc_defs {
+        for chc_def in lib_defs {
             writeln!(f, "{}", chc_def.raw)?;
         }
 
         // functions
         if !fun_defs.is_empty() {
             writeln!(f)?;
+            writeln!(f, "; functions")?;
         }
         for (fun_id, fun_def) in fun_defs {
             write!(f, "{}", rep_fun_sig(*fun_id, fun_def))?;

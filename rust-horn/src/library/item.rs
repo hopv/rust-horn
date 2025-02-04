@@ -97,9 +97,16 @@ impl TypeAttrValue {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RawDefPhase {
+    BeforeAdtDef,
+    AfterDeclareSort,
+}
+
 #[derive(Debug, Clone)]
 pub struct RawChcDef {
     pub raw: String,
+    pub phase: RawDefPhase,
 }
 
 #[derive(Debug, Clone)]
