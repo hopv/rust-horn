@@ -51,7 +51,7 @@ impl<'tcx> Rule<'tcx> {
             args.push(Expr::from_var(Var::SelfResult, res_ty));
         }
         if is_main {
-            args.push(Expr::from_var(Var::SelfPanic, mir_access.get_bool()));
+            args.push(Expr::from_var(Var::SelfPanic, mir_access.bool()));
         }
         let mut vars: IndexMap<Var, Ty> = IndexMap::new();
         args.gather_vars(mir_access, def_request, &mut vars);
@@ -142,7 +142,7 @@ impl<'a, 'tcx> Data<'a, '_, 'tcx> {
             res.push(res_ty);
         }
         if is_main {
-            res.push(mir_access.get_bool());
+            res.push(mir_access.bool());
         }
         res
     }
@@ -172,7 +172,7 @@ fn pivot_up<'tcx>(
         args.push(Expr::from_var(Var::SelfResult, res_ty));
     }
     if is_main {
-        args.push(Expr::from_var(Var::SelfPanic, mir_access.get_bool()));
+        args.push(Expr::from_var(Var::SelfPanic, mir_access.bool()));
     }
     Prerule {
         init_env,

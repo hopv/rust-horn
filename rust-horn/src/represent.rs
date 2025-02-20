@@ -361,6 +361,9 @@ impl Display for Rep<Var> {
                 identifier,
                 caller: bb,
             } => write!(f, "_@{identifier}.{}", bb.index()),
+            Var::Ident {
+                identifier: crate::analyze::data::Ident(id, _),
+            } => write!(f, "_@{id}"),
             Var::Rand { caller: bb } => write!(f, "_?.{}", bb.index()),
             Var::MutRet {
                 location: bb,

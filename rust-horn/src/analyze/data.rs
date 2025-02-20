@@ -1,3 +1,5 @@
+use std::sync::atomic::AtomicU32;
+
 use indexmap::IndexMap;
 use rustc_hash::FxHashSet;
 
@@ -16,7 +18,7 @@ pub struct MirAccess<'steal, 'tcx> {
     pub tcx: TyCtxt<'tcx>,
 }
 impl<'tcx> MirAccess<'_, 'tcx> {
-    pub fn get_bool(self) -> Ty<'tcx> { Ty::new(self.tcx.types.bool) }
+    pub fn bool(self) -> Ty<'tcx> { Ty::new(self.tcx.types.bool) }
 }
 
 pub trait GetTypeExt<'tcx> {
@@ -98,6 +100,11 @@ pub enum Var {
         /// `BasicBlock` of the `Call` instruction
         caller: BasicBlock,
     },
+    #[allow(dead_code)]
+    Ident {
+        /// Unique identifier of an Ident.
+        identifier: Ident,
+    },
     Rand {
         /// `BasicBlock` of the `Call` instruction
         caller: BasicBlock,
@@ -110,6 +117,24 @@ pub enum Var {
     Split(BasicBlock, VariantIdx, FieldIdx),
     /// Uninitialized value.
     Uninit,
+}
+
+mod sealed {
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+    pub struct SealedZst;
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct Ident(pub u32, pub sealed::SealedZst);
+
+impl Ident {
+    pub fn new() -> Self {
+        static COUNTER: AtomicU32 = AtomicU32::new(0);
+        Self(
+            COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+            sealed::SealedZst,
+        )
+    }
 }
 
 #[derive(Debug, Clone)]
