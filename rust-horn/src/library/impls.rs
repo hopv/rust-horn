@@ -75,7 +75,7 @@ pub fn provide_optlib_channel(store: &mut ItemStore) {
     let channel_def = store.register_item(
         ItemKind::RawChcDef(RawChcDef {
                 raw: format!(
-                    "(declare-datatypes (({self_str} 0)) ((par () ((insert (head Int) (tail {self_str})) (nilBuf)))))",
+                    "(declare-datatypes (({self_str} 0)) ((par () ((insert (content Int) (time Real) (tail {self_str})) (nilBuf)))))",
                 ),
                 phase: RawDefPhase::BeforeAdtDef,
         }),
@@ -86,10 +86,24 @@ pub fn provide_optlib_channel(store: &mut ItemStore) {
             raw: format!(
                 r#"(declare-fun MergeInt ({self_str} {self_str} {self_str}) Bool)
 (assert (MergeInt nilBuf nilBuf nilBuf))
-(assert (forall ((x1 {self_str}) (x2 {self_str}) (x {self_str}) (n Int))
-  (=> (MergeInt x1 x2 x) (MergeInt (insert n x1) x2 (insert n x)))))
-(assert (forall ((x1 {self_str}) (x2 {self_str}) (x {self_str}) (n Int))
-  (=> (MergeInt x1 x2 x) (MergeInt x1 (insert n x2) (insert n x)))))"#,
+(assert (forall ((x1 {self_str}) (x2 {self_str}) (x {self_str}) (n Int) (t Real))
+  (=> (MergeInt x1 x2 x) (MergeInt (insert n t x1) x2 (insert n t x)))))
+(assert (forall ((x1 {self_str}) (x2 {self_str}) (x {self_str}) (n Int) (t Real))
+  (=> (MergeInt x1 x2 x) (MergeInt x1 (insert n t x2) (insert n t x)))))"#,
+            ),
+            phase: RawDefPhase::AfterDeclareSort,
+        }),
+        None,
+    );
+    let sort_def = store.register_item(
+        ItemKind::RawChcDef(RawChcDef {
+            raw: format!(
+                r#"(declare-fun Sorted ({self_str}) Bool)
+(assert (Sorted nilBuf))
+(assert (forall ((n Int) (t Real))
+  (Sorted (insert n t nilBuf))))
+(assert (forall ((x {self_str}) (n1 Int) (t1 Real) (n2 Int) (t2 Real))
+  (=> (and (<= t1 t2) (Sorted (insert n1 t1 x))) (Sorted (insert n1 t1 (insert n2 t2 x))))))"#,
             ),
             phase: RawDefPhase::AfterDeclareSort,
         }),
@@ -97,6 +111,7 @@ pub fn provide_optlib_channel(store: &mut ItemStore) {
     );
     store.activate(channel_def);
     store.activate(merge_def);
+    store.activate(sort_def);
 }
 
 // FIXME: This is a temporary hack to provide the definition of

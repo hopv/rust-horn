@@ -22,6 +22,7 @@ pub struct MirAccess<'steal, 'tcx> {
 }
 impl<'tcx> MirAccess<'_, 'tcx> {
     pub fn bool(self) -> Ty<'tcx> { Ty::new(self.tcx.types.bool) }
+    pub fn f32(self) -> Ty<'tcx> { Ty::new(self.tcx.types.f32) }
 }
 
 pub trait GetTypeExt<'tcx> {
@@ -137,12 +138,13 @@ pub struct Ident(pub u32, pub sealed::SealedZst);
 impl Ident {
     #[allow(dead_code)]
     pub fn new() -> Self {
-        static COUNTER: AtomicU32 = AtomicU32::new(0);
+        static COUNTER: AtomicU32 = AtomicU32::new(1);
         Self(
             COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
             sealed::SealedZst,
         )
     }
+    pub const INIT_TIME: Self = Self(0, sealed::SealedZst);
 }
 
 #[derive(Debug, Clone)]

@@ -25,7 +25,7 @@ use std::{collections::HashSet, hash::Hash};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Ty<'tcx> {
-    ty: rustc_middle::ty::Ty<'tcx>,
+    pub ty: rustc_middle::ty::Ty<'tcx>,
     kind: RhTyKind<'tcx>,
 }
 

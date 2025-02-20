@@ -11,7 +11,7 @@ use graph::Basic;
 
 pub mod data;
 use data::{
-    set_tag, AssignExt, Cond, Const, DropExt, End, Env, Expr, GetTypeExt, Int, MirAccess,
+    set_tag, AssignExt, Cond, Const, DropExt, End, Env, Expr, GetTypeExt, Ident, Int, MirAccess,
     MirAccessCtxExt, Path, ReadExprCtxExt, ReadExprExt, ReadExprMutExt, Var,
 };
 use indexmap::{IndexMap, IndexSet};
@@ -184,6 +184,7 @@ fn get_prerule<'tcx>(
     is_main: bool,
     init_bb: BasicBlock,
     init_env: Env<'tcx>,
+    mut init_time: Ident,
     data: Data<'_, '_, 'tcx>,
     def_request: &mut Request<'tcx>,
 ) -> Prerule<'tcx> {
@@ -276,6 +277,7 @@ fn get_prerule<'tcx>(
                     },
                     mir_access,
                     &mut env,
+                    &mut init_time,
                     &mut conds,
                     def_request,
                 );
@@ -346,6 +348,7 @@ fn gather_conds_from_fun<'tcx>(
     }: FnCall<'_, 'tcx>,
     mir_access: MirAccess<'_, 'tcx>,
     env: &mut Env<'tcx>,
+    time: &mut Ident,
     conds: &mut Vec<Cond<'tcx>>,
     def_request: &mut Request<'tcx>,
 ) {
@@ -382,6 +385,16 @@ fn gather_conds_from_fun<'tcx>(
         return;
     } else if crate::pr_name(did) == "channel" {
         // ad-hoc
+        conds.push(Cond::Intrinsic {
+            name: "Sorted",
+            args: vec![Expr::from_var(
+                Var::CallIdent {
+                    identifier: 0,
+                    caller,
+                },
+                Ty::new(res_ty.tuple_fields()[0]),
+            )],
+        });
         res_place.assign(
             Expr::pair(
                 res_ty.clone(),
@@ -415,7 +428,11 @@ fn gather_conds_from_fun<'tcx>(
             tgt: y,
             src: Expr::Construct {
                 name: "insert",
-                args: vec![x, y_],
+                args: vec![
+                    x,
+                    Expr::from_var(Var::Ident { identifier: *time }, mir_access.f32()),
+                    y_,
+                ],
             },
         });
         return;
@@ -461,22 +478,35 @@ fn gather_conds_from_fun<'tcx>(
         return;
     } else if crate::pr_name(did) == "Receiver::recv" {
         // ad-hoc
-        let res = Expr::from_var(
+        let (y, y_) = args[0].node.get_expr(env, mir_access).decompose_mut();
+        let time_old = Expr::from_var(Var::Ident { identifier: *time }, mir_access.f32());
+        *time = Ident::new();
+        let time_prime = Expr::from_var(Var::Ident { identifier: *time }, mir_access.f32());
+        *time = Ident::new();
+        let time_prime_prime = Expr::from_var(Var::Ident { identifier: *time }, mir_access.f32());
+        let result = Expr::from_var(
             Var::CallIdent {
                 identifier: 0,
                 caller,
             },
-            res_ty,
+            res_ty.clone(),
         );
-        let (z, z_) = args[0].node.get_expr(env, mir_access).decompose_mut();
         conds.push(Cond::Eq {
-            tgt: z,
+            tgt: y,
             src: Expr::Construct {
                 name: "insert",
-                args: vec![res.clone(), z_],
+                args: vec![result.clone(), time_prime.clone(), y_],
             },
         });
-        res_place.assign(res, env, conds, mir_access);
+        conds.push(Cond::Intrinsic {
+            name: "<",
+            args: vec![time_prime, time_prime_prime.clone()],
+        });
+        conds.push(Cond::Intrinsic {
+            name: "<=",
+            args: vec![time_old, time_prime_prime],
+        });
+        res_place.assign(result, env, conds, mir_access);
         return;
     } else if crate::pr_name(did) == "Mutex::new" {
         // ad-hoc
@@ -592,7 +622,14 @@ fn analyze_pivot<'tcx>(
     }));
     match pivot {
         Pivot::Entry => {
-            prerules.push(get_prerule(is_main, START_BLOCK, env, data, def_request));
+            prerules.push(get_prerule(
+                is_main,
+                START_BLOCK,
+                env,
+                data::Ident::INIT_TIME,
+                data,
+                def_request,
+            ));
         }
         Pivot::Switch(bb) => {
             let terminator = &basic[bb].terminator();
@@ -609,7 +646,14 @@ fn analyze_pivot<'tcx>(
                                 let mut env = env.clone();
                                 *discr_place.get_mut_expr(&mut env, mir_access) =
                                     Expr::Const(Const::Bool(b));
-                                prerules.push(get_prerule(is_main, *tgt, env, data, def_request));
+                                prerules.push(get_prerule(
+                                    is_main,
+                                    *tgt,
+                                    env,
+                                    data::Ident::INIT_TIME,
+                                    data,
+                                    def_request,
+                                ));
                             }
                         }
                         RhTyKind::Int => {
@@ -618,12 +662,25 @@ fn analyze_pivot<'tcx>(
                                 let mut env = env.clone();
                                 let val_expr = Expr::Const(Const::Int(Int::Uint(*val)));
                                 *discr_place.get_mut_expr(&mut env, mir_access) = val_expr.clone();
-                                prerules.push(get_prerule(is_main, *tgt, env, data, def_request));
+                                prerules.push(get_prerule(
+                                    is_main,
+                                    *tgt,
+                                    env,
+                                    data::Ident::INIT_TIME,
+                                    data,
+                                    def_request,
+                                ));
                                 neq_srcs.push(val_expr);
                             }
                             let neq_tgt = discr_place.get_expr(&mut env, mir_access);
-                            let mut prerule =
-                                get_prerule(is_main, rest_target, env, data, def_request);
+                            let mut prerule = get_prerule(
+                                is_main,
+                                rest_target,
+                                env,
+                                data::Ident::INIT_TIME,
+                                data,
+                                def_request,
+                            );
                             prerule.conds.push(Cond::Neq {
                                 tgt: neq_tgt,
                                 srcs: neq_srcs,
@@ -660,7 +717,14 @@ fn analyze_pivot<'tcx>(
                                 variant_index,
                                 fields: args,
                             };
-                            prerules.push(get_prerule(is_main, *tgt, env, data, def_request));
+                            prerules.push(get_prerule(
+                                is_main,
+                                *tgt,
+                                env,
+                                data::Ident::INIT_TIME,
+                                data,
+                                def_request,
+                            ));
                         }
                     }
                 }
