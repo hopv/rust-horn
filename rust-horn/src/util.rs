@@ -1,11 +1,10 @@
 use crate::types::{
-    BasicBlock, BasicBlockData, BasicBlocks, DefId, FieldIdx, GenericArgsRef, Local, TyCtxt,
-    VariantIdx,
+    BasicBlock, BasicBlockData, BasicBlocks, DefId, FieldIdx, GenericArgsRef, TyCtxt,
 };
 
-pub const BB0: BasicBlock = BasicBlock::from_u32(0);
-pub const _0: Local = Local::from_u32(0);
-pub const VRT0: VariantIdx = VariantIdx::from_u32(0);
+pub use rustc_middle::mir::{RETURN_PLACE, START_BLOCK};
+pub use rustc_target::abi::FIRST_VARIANT;
+
 pub const FLD0: FieldIdx = FieldIdx::from_u32(0);
 pub const FLD1: FieldIdx = FieldIdx::from_u32(1);
 

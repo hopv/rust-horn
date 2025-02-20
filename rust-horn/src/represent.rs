@@ -10,7 +10,7 @@ use crate::types::{
     with_tcx, AdtDef, DefId, FieldIdx, GenericArgs, GenericArgsRef, RhTyKind, Ty, TyCtxt, Tys,
     VariantDef, VariantIdx,
 };
-use crate::util::{has_any_type, is_main, Cap, FLD0, FLD1, VRT0};
+use crate::util::{has_any_type, is_main, Cap, FIRST_VARIANT, FLD0, FLD1};
 
 /// Export [`Display`] type as converted one from some type. See their impl and reference for example.
 pub trait SmtLib2Display<'tcx> {
@@ -85,7 +85,7 @@ fn rep_adt_selector_name(
 fn rep_builder(base_ty: &Ty, variant_index: VariantIdx) -> String {
     match base_ty.kind() {
         RhTyKind::RefMut { box ty } => {
-            assert!(variant_index == VRT0);
+            assert!(variant_index == FIRST_VARIANT);
             format!("~mut<{}>", rep(ty))
         }
         RhTyKind::Adt { def, args } => {
@@ -97,7 +97,7 @@ fn rep_builder(base_ty: &Ty, variant_index: VariantIdx) -> String {
             }
         }
         RhTyKind::Tuple { elems } => {
-            assert!(variant_index == VRT0);
+            assert!(variant_index == FIRST_VARIANT);
             format!("~tup{}", rep_ty_list(elems.iter().cloned()))
         }
         _ => panic!("unexpected type {base_ty} for projection"),
@@ -106,7 +106,7 @@ fn rep_builder(base_ty: &Ty, variant_index: VariantIdx) -> String {
 fn rep_selector_name(base_ty: &Ty, variant_index: VariantIdx, field_index: FieldIdx) -> String {
     match base_ty.kind() {
         RhTyKind::RefMut { box ty } => {
-            assert!(variant_index == VRT0);
+            assert!(variant_index == FIRST_VARIANT);
             match field_index {
                 FLD0 => format!("~cur<{}>", rep(ty)),
                 FLD1 => format!("~ret<{}>", rep(ty)),
@@ -118,7 +118,7 @@ fn rep_selector_name(base_ty: &Ty, variant_index: VariantIdx, field_index: Field
         }
         RhTyKind::Adt { def, .. } => rep_adt_selector_name(*def, variant_index, field_index),
         RhTyKind::Tuple { elems } => {
-            assert!(variant_index == VRT0);
+            assert!(variant_index == FIRST_VARIANT);
             format!(
                 "~at{}/{}",
                 field_index.index(),

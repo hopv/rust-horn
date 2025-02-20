@@ -7,7 +7,7 @@ use crate::types::{
     ProjectionElem, RhTyKind, Rvalue, Size, TransparentKind, Ty, TyCtxt, TyKind, VariantIdx,
     DUMMY_SP,
 };
-use crate::util::{FLD0, FLD1, VRT0};
+use crate::util::{FIRST_VARIANT, FLD0, FLD1};
 
 #[derive(Copy, Clone)]
 /// Access to the MIR and the type context.
@@ -336,7 +336,7 @@ impl<'tcx> Expr<'tcx> {
     pub fn pair(ty: Ty<'tcx>, (fst, snd): (Self, Self)) -> Self {
         Expr::Aggregate {
             ty,
-            variant_index: VRT0,
+            variant_index: FIRST_VARIANT,
             fields: vec![fst, snd],
         }
     }
@@ -403,15 +403,15 @@ impl<'tcx> Expr<'tcx> {
             "unexpected type {ty:?} for a mutable reference",
         );
         (
-            Expr::Path(path.get_proj(&ty, VRT0, FLD0)),
-            Expr::Path(path.get_proj(&ty, VRT0, FLD1)),
+            Expr::Path(path.get_proj(&ty, FIRST_VARIANT, FLD0)),
+            Expr::Path(path.get_proj(&ty, FIRST_VARIANT, FLD1)),
         )
     }
     pub fn decompose_mut(self) -> (Self, Self) {
         match self {
             Expr::Path(path) => Self::decompose_mut_path(&path),
             Expr::Aggregate {
-                variant_index: VRT0,
+                variant_index: FIRST_VARIANT,
                 fields: mut xx_,
                 ..
             } if xx_.len() == 2 => {
@@ -442,16 +442,16 @@ impl<'tcx> Site<'tcx> {
     fn from_place(place: &Place<'tcx>, mir_access: MirAccess<'_, 'tcx>) -> Self {
         let Place { local, projection } = place;
         let mut projs = Vec::<Proj>::new();
-        let mut variant_index = VRT0;
+        let mut variant_index = FIRST_VARIANT;
         for (i, proj) in projection.iter().enumerate() {
-            let mut next_variant_index = VRT0;
+            let mut next_variant_index = FIRST_VARIANT;
             let projected_ty = place.get_ty_with(mir_access, i);
             match proj {
                 ProjectionElem::Deref => match projected_ty.kind() {
                     RhTyKind::Transparent { .. } => {}
                     RhTyKind::RefMut { .. } => {
                         projs.push(Proj {
-                            variant_index: VRT0,
+                            variant_index: FIRST_VARIANT,
                             field_index: FLD0,
                             projected_ty,
                         });
@@ -468,7 +468,9 @@ impl<'tcx> Site<'tcx> {
                                 && field_index.index() < def.variants()[variant_index].fields.len()
                         ),
                         RhTyKind::Tuple { elems } => {
-                            assert!(variant_index == VRT0 && field_index.index() < elems.len());
+                            assert!(
+                                variant_index == FIRST_VARIANT && field_index.index() < elems.len()
+                            );
                         }
                         _ => panic!("unexpected type {projected_ty} for taking a field"),
                     };

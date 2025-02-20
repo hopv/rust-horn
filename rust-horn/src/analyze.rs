@@ -5,7 +5,7 @@ use crate::types::{
     OrderedSet, ParamEnv, Place, RhTyKind, Rvalue, Spanned, Statement, StatementKind,
     TerminatorKind, Ty, TyCtxt, Tys, VariantDef,
 };
-use crate::util::{is_main, BB0, _0};
+use crate::util::{is_main, RETURN_PLACE, START_BLOCK};
 
 pub mod graph;
 use graph::Basic;
@@ -46,7 +46,7 @@ impl<'tcx> Rule<'tcx> {
             .into_iter()
             .map(|(_, expr)| expr)
             .collect::<Vec<_>>();
-        let res_ty = _0.get_ty(mir_access);
+        let res_ty = RETURN_PLACE.get_ty(mir_access);
         if !res_ty.is_unit() {
             args.push(Expr::from_var(Var::SelfResult, res_ty));
         }
@@ -106,7 +106,7 @@ impl<'a, 'tcx> Data<'a, '_, 'tcx> {
         if let Pivot::Switch(bb) = pivot {
             &outs_map[&bb]
         } else {
-            &ins_map[&BB0]
+            &ins_map[&START_BLOCK]
         }
     }
     fn place_discriminant_kind(self, pivot: BasicBlock) -> (Place<'tcx>, DiscriminantKind) {
@@ -137,7 +137,7 @@ impl<'a, 'tcx> Data<'a, '_, 'tcx> {
             .into_iter()
             .map(|local| local.get_ty(mir_access))
             .collect();
-        let res_ty = _0.get_ty(mir_access);
+        let res_ty = RETURN_PLACE.get_ty(mir_access);
         if !res_ty.is_unit() {
             res.push(res_ty);
         }
@@ -167,7 +167,7 @@ fn pivot_up<'tcx>(
     for (local, expr) in env {
         expr.do_drop(&local.get_ty(mir_access), mir_access, &mut conds);
     }
-    let res_ty = _0.get_ty(mir_access);
+    let res_ty = RETURN_PLACE.get_ty(mir_access);
     if !res_ty.is_unit() {
         args.push(Expr::from_var(Var::SelfResult, res_ty));
     }
@@ -232,7 +232,7 @@ fn get_prerule<'tcx>(
                 continue;
             }
             TerminatorKind::Return => {
-                let res = env.swap_remove(&_0);
+                let res = env.swap_remove(&RETURN_PLACE);
                 for (local, expr) in env {
                     expr.do_drop(&local.get_ty(mir_access), mir_access, &mut conds);
                 }
@@ -419,7 +419,7 @@ fn analyze_pivot<'tcx>(
     }));
     match pivot {
         Pivot::Entry => {
-            prerules.push(get_prerule(is_main, BB0, env, data, def_request));
+            prerules.push(get_prerule(is_main, START_BLOCK, env, data, def_request));
         }
         Pivot::Switch(bb) => {
             let terminator = &basic[bb].terminator();

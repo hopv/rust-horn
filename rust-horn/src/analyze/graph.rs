@@ -6,7 +6,7 @@ use crate::types::{
     BasicBlock, BasicBlockData, BasicBlocks, Local, Operand, OrderedSet, Place, Rvalue,
     StatementKind, TerminatorKind,
 };
-use crate::util::{enumerate_basicblock_datas, BB0};
+use crate::util::{enumerate_basicblock_datas, START_BLOCK};
 
 #[derive(Copy, Clone)]
 pub struct Basic<'a, 'tcx> {
@@ -167,7 +167,7 @@ impl<'a, 'tcx> Basic<'a, 'tcx> {
         for i in 1..=n_init_ins {
             init_ins.insert(Local::from(i));
         }
-        dfs(BB0, &init_ins, None, self, &mut ins_map);
+        dfs(START_BLOCK, &init_ins, None, self, &mut ins_map);
         let mut outs_map = IndexMap::<BasicBlock, OrderedSet<Local>>::new();
         for (me, _) in enumerate_basicblock_datas(self.bbds) {
             let mut outs = OrderedSet::<Local>::new();
