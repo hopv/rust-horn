@@ -46,13 +46,7 @@ impl<'tcx> Rule<'tcx> {
             .into_iter()
             .map(|(_, expr)| expr)
             .collect::<Vec<_>>();
-        let res_ty = RETURN_PLACE.get_ty(mir_access);
-        if !res_ty.is_unit() {
-            args.push(Expr::from_var(Var::SelfResult, res_ty));
-        }
-        if is_main {
-            args.push(Expr::from_var(Var::SelfPanic, mir_access.bool()));
-        }
+        finalize_args(&mut args, mir_access, is_main);
         let mut vars: IndexMap<Var, Ty> = IndexMap::new();
         args.gather_vars(mir_access, def_request, &mut vars);
         conds.gather_vars(mir_access, def_request, &mut vars);
@@ -64,6 +58,16 @@ impl<'tcx> Rule<'tcx> {
             conds,
             end,
         }
+    }
+}
+
+fn finalize_args<'tcx>(args: &mut Vec<Expr<'tcx>>, mir_access: MirAccess<'_, 'tcx>, is_main: bool) {
+    let res_ty = RETURN_PLACE.get_ty(mir_access);
+    if !res_ty.is_unit() {
+        args.push(Expr::from_var(Var::SelfResult, res_ty));
+    }
+    if is_main {
+        args.push(Expr::from_var(Var::SelfPanic, mir_access.bool()));
     }
 }
 
@@ -167,13 +171,7 @@ fn pivot_up<'tcx>(
     for (local, expr) in env {
         expr.do_drop(&local.get_ty(mir_access), mir_access, &mut conds);
     }
-    let res_ty = RETURN_PLACE.get_ty(mir_access);
-    if !res_ty.is_unit() {
-        args.push(Expr::from_var(Var::SelfResult, res_ty));
-    }
-    if is_main {
-        args.push(Expr::from_var(Var::SelfPanic, mir_access.bool()));
-    }
+    finalize_args(&mut args, mir_access, is_main);
     Prerule {
         init_env,
         conds,
