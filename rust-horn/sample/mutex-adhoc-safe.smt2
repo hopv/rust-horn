@@ -1,7 +1,7 @@
 (set-logic HORN)
 
 ; library definitions
-(declare-datatypes ((ChannelBuf<Int> 0)) ((par () ((insert (head Int) (tail ChannelBuf<Int>)) (nilBuf)))))
+(declare-datatypes ((ChannelBuf<Int> 0)) ((par () ((insert (content Int) (time Real) (tail ChannelBuf<Int>)) (nilBuf)))))
 
 ; adt definitions
 (declare-datatypes ((%Mutex 0)) ((par () (
@@ -13,10 +13,16 @@
 ; library definitions
 (declare-fun MergeInt (ChannelBuf<Int> ChannelBuf<Int> ChannelBuf<Int>) Bool)
 (assert (MergeInt nilBuf nilBuf nilBuf))
-(assert (forall ((x1 ChannelBuf<Int>) (x2 ChannelBuf<Int>) (x ChannelBuf<Int>) (n Int))
-  (=> (MergeInt x1 x2 x) (MergeInt (insert n x1) x2 (insert n x)))))
-(assert (forall ((x1 ChannelBuf<Int>) (x2 ChannelBuf<Int>) (x ChannelBuf<Int>) (n Int))
-  (=> (MergeInt x1 x2 x) (MergeInt x1 (insert n x2) (insert n x)))))
+(assert (forall ((x1 ChannelBuf<Int>) (x2 ChannelBuf<Int>) (x ChannelBuf<Int>) (n Int) (t Real))
+  (=> (MergeInt x1 x2 x) (MergeInt (insert n t x1) x2 (insert n t x)))))
+(assert (forall ((x1 ChannelBuf<Int>) (x2 ChannelBuf<Int>) (x ChannelBuf<Int>) (n Int) (t Real))
+  (=> (MergeInt x1 x2 x) (MergeInt x1 (insert n t x2) (insert n t x)))))
+(declare-fun Sorted (ChannelBuf<Int>) Bool)
+(assert (Sorted nilBuf))
+(assert (forall ((n Int) (t Real))
+  (Sorted (insert n t nilBuf))))
+(assert (forall ((x ChannelBuf<Int>) (n1 Int) (t1 Real) (n2 Int) (t2 Real))
+  (=> (and (<= t1 t2) (Sorted (insert n1 t1 x))) (Sorted (insert n1 t1 (insert n2 t2 x))))))
 
 ; functions
 (declare-fun %main (Bool) Bool)

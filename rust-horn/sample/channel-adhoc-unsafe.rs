@@ -33,5 +33,5 @@ fn main() {
     sender2.drop();
     let received = receiver.recv();
     let received_2 = receiver.recv();
-    assert!(received == 1);
+    assert!(received_2 == 1);
 }
