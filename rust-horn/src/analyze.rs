@@ -1,5 +1,4 @@
 use crate::library::{self, IntrinsicKind};
-use crate::prettify::pr_fun_name;
 use crate::types::{
     BasicBlock, DefId, EntryFnType, FieldDef, FieldIdx, FunTy, Instance, Local, Operand,
     OrderedSet, ParamEnv, Place, RhTyKind, Rvalue, Spanned, Statement, StatementKind,
@@ -351,7 +350,7 @@ fn gather_conds_from_fun<'tcx>(
     def_request: &mut Request<'tcx>,
 ) {
     let did = instance.def_id();
-    let fun_name = pr_fun_name(did);
+
     if let Some(intrinsic) = library::is_intrinsic(mir_access.tcx, did) {
         match intrinsic {
             IntrinsicKind::BinOp(bin_op) => {
@@ -372,30 +371,47 @@ fn gather_conds_from_fun<'tcx>(
                 res_place.assign(res, env, conds, mir_access);
             }
         }
-    } else if fun_name == "<rand>" {
+        return;
+    }
+
+    // ad-hoc handling for `rand` function
+    // This implementation causes a function named `rand` in the local crate to be treated as a function that returns a random value.
+    if crate::pr_name(did) == "rand" {
         let res = Expr::from_var(Var::Rand { caller }, res_ty);
         res_place.assign(res, env, conds, mir_access);
-    } else if fun_name == "<swap>" {
-        assert!(args.len() == 2);
-        let (x, x_) = args[0].node.get_expr(env, mir_access).decompose_mut();
-        let (y, y_) = args[1].node.get_expr(env, mir_access).decompose_mut();
-        conds.push(Cond::Eq { tgt: y_, src: x });
-        conds.push(Cond::Eq { tgt: x_, src: y });
-    } else if fun_name == "<free>" {
-        // do nothing
-    } else {
-        def_request.analyze_fun(did);
-        let mut args: Vec<_> = args
+        return;
+    }
+
+    if let Some(hardcoded) = library::is_hardcoded(mir_access.tcx, did) {
+        let args = args
             .iter()
             .map(|arg| arg.node.get_expr(env, mir_access))
-            .collect();
-        if !res_ty.is_unit() {
-            let res = Expr::from_var(Var::CallResult { caller }, res_ty);
-            res_place.assign(res.clone(), env, conds, mir_access);
-            args.push(res);
+            .collect::<Vec<_>>();
+        if let Some(ret) = hardcoded(
+            library::interpret::State {
+                mir_access,
+                env,
+                conds,
+                def_request,
+            },
+            &args,
+        ) {
+            res_place.assign(ret, env, conds, mir_access);
         }
-        conds.push(Cond::CallRustFn { fun_id: did, args });
+        return;
     }
+
+    def_request.analyze_fun(did);
+    let mut args: Vec<_> = args
+        .iter()
+        .map(|arg| arg.node.get_expr(env, mir_access))
+        .collect();
+    if !res_ty.is_unit() {
+        let res = Expr::from_var(Var::CallResult { caller }, res_ty);
+        res_place.assign(res.clone(), env, conds, mir_access);
+        args.push(res);
+    }
+    conds.push(Cond::CallRustFn { fun_id: did, args });
 }
 
 fn analyze_pivot<'tcx>(

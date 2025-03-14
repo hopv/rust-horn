@@ -14,6 +14,9 @@ use crate::util::{FIRST_VARIANT, FLD0, FLD1};
 #[derive(Copy, Clone)]
 /// Access to the MIR and the type context.
 pub struct MirAccess<'steal, 'tcx> {
+    /// The stolen MIR body obtained from `mir_built` query and [`rustc_data_structures::steal::Steal::borrow`].
+    ///
+    /// `'steal` is the lifetime of the borrow. It cannot outlive `'tcx`.
     pub mir: &'steal MirBody<'tcx>,
     pub tcx: TyCtxt<'tcx>,
 }
@@ -78,16 +81,20 @@ impl<'tcx> MirAccessCtxExt<'tcx> for FieldDef {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-/// Basically `Var`iables need to be unique.
+/// Variables in the output logic.
+///
+/// Basically they need to be unique.
 pub enum Var {
     /// Input variable of a basic block, and argument of a predicate.
     Input {
         /// Corresponding `Local` in the MIR.
         local: Local,
     },
-    /// Result of the function. Called `res` in the paper.
+    /// Result of the function.
+    ///
+    /// Called `res` in the paper.
     SelfResult,
-    /// Does the function get `panic!`ked?
+    /// Whether the function `panic!`ed.
     SelfPanic,
     CallResult {
         /// `BasicBlock` of the `Call` instruction
@@ -128,6 +135,7 @@ mod sealed {
 pub struct Ident(pub u32, pub sealed::SealedZst);
 
 impl Ident {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         static COUNTER: AtomicU32 = AtomicU32::new(0);
         Self(
@@ -432,14 +440,15 @@ impl<'tcx> Expr<'tcx> {
             Expr::Path(path.get_proj(&ty, FIRST_VARIANT, FLD1)),
         )
     }
-    pub fn decompose_mut(self) -> (Self, Self) {
+    pub fn decompose_mut(&self) -> (Self, Self) {
         match self {
-            Expr::Path(path) => Self::decompose_mut_path(&path),
+            Expr::Path(path) => Self::decompose_mut_path(path),
             Expr::Aggregate {
                 variant_index: FIRST_VARIANT,
-                fields: mut xx_,
+                fields,
                 ..
-            } if xx_.len() == 2 => {
+            } if fields.len() == 2 => {
+                let mut xx_ = fields.clone();
                 let x_ = xx_.pop().unwrap();
                 let x = xx_.pop().unwrap();
                 (x, x_)
@@ -766,7 +775,7 @@ impl<'tcx> DropExt<'tcx> for Expr<'tcx> {
                 fields,
             } => match ty.kind() {
                 RhTyKind::RefMut { .. } => {
-                    let (x, x_) = self.clone().decompose_mut();
+                    let (x, x_) = self.decompose_mut();
                     conds.push(Cond::Eq { tgt: x_, src: x });
                 }
                 RhTyKind::Adt { def, args } => {

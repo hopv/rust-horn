@@ -10,7 +10,7 @@ use crate::analyze::data;
 use crate::types::{DefId, TyCtxt};
 
 use super::def_id_filter::DefIdFilter;
-use super::impls;
+use super::{impls, interpret::HardcodedImplFnPtrTy};
 
 pub struct Item {
     kind: ItemKind,
@@ -25,6 +25,7 @@ pub struct Item {
 pub enum ItemKind {
     Intrinsic(IntrinsicKind),
     RawChcDef(RawChcDef),
+    HardcodedImpl(HardcodedImplFnPtrTy),
     #[allow(dead_code)]
     TypeDef(TypeDef),
     #[allow(dead_code)]
@@ -60,6 +61,14 @@ impl ItemKind {
     pub fn as_fn_def(&self) -> Option<&FnDef> {
         if let Self::FnDef(v) = self {
             Some(v)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_hardcoded_impl(&self) -> Option<HardcodedImplFnPtrTy> {
+        if let Self::HardcodedImpl(v) = self {
+            Some(*v)
         } else {
             None
         }
@@ -139,8 +148,10 @@ impl ItemStore {
             activated_items: Arc::new(Mutex::new(FxHashSet::default())),
         };
         impls::provide_intrinsic_items(&mut this);
+        impls::provide_stdlib_items(&mut this);
         this
     }
+    #[allow(dead_code)]
     pub fn register_item(&mut self, item: ItemKind, activate_other: Option<ItemIdx>) -> ItemIdx {
         self.items.push(Item {
             kind: item,
@@ -207,6 +218,10 @@ fn item_from_def_id(tcx: TyCtxt, def_id: DefId) -> Option<&'static ItemKind> {
 
 pub fn is_intrinsic(tcx: TyCtxt, def_id: DefId) -> Option<IntrinsicKind> {
     item_from_def_id(tcx, def_id).and_then(ItemKind::as_intrinsic)
+}
+
+pub fn is_hardcoded(tcx: TyCtxt, def_id: DefId) -> Option<HardcodedImplFnPtrTy> {
+    item_from_def_id(tcx, def_id).and_then(ItemKind::as_hardcoded_impl)
 }
 
 pub fn need_to_rename_ty(tcx: TyCtxt, def_id: DefId) -> Option<&'static str> {

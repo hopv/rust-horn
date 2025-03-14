@@ -1,4 +1,4 @@
-use crate::analyze::data;
+use crate::analyze::data::{self, Cond};
 
 use super::{
     def_id_filter::DefIdFilter,
@@ -43,6 +43,25 @@ pub fn provide_intrinsic_items(store: &mut ItemStore) {
             .at_value_ns("abs")
             .finish(),
         ItemKind::Intrinsic(IntrinsicKind::UnOp(data::UnOp::Abs)),
+        None,
+    );
+}
+
+pub fn provide_stdlib_items(store: &mut ItemStore) {
+    store.register_filter(
+        DefIdFilter::crate_name("core")
+            .at_type_ns("mem")
+            .at_impl()
+            .at_value_ns("swap")
+            .finish(),
+        ItemKind::HardcodedImpl(|state, args| {
+            let (x, x_) = args[0].decompose_mut();
+            let (y, y_) = args[1].decompose_mut();
+            state.conds.push(Cond::Eq { tgt: y_, src: x });
+            state.conds.push(Cond::Eq { tgt: x_, src: y });
+
+            None
+        }),
         None,
     );
 }

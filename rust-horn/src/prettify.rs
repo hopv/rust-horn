@@ -13,21 +13,6 @@ pub fn pr_name(def_id: DefId) -> String {
     with_tcx(|tcx| tcx.def_path_str(def_id)).replace("{{closure}}", "{clsr}")
 }
 
-pub fn pr_fun_name(fun: DefId) -> String {
-    let name = pr_name(fun);
-    match name.as_str() {
-        "rand" => "<rand>".to_string(),
-        "alloc::alloc::box_free" => "<free>".to_string(),
-        "std::io::_print" => "<print>".to_string(),
-        "std::mem::swap" => "<swap>".to_string(),
-        "std::rt::begin_panic" => "<panic>".to_string(),
-        "std::intrinsics::discriminant_value" => "<tag>".to_string(),
-        "std::ops::Fn::call" => "<call>".to_string(),
-        _ if "std::fmt".is_prefix_of(&name) => "<fmt>".to_string(),
-        _ => name,
-    }
-}
-
 pub struct Pr<T> {
     unpr: T,
 }
@@ -117,13 +102,7 @@ impl Display for Pr<rustc_middle::ty::Ty<'_>> {
             TyKind::Ref(_, ty, Mutability::Mut) => write!(f, "&mut {}", pr(ty)),
             TyKind::FnDef(fun, generic_args) => with_tcx(|tcx| {
                 let fn_sig = tcx.fn_sig(*fun).skip_binder().skip_binder();
-                write!(
-                    f,
-                    "fn {}{}{}",
-                    pr_fun_name(*fun),
-                    pr(generic_args),
-                    pr(fn_sig)
-                )
+                write!(f, "fn {}{}{}", pr_name(*fun), pr(generic_args), pr(fn_sig))
             }),
             TyKind::FnPtr(poly_fn_sig, _) => {
                 write!(f, "fn {}", pr(poly_fn_sig.skip_binder()))
